@@ -18,6 +18,7 @@ final class Backdrop extends Actor {
     private static final float GLOW_ALPHA = 0.16f;
 
     private final Theme theme;
+    private float elapsed;
 
     Backdrop(Theme theme) {
         this.theme = theme;
@@ -26,10 +27,17 @@ final class Backdrop extends Actor {
     }
 
     @Override
+    public void act(float delta) {
+        elapsed += delta;
+        super.act(delta);
+    }
+
+    @Override
     public void draw(Batch batch, float parentAlpha) {
         float gx = (Theme.WORLD_WIDTH - GLOW_SIZE) / 2f;
         float gy = (Theme.WORLD_HEIGHT - GLOW_SIZE) / 2f + GLOW_Y_OFFSET;
-        batch.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, GLOW_ALPHA);
+        float glowAlpha = GLOW_ALPHA * TorchFlicker.intensityAt(elapsed);
+        batch.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, glowAlpha);
         batch.draw(theme.glowRegion(), gx, gy, GLOW_SIZE, GLOW_SIZE);
 
         batch.setColor(1f, 1f, 1f, 1f);
