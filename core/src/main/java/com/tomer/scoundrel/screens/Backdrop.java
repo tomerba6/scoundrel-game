@@ -18,6 +18,7 @@ final class Backdrop extends Actor {
     private static final float GLOW_ALPHA = 0.16f;
 
     private final Theme theme;
+    private final Embers embers = new Embers(1337);
     private float elapsed;
 
     Backdrop(Theme theme) {
@@ -29,6 +30,7 @@ final class Backdrop extends Actor {
     @Override
     public void act(float delta) {
         elapsed += delta;
+        embers.update(delta);
         super.act(delta);
     }
 
@@ -42,6 +44,13 @@ final class Backdrop extends Actor {
 
         batch.setColor(1f, 1f, 1f, 1f);
         batch.draw(theme.vignetteRegion(), 0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+
+        // Drifting embers, over the vignette so they still glow in the dark corners.
+        for (Embers.Ember e : embers.particles()) {
+            batch.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, e.alpha);
+            batch.draw(theme.dotRegion(), e.x - e.size / 2f, e.y - e.size / 2f, e.size, e.size);
+        }
         // Leave the batch colour as we found it for the actors drawn on top.
+        batch.setColor(1f, 1f, 1f, 1f);
     }
 }

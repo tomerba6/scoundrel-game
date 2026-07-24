@@ -64,8 +64,10 @@ public final class Theme implements Disposable {
     private final Texture white;
     private final Texture glow;
     private final Texture vignette;
+    private final Texture dot;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
+    private final TextureRegion dotRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -92,8 +94,10 @@ public final class Theme implements Disposable {
 
         glow = radialGlowTexture(256);
         vignette = vignetteTexture(256);
+        dot = softDotTexture(32);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
+        dotRegion = new TextureRegion(dot);
 
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
@@ -114,6 +118,11 @@ public final class Theme implements Disposable {
     /** Black edge-darkening vignette with its alpha baked in. */
     TextureRegion vignetteRegion() {
         return vignetteRegion;
+    }
+
+    /** A soft round mote (white; tinted at draw) for the drifting embers. */
+    TextureRegion dotRegion() {
+        return dotRegion;
     }
 
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
@@ -176,6 +185,24 @@ public final class Theme implements Disposable {
 
     private static float dither(float a, Random rng) {
         return Math.max(0f, Math.min(1f, a + (rng.nextFloat() - 0.5f) * DITHER));
+    }
+
+    /** A soft round mote: white with a gentle alpha falloff from the centre. */
+    private static Texture softDotTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setBlending(Pixmap.Blending.None);
+        float c = size / 2f;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                float dx = (x - c) / c;
+                float dy = (y - c) / c;
+                float d = (float) Math.sqrt(dx * dx + dy * dy);
+                float a = Math.max(0f, 1f - d);
+                p.setColor(1f, 1f, 1f, (float) Math.pow(a, 1.5));
+                p.drawPixel(x, y);
+            }
+        }
+        return linearTexture(p);
     }
 
     private static Texture linearTexture(Pixmap pixmap) {
@@ -246,6 +273,7 @@ public final class Theme implements Disposable {
         white.dispose();
         glow.dispose();
         vignette.dispose();
+        dot.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }
