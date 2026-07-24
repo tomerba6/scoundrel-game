@@ -3,6 +3,7 @@ package com.tomer.scoundrel;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.tomer.scoundrel.achievements.AchievementStore;
+import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
@@ -36,8 +37,8 @@ public class ScoundrelGame extends Game {
         switchTo(new TitleScreen(this, theme));
     }
 
-    public void showGame() {
-        switchTo(new GameScreen(this, theme, runLog, achievements));
+    public void showGame(GameMode mode) {
+        switchTo(new GameScreen(this, theme, runLog, achievements, mode));
     }
 
     public void showRecords() {

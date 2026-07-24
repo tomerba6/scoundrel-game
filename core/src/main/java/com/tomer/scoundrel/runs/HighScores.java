@@ -23,4 +23,16 @@ public final class HighScores {
     public static OptionalInt best(List<RunRecord> runs) {
         return runs.stream().mapToInt(RunRecord::score).max();
     }
+
+    /**
+     * The best score among runs of one ruleset; empty when that mode has no runs
+     * yet. Modes aren't comparable — a Frail 14 shouldn't be buried by a Standard
+     * 20 — so each is ranked against its own.
+     */
+    public static OptionalInt bestForRuleset(List<RunRecord> runs, String rulesetId) {
+        return runs.stream()
+                .filter(run -> run.rulesetId().equals(rulesetId))
+                .mapToInt(RunRecord::score)
+                .max();
+    }
 }

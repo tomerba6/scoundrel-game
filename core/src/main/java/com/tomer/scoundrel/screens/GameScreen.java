@@ -32,10 +32,10 @@ import com.tomer.scoundrel.model.EquippedWeapon;
 import com.tomer.scoundrel.model.GameState;
 import com.tomer.scoundrel.model.Status;
 import com.tomer.scoundrel.rules.GameEvent;
+import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.rules.Move;
 import com.tomer.scoundrel.rules.MoveResult;
 import com.tomer.scoundrel.rules.Ruleset;
-import com.tomer.scoundrel.rules.Rulesets;
 import com.tomer.scoundrel.rules.ScoundrelEngine;
 import com.tomer.scoundrel.runs.HighScores;
 import com.tomer.scoundrel.runs.RunLog;
@@ -63,10 +63,9 @@ import static com.tomer.scoundrel.screens.Widgets.torchButton;
  */
 public final class GameScreen extends ScreenAdapter {
 
-    private static final String RULESET_ID = "standard";
-
     private final ScoundrelGame game;
     private final Theme theme;
+    private final GameMode mode;
     private final Ruleset rules;
     private final ScoundrelEngine engine;
     private final Stage stage;
@@ -87,12 +86,14 @@ public final class GameScreen extends ScreenAdapter {
     private List<Achievement> newlyUnlocked = List.of();
     private Actor endOverlay;
 
-    public GameScreen(ScoundrelGame game, Theme theme, RunLog runLog, AchievementStore achievements) {
+    public GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
+                      AchievementStore achievements, GameMode mode) {
         this.game = game;
         this.theme = theme;
         this.runLog = runLog;
         this.achievements = achievements;
-        this.rules = Rulesets.standard();
+        this.mode = mode;
+        this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
         this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
         this.choreographer = new Choreographer(stage, theme, this::resolveCardAt);
@@ -428,7 +429,7 @@ public final class GameScreen extends ScreenAdapter {
     private void startRun() {
         long seed = new Random().nextLong();
         state = engine.newGame(seed);
-        recorder = new RunRecorder(seed, RULESET_ID, Clock.systemUTC());
+        recorder = new RunRecorder(seed, mode.id(), Clock.systemUTC());
         tracker = new AchievementTracker(rules.cardsResolvedPerTurn());
         endBestLine = null;
         newlyUnlocked = List.of();
@@ -450,7 +451,7 @@ public final class GameScreen extends ScreenAdapter {
             return;
         }
         try {
-            OptionalInt bestBefore = HighScores.best(runLog.readAll());
+            OptionalInt bestBefore = HighScores.bestForRuleset(runLog.readAll(), mode.id());
             runLog.append(record);
             endBestLine = bestBefore.isEmpty() || state.score() > bestBefore.getAsInt()
                     ? "New best!"
@@ -459,19 +460,23 @@ public final class GameScreen extends ScreenAdapter {
             Gdx.app.error("scoundrel", "failed to record the run", e);
             endBestLine = null;
         }
-        // The history must include the run just appended, so milestone
-        // achievements (finish N runs, defeat N monsters) see this game.
-        try {
-            RunSummary summary = tracker.toSummary(record.seconds());
-            AchievementContext context = new AchievementContext(summary, runLog.readAll());
-            newlyUnlocked = AchievementService.newlyEarned(
-                    Achievements.all(), context, achievements.unlockedIds());
-            for (Achievement earned : newlyUnlocked) {
-                achievements.append(new UnlockedAchievement(earned.id(), record.endedAt()));
+        // Achievements are earned in ranked (Standard) mode only; variants still
+        // recorded their run above. The history must include the run just
+        // appended, so milestone achievements (finish N runs, defeat N monsters)
+        // see this game.
+        if (mode.tracksAchievements()) {
+            try {
+                RunSummary summary = tracker.toSummary(record.seconds());
+                AchievementContext context = new AchievementContext(summary, runLog.readAll());
+                newlyUnlocked = AchievementService.newlyEarned(
+                        Achievements.all(), context, achievements.unlockedIds());
+                for (Achievement earned : newlyUnlocked) {
+                    achievements.append(new UnlockedAchievement(earned.id(), record.endedAt()));
+                }
+            } catch (RuntimeException e) {
+                Gdx.app.error("scoundrel", "failed to evaluate achievements", e);
+                newlyUnlocked = List.of();
             }
-        } catch (RuntimeException e) {
-            Gdx.app.error("scoundrel", "failed to evaluate achievements", e);
-            newlyUnlocked = List.of();
         }
     }
 
