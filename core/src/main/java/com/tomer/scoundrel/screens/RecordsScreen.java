@@ -14,6 +14,8 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.AchievementStore;
 import com.tomer.scoundrel.model.Status;
+import com.tomer.scoundrel.rules.GameMode;
+import com.tomer.scoundrel.rules.GameModes;
 import com.tomer.scoundrel.runs.HighScores;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.runs.RunRecord;
@@ -179,6 +181,9 @@ public final class RecordsScreen extends ScreenAdapter {
                     run.score() < 0 ? Theme.DRIED_BLOOD : Theme.BONE)).right().padRight(28);
             table.add(label(won ? "cleared" : "defeated", theme.body,
                     won ? dim(Theme.TORCHLIGHT, 0.9f) : dim(Theme.BONE, 0.5f))).left().padRight(28);
+            // Scores are ranked per mode, so a row must say which one it was won in.
+            table.add(label(modeLabel(run.rulesetId()), theme.small, dim(Theme.BONE, 0.5f)))
+                    .left().padRight(28);
             table.add(label(DAY.format(run.endedAt()), theme.small, dim(Theme.BONE, 0.5f)))
                     .left().padRight(28);
             table.add(label(duration(run.seconds()), theme.small, dim(Theme.BONE, 0.5f)))
@@ -187,10 +192,15 @@ public final class RecordsScreen extends ScreenAdapter {
                     .left();
             table.row();
             table.add(new Image(theme.solid(dim(Theme.BONE, 0.13f))))
-                    .colspan(6).growX().height(1).padTop(7).padBottom(7);
+                    .colspan(7).growX().height(1).padTop(7).padBottom(7);
             table.row();
         }
         return table;
+    }
+
+    /** The mode's menu name; an unknown or retired id falls back to the raw id. */
+    private static String modeLabel(String rulesetId) {
+        return GameModes.byId(rulesetId).map(GameMode::title).orElse(rulesetId);
     }
 
     private Table totalsColumn(Theme theme, RunTotals totals) {

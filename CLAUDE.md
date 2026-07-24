@@ -36,9 +36,11 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
   Consult it when working on the engine, and keep it in sync when the design changes.
 - **UI layer reference:** the Scene2D UI — locked interview decisions, theme tokens,
   architecture, and every on-screen component — is documented in
-  [`docs/ui.md`](docs/ui.md). The current UI is the deliberate *plain* version;
-  card art, sprites, and animations come in a later pass. Consult it when working
-  on screens, and keep it in sync when the UI changes.
+  [`docs/ui.md`](docs/ui.md). The current UI is the deliberate *plain* version —
+  flat typed tiles, no card art. Only card art and sprites remain for a later
+  pass; card motion (deal-in, avoid-sweep) and HP pulses have already shipped
+  (the `Choreographer`). Consult it when working on screens, and keep it in sync
+  when the UI changes.
 
 ## Working preferences
 - For any non-trivial change, propose a plan first and wait for review before coding.
@@ -99,11 +101,14 @@ can never heal above 20, except in the one scoring edge case noted below).
   if your life is 20 *and* the last card resolved was a health potion, your score is
   20 + that potion's value (the only way the total exceeds 20).
 
-## Extensibility (design the seams, build only base Scoundrel)
+## Extensibility (the seams, and what is built on them)
 
-This game will later grow achievements, difficulty/variation modes, and new cards
-with special abilities. Design clean extension points for these now, but implement
-ONLY base Scoundrel behind them. Do not build the expansions yet.
+These seams were designed up front for achievements, difficulty/variation modes,
+and new cards with special abilities. **Shipped:** high scores and lifetime stats
+(`runs`), achievements (`achievements`), and three difficulty modes — Standard,
+Relentless, Frail — as `Rulesets` factories named by the `GameModes` catalog.
+**Not built:** new cards with special abilities. Keep designing for it; don't
+build it speculatively.
 
 - Cards are data-driven. A card references a definition (id, type, value, and an
   effect that applies itself to the game state). Resolving a card dispatches to its
@@ -118,9 +123,12 @@ ONLY base Scoundrel behind them. Do not build the expansions yet.
   events that occurred (e.g. monster slain, potion wasted, weapon broke, room
   avoided, game won). Achievements/stats/UI observe these from OUTSIDE core. The
   core module must never import achievements, persistence, or UI.
-- Keep GameState as plain, serializable records so saves, high scores, and
-  achievements can be persisted later. Don't implement persistence now.
+- Keep GameState as plain, serializable records. Local persistence exists for runs
+  and achievements (tolerant, versioned `key=value` logs under `~/.scoundrel/`,
+  with a recoverable soft-delete). There is still no mid-game save/resume and no
+  replay format — don't build either.
 
-Guardrail: no speculative abstraction. One standard ruleset, the three base card
-effects, no plugin framework. Every extension point must be justified by one of the
+Guardrail: no speculative abstraction. A new difficulty is a `Rulesets` factory
+plus a `GameModes` entry — not new engine code; still the three base card effects,
+still no plugin framework. Every extension point must be justified by one of the
 named future features; if it isn't, leave it out.

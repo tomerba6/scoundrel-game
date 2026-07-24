@@ -35,7 +35,7 @@ public final class TitleScreen extends ScreenAdapter {
         newGame.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                game.showGame();
+                game.showModeSelect();
             }
         });
         root.add(newGame).width(240).padBottom(12);
