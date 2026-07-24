@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.Disposable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * The torchlit-dungeon look of the plain UI: palette, fonts, and flat
@@ -61,6 +62,10 @@ public final class Theme implements Disposable {
     public final BitmapFont small;
 
     private final Texture white;
+    private final Texture glow;
+    private final Texture vignette;
+    private final TextureRegion glowRegion;
+    private final TextureRegion vignetteRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -85,6 +90,11 @@ public final class Theme implements Disposable {
         white = new Texture(pixel);
         pixel.dispose();
 
+        glow = radialGlowTexture(256);
+        vignette = vignetteTexture(256);
+        glowRegion = new TextureRegion(glow);
+        vignetteRegion = new TextureRegion(vignette);
+
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
         suitTextures.put('D', suitTexture('D'));
@@ -96,6 +106,16 @@ public final class Theme implements Disposable {
         return new TextureRegionDrawable(new TextureRegion(white)).tint(color);
     }
 
+    /** Soft warm radial glow (white; tinted at draw). Package-private — only the Backdrop uses it. */
+    TextureRegion glowRegion() {
+        return glowRegion;
+    }
+
+    /** Black edge-darkening vignette with its alpha baked in. */
+    TextureRegion vignetteRegion() {
+        return vignetteRegion;
+    }
+
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
     public Drawable suitIcon(char suitLetter, Color tint) {
         Texture texture = suitTextures.get(suitLetter);
@@ -103,6 +123,71 @@ public final class Theme implements Disposable {
             throw new IllegalArgumentException("Unknown suit letter: " + suitLetter);
         }
         return new TextureRegionDrawable(new TextureRegion(texture)).tint(tint);
+    }
+
+    // A gradient stored in 8-bit alpha bands into visible contours when stretched
+    // this large; ±1 LSB of dither noise breaks the flat steps into a smooth ramp.
+    private static final float DITHER = 2.5f / 255f;
+
+    /**
+     * A soft warm light: white with alpha falling off from the centre (squared,
+     * for a quick soft edge). Drawn large and tinted torchlight behind the board.
+     */
+    private static Texture radialGlowTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setBlending(Pixmap.Blending.None);
+        Random rng = new Random(1);
+        float c = size / 2f;
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                float dx = (x - c) / c;
+                float dy = (y - c) / c;
+                float d = (float) Math.sqrt(dx * dx + dy * dy);
+                float a = Math.max(0f, 1f - d);
+                p.setColor(1f, 1f, 1f, dither(a * a, rng));
+                p.drawPixel(x, y);
+            }
+        }
+        return linearTexture(p);
+    }
+
+    /**
+     * Edge darkening: transparent through the middle, ramping to a soft black
+     * toward the corners. Stretched over the whole world; the square-to-wide
+     * stretch turns the radius into a pleasing widescreen ellipse.
+     */
+    private static Texture vignetteTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setBlending(Pixmap.Blending.None);
+        Random rng = new Random(2);
+        float c = size / 2f;
+        float corner = (float) Math.sqrt(2);
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                float dx = (x - c) / c;
+                float dy = (y - c) / c;
+                float d = (float) Math.sqrt(dx * dx + dy * dy) / corner;
+                p.setColor(0f, 0f, 0f, dither(smoothstep(0.55f, 1f, d) * 0.6f, rng));
+                p.drawPixel(x, y);
+            }
+        }
+        return linearTexture(p);
+    }
+
+    private static float dither(float a, Random rng) {
+        return Math.max(0f, Math.min(1f, a + (rng.nextFloat() - 0.5f) * DITHER));
+    }
+
+    private static Texture linearTexture(Pixmap pixmap) {
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        pixmap.dispose();
+        return texture;
+    }
+
+    private static float smoothstep(float edge0, float edge1, float x) {
+        float t = Math.max(0f, Math.min(1f, (x - edge0) / (edge1 - edge0)));
+        return t * t * (3f - 2f * t);
     }
 
     private static BitmapFont generate(FreeTypeFontGenerator generator, int size) {
@@ -159,6 +244,8 @@ public final class Theme implements Disposable {
         bodyBold.dispose();
         small.dispose();
         white.dispose();
+        glow.dispose();
+        vignette.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }

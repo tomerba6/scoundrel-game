@@ -96,6 +96,7 @@ public final class GameScreen extends ScreenAdapter {
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
         this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage.addActor(new Backdrop(theme));
         this.choreographer = new Choreographer(stage, theme, this::resolveCardAt);
         startRun();
 

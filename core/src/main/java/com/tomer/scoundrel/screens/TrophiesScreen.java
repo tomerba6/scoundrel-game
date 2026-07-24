@@ -44,6 +44,7 @@ public final class TrophiesScreen extends ScreenAdapter {
 
     public TrophiesScreen(ScoundrelGame game, Theme theme, AchievementStore store) {
         stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage.addActor(new Backdrop(theme));
         Map<String, Instant> earned = readSafely(store);
         List<Achievement> all = Achievements.all();
         long earnedCount = all.stream().filter(a -> earned.containsKey(a.id())).count();
