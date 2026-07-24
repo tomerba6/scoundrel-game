@@ -175,15 +175,25 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   (`New best!` in torchlight, or `best N` dimmed — from the persisted run
   history), any achievements just unlocked under a torchlight
   `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is
-  earned), then **New game** (reshuffles in place), **Trophies**, and
-  **Records**.
+  earned), then **New game** (reshuffles in place, in the same mode),
+  **Trophies**, and **Records**.
 - **Title screen** — `SCOUNDREL` in display type over soot, New game,
   Records, and Trophies buttons, and a dim designer-credit line. Deliberately
-  empty otherwise; future menus join the button column.
+  empty otherwise; future menus join the button column. **New game** opens the
+  mode picker rather than starting a run directly.
+- **NEW GAME (mode picker)** — headed `NEW GAME` over `Choose your descent.`,
+  one hairline-ruled row per mode from `GameModes.all()`: the mode's name as the
+  torchlight button that starts the run, what it changes, and a right-aligned
+  `trophies count` / `no trophies` tag. That tag states the Standard-only
+  achievement rule *where the choice is made*, so a variant run never silently
+  fails to unlock. Back returns to the title. A new mode appears here with no
+  change to the screen.
 - **THE LEDGER (records screen)** — the top 10 runs as a dungeon ledger:
   Roman-numeral ranks in torchlight, scores in IM Fell (dried blood when
-  negative), outcome, date, duration, monsters slain, hairline rules between
-  rows. Beside it, lifetime totals headed `ACROSS N FINISHED RUNS` (the
+  negative), outcome, **the mode it was run in**, date, duration, monsters
+  slain, hairline rules between rows. The mode tag is required reading, not
+  decoration: scores are ranked per mode, so without it a Frail 14 beside a
+  Standard 20 is unreadable. An id with no matching mode renders as the raw id. Beside it, lifetime totals headed `ACROSS N FINISHED RUNS` (the
   label encodes the quit-runs decision: finished games are the whole
   universe). Empty state invites a first run. Back returns to the title; a
   quiet **Erase all progress** sits opposite it, bottom-right (disabled when
@@ -214,8 +224,9 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - `core/src/main/java/com/tomer/scoundrel/screens/Choreographer.java` — the
   flight layer: deal-in and avoid-sweep choreographies, input gate, skip.
 - `core/src/main/java/com/tomer/scoundrel/screens/TitleScreen.java` /
-  `RecordsScreen.java` / `TrophiesScreen.java` — the navigation anchor, THE
-  LEDGER, and the achievement catalog.
+  `ModeSelectScreen.java` / `RecordsScreen.java` / `TrophiesScreen.java` — the
+  navigation anchor, the difficulty picker, THE LEDGER, and the achievement
+  catalog.
 - `core/src/main/java/com/tomer/scoundrel/screens/CardTiles.java` /
   `Widgets.java` — shared tile, label and button builders, plus
   `pressListener` (the press-not-click input rule) and

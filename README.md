@@ -4,7 +4,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 
 Scoundrel is a solitaire dungeon crawl played with a trimmed deck of 44 cards. You descend through a "dungeon" of face-up cards, fighting monsters, picking up weapons, and drinking health potions, trying to survive to the bottom of the deck. It's quick, tense, and entirely a game of managing risk with the hand the shuffle deals you.
 
-> **Status:** playable. The full base game works — a pure, fully unit-tested rules engine, a plain Scene2D UI (typed card tiles, press to resolve, torchlit look), card motion, persisted high scores, a records screen, and achievements. Card art and sprites are still to come. See [Roadmap](#roadmap).
+> **Status:** playable. The full base game works — a pure, fully unit-tested rules engine, a plain Scene2D UI (typed card tiles, press to resolve, torchlit look), card motion, persisted high scores, a records screen, achievements, and three difficulty modes. Card art and sprites are still to come. See [Roadmap](#roadmap).
 
 ## How to play
 
@@ -18,6 +18,7 @@ The deck is 44 cards: the 26 clubs and spades are **monsters**, the diamonds 2�
   - **Monster:** fight it bare-handed (take its full value as damage) or with your weapon (take `monster − weapon`, never below 0).
 - **Weapon degradation.** Once a weapon kills a monster, it can only be used afterward on monsters **strictly weaker than the last one it slew**. It stays equipped for weaker foes, but equal or tougher monsters must be fought bare-handed.
 - **Winning & losing.** You lose when health hits 0, and win by clearing the entire dungeon. A cleared dungeon scores your remaining health; dying scores a negative number based on the monsters left unfought.
+- **Difficulty modes.** *Standard* is the game above. *Relentless* forbids avoiding entirely — every room must be faced. *Frail* starts you at 14 health and caps healing there. Achievements are earned in Standard only; high scores are ranked separately per mode.
 
 ## Build & run
 
@@ -53,7 +54,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the full design rules and the complete game spe
 - [x] High scores (persisted to `~/.scoundrel/runs.log`; best shown on the end screen)
 - [x] Lifetime stats — THE LEDGER records screen (top runs + totals over the run log)
 - [x] Achievements (built on the engine's event stream; earned via a TROPHIES screen)
-- [ ] Difficulty variants (alternate rulesets, no engine changes)
+- [x] Difficulty variants — Standard, Relentless, Frail (alternate rulesets, no engine changes)
 
 ## Credits & acknowledgements
 

@@ -193,11 +193,29 @@ scalars `startingHealth`, `healthCap`, `roomSize`, `cardsResolvedPerTurn`, and
 `potionsPerTurn`, plus three behavioral strategies: `AvoidRule` (when avoiding is
 legal), `ScoringStrategy` (final score), and `DeckDefinition` (which cards make up
 the deck and how to resolve an id to its definition/effect). A `Rulesets` factory
-provides configured instances — `Rulesets.standard()` is base Scoundrel; a harder
-variant such as `Rulesets.hard()` is the same record with different field values
-(e.g., a lower starting health). Each seam ships with exactly one base
-implementation (`StandardAvoidRule`, `StandardScoring`, `StandardDeck`); there is
-no plugin framework.
+provides configured instances: `Rulesets.standard()` is base Scoundrel,
+`Rulesets.relentless()` swaps in `NeverAvoidRule` so no room may ever be avoided,
+and `Rulesets.frail()` is the same record with a lower `startingHealth` and
+`healthCap` (both 14). Every variant keeps the 4-card-room turn shape and the
+standard deck. There is no plugin framework.
+
+**Difficulty modes.** A `GameMode` record names a playable ruleset: a stable `id`
+(persisted as the run's `rulesetId`), menu title and description, its `Ruleset`,
+and a `tracksAchievements` flag. `GameModes.all()` is the shipped catalog — the
+three above, Standard first — and `GameModes.byId` maps a persisted id back to a
+mode, empty for an unknown or retired one so an old run log never breaks the
+reader. Two decisions are locked here:
+
+- **Achievements are earned in Standard only.** Their thresholds are tuned to it —
+  Untarnished ("finish at the full twenty") is unreachable at Frail's cap of 14.
+  Variants still record their runs; they just never unlock. The flag carries this,
+  so the rule is data rather than a condition buried in a screen.
+- **High scores are ranked per mode**, via `HighScores.bestForRuleset(runs, id)`.
+  A Frail 14 and a Standard 20 are not comparable, so each mode is ranked against
+  its own runs.
+
+Adding a mode is a new catalog entry — the engine, the turn loop, and the screens
+are all untouched.
 
 ### Events and observers
 
@@ -248,10 +266,12 @@ The design opens exactly the seams the named future features require, and no mor
   effect for its moves and `apply` routes to it through the generic `CardMove`
   branch — the turn loop is untouched. A card needing a brand-new interaction adds
   a new `CardMove` record, still routed generically.
-- **Difficulty / variation modes:** construct a different `Ruleset` instance
-  (different constants, or a different `ScoringStrategy`/`AvoidRule`/
-  `DeckDefinition`). Modes are expected to swap rules within the same
-  4-card-room turn shape, which these seams cover; no engine change.
+- **Difficulty / variation modes:** implemented — construct a different `Ruleset`
+  instance (different constants, or a different `ScoringStrategy`/`AvoidRule`/
+  `DeckDefinition`) and name it with a `GameMode` in the `GameModes` catalog
+  (above). The shipped Relentless and Frail modes proved the seam: one swapped
+  strategy and one pair of changed constants, with **no engine change** — the
+  4-card-room turn shape is untouched.
 - **Achievements and stats:** observe the `GameEvent` stream live and keep
   persisted aggregate totals — both outside the core. Lifetime totals are sums
   over the per-run counters already persisted in the run log, so no second
