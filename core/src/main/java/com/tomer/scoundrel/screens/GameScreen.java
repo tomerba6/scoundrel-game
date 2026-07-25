@@ -96,6 +96,7 @@ public final class GameScreen extends ScreenAdapter {
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
         this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage.addActor(new Backdrop(theme));
         this.choreographer = new Choreographer(stage, theme, this::resolveCardAt);
         startRun();
 
@@ -620,13 +621,15 @@ public final class GameScreen extends ScreenAdapter {
             rail.add(label("Barehanded", theme.body, dim(Theme.BONE, 0.6f)));
             return rail;
         }
+        // The rail echoes the board: the weapon and its slain use the card panel
+        // colours, so they read as miniatures of the cards they came from.
         Table mini = new Table();
-        mini.setBackground(theme.solid(Theme.IRON));
-        mini.add(label(String.valueOf(weapon.weapon().value()), theme.bodyBold, Theme.SOOT));
+        mini.setBackground(theme.solid(Theme.CARD_WEAPON));
+        mini.add(label(String.valueOf(weapon.weapon().value()), theme.bodyBold, Theme.BONE));
         rail.add(mini).size(36, 50).padRight(8);
         for (Card slain : weapon.slain()) {
             Table chip = new Table();
-            chip.setBackground(theme.solid(Theme.DRIED_BLOOD));
+            chip.setBackground(theme.solid(Theme.CARD_MONSTER));
             chip.add(label(String.valueOf(slain.value()), theme.small, Theme.BONE));
             rail.add(chip).size(26, 36).padRight(4);
         }

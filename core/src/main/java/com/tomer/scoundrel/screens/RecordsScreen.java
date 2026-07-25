@@ -52,6 +52,7 @@ public final class RecordsScreen extends ScreenAdapter {
         this.game = game;
         this.theme = theme;
         stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage.addActor(new Backdrop(theme));
         List<RunRecord> records = readSafely(runLog);
         int trophies = trophyCount(achievements);
         boolean hasProgress = !records.isEmpty() || trophies > 0;

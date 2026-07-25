@@ -1,15 +1,17 @@
-# Scoundrel — UI Layer (plain version)
+# Scoundrel — UI Layer
 
 This documents the Scene2D UI as it exists today: the decisions locked in the
 design interview, the visual tokens, the architecture, and every component on
 screen. It complements [`design.md`](design.md) (the rules engine); keep both
 in sync with the code.
 
-> **This is not the final look.** The current UI is the deliberate *plain*
-> version: flat color tiles, drawn suit shapes, text everywhere. Card art,
-> sprites, and ambient atmosphere are a later pass — the layout, theme seams,
-> and interaction model below were built so that pass swaps assets without
-> rewriting screen logic. Motion already ships (see `Choreographer`).
+> **Where the look stands.** The board is a torchlit dungeon: a procedural
+> backdrop (warm glow with a live flicker over a vignette, drifting embers) and
+> framed cards in the muted *Ashen* palette. What is still deliberately absent
+> is *illustration* — no drawn card art or creature sprites; type is carried by
+> the value, label, and drawn suit pips. That illustration pass, when it comes,
+> swaps assets in `Theme` without rewriting screen logic. Motion (deal-in,
+> avoid-sweep, HP pulses) and the atmosphere already ship.
 
 ## Locked decisions (from the design interview)
 
@@ -150,18 +152,28 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   per card of the deck, torchlight = still face-down, dark = gone; avoided
   rooms visibly return ticks) with a `depth: N cards` caption; the **Avoid**
   button (torchlight when legal, stone when not).
-- **Room row** — up to four typed tiles: type label, display-font value,
-  rank + suit index bottom-right. Weapon tiles use soot text on iron for
-  contrast; monster/potion tiles use bone.
+- **Backdrop** — behind every screen, drawn first and never a hit target
+  (`Backdrop`): a procedural torch glow (a generated radial texture, tinted
+  torchlight, its alpha modulated by `TorchFlicker` — a pure, tested sine-blend
+  so it breathes without looping) over a generated vignette, plus drifting
+  embers (`Embers`, a pure tested particle sim). All from `Theme`'s generated
+  textures; no external assets.
+- **Room row** — up to four framed card tiles: a darkened role-colour border
+  around a panel with a soft top-and-bottom edge shade, rank+suit indices in two
+  corners (top-left and bottom-right), the type label, and the big display-font
+  value. Panels use the muted *Ashen* palette (oxblood monster, slate weapon,
+  moss potion); text is bone on all three. One builder feeds these and the
+  Choreographer's flight proxies.
 - **Chooser** — stone popup over the pressed card with one torchlight button
   per legal move ("Use weapon" / "Barehanded"). Generic: a future card
   offering three moves gets three buttons. It carries no padding, so its whole
   area is button; a press *outside* it dismisses the chooser **and** resolves
   the card it landed on, so the press is never spent merely closing the popup.
-- **Trophy rail** (bottom-left) — equipped weapon mini-tile, slain-monster
-  chips in kill order, and the threshold plate: `slays anything` (fresh),
-  `slays < N`, or `spent` (slew a 2). Reads `Barehanded` when nothing is
-  equipped.
+- **Trophy rail** (bottom-left) — equipped weapon mini-tile and slain-monster
+  chips in kill order, both in the card panel colours so they read as miniatures
+  of the cards they came from, and the threshold plate: `slays anything`
+  (fresh), `slays < N`, or `spent` (slew a 2). Reads `Barehanded` when nothing
+  is equipped.
 - **Potion marker** (bottom-right) — `potion ready` (dim) or
   `• potion used this turn` (torchlight).
 - **Fading feed** (top-right) — up to four lines, fading after ~4s:
@@ -231,21 +243,25 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   `Widgets.java` — shared tile, label and button builders, plus
   `pressListener` (the press-not-click input rule) and
   `makeWholeFaceHittable` (the `Touchable` rule).
+- `core/src/main/java/com/tomer/scoundrel/screens/Backdrop.java` — the ambient
+  layer added first to each stage: torch glow, vignette, and embers.
 - `core/src/main/java/com/tomer/scoundrel/screens/Motion.java` /
-  `CardHitRegions.java` — the pure, headlessly-tested parts of the motion and
-  skip-and-act logic.
+  `CardHitRegions.java` / `TorchFlicker.java` / `Embers.java` — the pure,
+  headlessly-tested parts: motion and skip-and-act geometry, the glow's flicker
+  curve, and the ember particle simulation.
 - `core/src/main/java/com/tomer/scoundrel/ScoundrelGame.java` — the navigator:
   creates the Theme, RunLog and AchievementStore, boots into `TitleScreen`,
   owns disposal.
 - `lwjgl3` launcher — 1280×720 window, title "Scoundrel".
 - `assets/fonts/` — the two typefaces plus OFL license texts.
 
-## What the art pass will change (and what it won't)
+## What the illustration pass will change (and what it won't)
 
-Later work — card art and sprites inside the existing tile frames and
-ambient atmosphere — lands mostly in `Theme` and the existing
-`Choreographer`. What should *not* change: the
-dumb-view rule, the state-rebuild model as the source of truth, the
-legalMoves-driven interaction, and the event-stream feed. If an animation
-needs to know a rule, that's a sign the engine should expose it, not the UI
-re-derive it.
+The atmosphere and card framing have shipped in `Theme` and `Backdrop`. The one
+remaining visual pass is *illustration* — drawn card art and creature sprites
+inside the existing frames — which again lands mostly in `Theme` (swap the flat
+panels and drawn suit pips for art) and touches no screen logic. What should
+*not* change: the dumb-view rule, the state-rebuild model as the source of
+truth, the legalMoves-driven interaction, and the event-stream feed. If an
+animation needs to know a rule, that's a sign the engine should expose it, not
+the UI re-derive it.

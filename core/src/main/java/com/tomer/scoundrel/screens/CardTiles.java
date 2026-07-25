@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.tomer.scoundrel.model.Card;
 import com.tomer.scoundrel.model.CardType;
@@ -18,21 +19,49 @@ import static com.tomer.scoundrel.screens.Widgets.label;
  */
 final class CardTiles {
 
+    /** Frame thickness (virtual px) between a card's dark border and its panel. */
+    private static final int BORDER = 3;
+
     private CardTiles() {
     }
 
     static Table build(Theme theme, Card card) {
-        Color background = roleColor(card.type());
-        Color text = card.type() == CardType.WEAPON ? Theme.SOOT : Theme.BONE;
+        Color panel = roleColor(card.type());
+        Color text = Theme.BONE; // every Ashen panel is dark, so bone reads on all three
+
+        // The frame: a darkened role colour showing as a thin border around the panel.
         Table tile = new Table();
         makeWholeFaceHittable(tile);
-        tile.setBackground(theme.solid(background));
-        tile.add(label(card.type().name(), theme.small, dim(text, 0.7f))).padTop(12);
-        tile.row();
-        tile.add(label(String.valueOf(card.value()), theme.display, text)).expand();
-        tile.row();
-        tile.add(corner(theme, card, text)).right().padRight(12).padBottom(10);
+        tile.setBackground(theme.solid(darken(panel, 0.45f)));
+
+        // The panel: base colour, a soft edge shade for depth, and the content on top.
+        Stack stack = new Stack();
+        stack.add(new Image(theme.solid(panel)));
+        stack.add(new Image(theme.shadeRegion()));
+        stack.add(content(theme, card, text));
+        tile.add(stack).grow().pad(BORDER);
         return tile;
+    }
+
+    /** Rank+suit index top-left and bottom-right, type label between, big value centred. */
+    private static Table content(Theme theme, Card card, Color text) {
+        Table content = new Table();
+        Table top = new Table();
+        top.add(pip(theme, card, text)).left();
+        top.add(label(card.type().name(), theme.small, dim(text, 0.7f))).expandX().right();
+        content.add(top).growX().pad(10, 12, 0, 12);
+        content.row();
+        content.add(label(String.valueOf(card.value()), theme.display, text)).expand();
+        content.row();
+        Table bottom = new Table();
+        bottom.add().expandX();
+        bottom.add(pip(theme, card, text)).right();
+        content.add(bottom).growX().pad(0, 12, 10, 12);
+        return content;
+    }
+
+    private static Color darken(Color color, float factor) {
+        return new Color(color.r * factor, color.g * factor, color.b * factor, 1f);
     }
 
     /**
@@ -47,21 +76,21 @@ final class CardTiles {
 
     static Color roleColor(CardType type) {
         return switch (type) {
-            case MONSTER -> Theme.DRIED_BLOOD;
-            case WEAPON -> Theme.IRON;
-            case POTION -> Theme.HERBAL;
+            case MONSTER -> Theme.CARD_MONSTER;
+            case WEAPON -> Theme.CARD_WEAPON;
+            case POTION -> Theme.CARD_POTION;
         };
     }
 
-    /** Rank + suit identity, bottom-right like a playing card index. */
-    private static Table corner(Theme theme, Card card, Color text) {
-        Table corner = new Table();
+    /** Rank + suit identity — a playing-card corner index. */
+    private static Table pip(Theme theme, Card card, Color text) {
+        Table pip = new Table();
         String id = card.id();
         char suit = id.charAt(id.length() - 1);
         if (id.length() >= 2 && "SHDC".indexOf(suit) >= 0) {
-            corner.add(label(id.substring(0, id.length() - 1), theme.bodyBold, text)).padRight(4);
-            corner.add(new Image(theme.suitIcon(suit, text))).size(14, 14);
+            pip.add(label(id.substring(0, id.length() - 1), theme.bodyBold, text)).padRight(4);
+            pip.add(new Image(theme.suitIcon(suit, text))).size(14, 14);
         }
-        return corner;
+        return pip;
     }
 }

@@ -4,7 +4,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 
 Scoundrel is a solitaire dungeon crawl played with a trimmed deck of 44 cards. You descend through a "dungeon" of face-up cards, fighting monsters, picking up weapons, and drinking health potions, trying to survive to the bottom of the deck. It's quick, tense, and entirely a game of managing risk with the hand the shuffle deals you.
 
-> **Status:** playable. The full base game works — a pure, fully unit-tested rules engine, a plain Scene2D UI (typed card tiles, press to resolve, torchlit look), card motion, persisted high scores, a records screen, achievements, and three difficulty modes. Card art and sprites are still to come. See [Roadmap](#roadmap).
+> **Status:** playable. The full base game works — a pure, fully unit-tested rules engine, a Scene2D UI (framed card tiles, press to resolve, a procedural torchlit backdrop with drifting embers), card motion, persisted high scores, a records screen, achievements, and three difficulty modes. Only drawn card art and creature sprites are still to come. See [Roadmap](#roadmap).
 
 ## How to play
 
@@ -50,7 +50,8 @@ See [`CLAUDE.md`](CLAUDE.md) for the full design rules and the complete game spe
 - [x] Unit tests covering the tricky rules (degradation, one-potion-per-turn, scoring edge cases)
 - [x] Scene2D UI to play a full game (plain version: typed tiles, event feed, end overlay)
 - [x] Motion: cards deal in and sweep away on avoid; HP damage/heal pulses
-- [ ] Card art, sprites, and ambient atmosphere
+- [x] Ambient atmosphere — procedural torchlit backdrop, flicker, drifting embers; framed cards
+- [ ] Card art and creature sprites (drawn illustration)
 - [x] High scores (persisted to `~/.scoundrel/runs.log`; best shown on the end screen)
 - [x] Lifetime stats — THE LEDGER records screen (top runs + totals over the run log)
 - [x] Achievements (built on the engine's event stream; earned via a TROPHIES screen)

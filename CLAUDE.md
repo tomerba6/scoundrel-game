@@ -36,11 +36,12 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
   Consult it when working on the engine, and keep it in sync when the design changes.
 - **UI layer reference:** the Scene2D UI — locked interview decisions, theme tokens,
   architecture, and every on-screen component — is documented in
-  [`docs/ui.md`](docs/ui.md). The current UI is the deliberate *plain* version —
-  flat typed tiles, no card art. Only card art and sprites remain for a later
-  pass; card motion (deal-in, avoid-sweep) and HP pulses have already shipped
-  (the `Choreographer`). Consult it when working on screens, and keep it in sync
-  when the UI changes.
+  [`docs/ui.md`](docs/ui.md). The board is a torchlit dungeon — a procedural
+  backdrop (glow, live flicker, drifting embers) and framed cards in the muted
+  *Ashen* palette. What remains is *illustration* only: drawn card art and
+  creature sprites. Motion (deal-in, avoid-sweep, HP pulses via the
+  `Choreographer`) and the atmosphere already ship. Consult it when working on
+  screens, and keep it in sync when the UI changes.
 
 ## Working preferences
 - For any non-trivial change, propose a plan first and wait for review before coding.

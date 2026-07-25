@@ -25,6 +25,7 @@ public final class TitleScreen extends ScreenAdapter {
 
     public TitleScreen(ScoundrelGame game, Theme theme) {
         stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage.addActor(new Backdrop(theme));
         Table root = new Table();
         root.setFillParent(true);
         stage.addActor(root);
