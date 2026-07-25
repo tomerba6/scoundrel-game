@@ -85,6 +85,7 @@ public final class GameScreen extends ScreenAdapter {
     private String endBestLine;
     private List<Achievement> newlyUnlocked = List.of();
     private Actor endOverlay;
+    private boolean dealInPending;
 
     public GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
                       AchievementStore achievements, GameMode mode) {
@@ -158,6 +159,13 @@ public final class GameScreen extends ScreenAdapter {
         if (state.status() != Status.IN_PROGRESS) {
             endOverlay = buildEndOverlay();
             stage.addActor(endOverlay);
+        }
+        if (dealInPending && state.status() == Status.IN_PROGRESS) {
+            // The opening room has no previous slots, so every card flies in from
+            // the dungeon (the depth ticker) — the same choreography as a refill.
+            dealInPending = false;
+            root.validate(); // force a real layout so the tile destinations are set
+            choreographer.playDealIn(roomTiles, Map.of(), tickerCenter());
         }
     }
 
@@ -434,6 +442,7 @@ public final class GameScreen extends ScreenAdapter {
         tracker = new AchievementTracker(rules.cardsResolvedPerTurn());
         endBestLine = null;
         newlyUnlocked = List.of();
+        dealInPending = true; // the opening room deals in from the dungeon like any other
     }
 
     /**
