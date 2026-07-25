@@ -202,6 +202,15 @@ public final class GameScreen extends ScreenAdapter {
         });
         overlay.add(newGame).padBottom(10);
         overlay.row();
+        TextButton mainMenu = torchButton(theme, "Main menu");
+        mainMenu.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                game.showTitle();
+            }
+        });
+        overlay.add(mainMenu).padBottom(10);
+        overlay.row();
         TextButton trophies = torchButton(theme, "Trophies");
         trophies.addListener(new ChangeListener() {
             @Override
