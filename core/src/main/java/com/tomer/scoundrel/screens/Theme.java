@@ -65,9 +65,11 @@ public final class Theme implements Disposable {
     private final Texture glow;
     private final Texture vignette;
     private final Texture dot;
+    private final Texture shade;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
     private final TextureRegion dotRegion;
+    private final TextureRegion shadeRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -95,9 +97,11 @@ public final class Theme implements Disposable {
         glow = radialGlowTexture(256);
         vignette = vignetteTexture(256);
         dot = softDotTexture(32);
+        shade = verticalShadeTexture(64);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
         dotRegion = new TextureRegion(dot);
+        shadeRegion = new TextureRegion(shade);
 
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
@@ -123,6 +127,11 @@ public final class Theme implements Disposable {
     /** A soft round mote (white; tinted at draw) for the drifting embers. */
     TextureRegion dotRegion() {
         return dotRegion;
+    }
+
+    /** A symmetric top-and-bottom edge shade (black, alpha baked in) for card panels. */
+    TextureRegion shadeRegion() {
+        return shadeRegion;
     }
 
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
@@ -205,6 +214,23 @@ public final class Theme implements Disposable {
         return linearTexture(p);
     }
 
+    /**
+     * A one-pixel-wide vertical strip that darkens toward the top and bottom
+     * edges, clear through the middle — stretched over a card panel it reads as
+     * soft, orientation-independent lighting under the frame.
+     */
+    private static Texture verticalShadeTexture(int height) {
+        Pixmap p = new Pixmap(1, height, Pixmap.Format.RGBA8888);
+        p.setBlending(Pixmap.Blending.None);
+        for (int y = 0; y < height; y++) {
+            float t = y / (float) (height - 1);      // 0..1 across the strip
+            float edge = Math.abs(t - 0.5f) * 2f;    // 0 in the middle, 1 at both ends
+            p.setColor(0f, 0f, 0f, smoothstep(0.45f, 1f, edge) * 0.28f);
+            p.drawPixel(0, y);
+        }
+        return linearTexture(p);
+    }
+
     private static Texture linearTexture(Pixmap pixmap) {
         Texture texture = new Texture(pixmap);
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -274,6 +300,7 @@ public final class Theme implements Disposable {
         glow.dispose();
         vignette.dispose();
         dot.dispose();
+        shade.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }
