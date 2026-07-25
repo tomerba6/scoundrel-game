@@ -33,6 +33,13 @@ public final class Theme implements Disposable {
     public static final Color TORCHLIGHT = Color.valueOf("d9a441");
     public static final Color BONE = Color.valueOf("e8ddc7");
 
+    // Card panels ("Ashen"): deep and low-lit so the board sits inside the
+    // torchlit mood rather than shouting over it. Type still reads from the
+    // label and suit pips, so the quiet colours never cost legibility.
+    public static final Color CARD_MONSTER = Color.valueOf("4e2620");
+    public static final Color CARD_WEAPON = Color.valueOf("3f484e");
+    public static final Color CARD_POTION = Color.valueOf("374b32");
+
     // Virtual resolution shared by every screen's Fit viewport.
     public static final float WORLD_WIDTH = 1280;
     public static final float WORLD_HEIGHT = 720;

@@ -27,7 +27,7 @@ final class CardTiles {
 
     static Table build(Theme theme, Card card) {
         Color panel = roleColor(card.type());
-        Color text = card.type() == CardType.WEAPON ? Theme.SOOT : Theme.BONE;
+        Color text = Theme.BONE; // every Ashen panel is dark, so bone reads on all three
 
         // The frame: a darkened role colour showing as a thin border around the panel.
         Table tile = new Table();
@@ -76,9 +76,9 @@ final class CardTiles {
 
     static Color roleColor(CardType type) {
         return switch (type) {
-            case MONSTER -> Theme.DRIED_BLOOD;
-            case WEAPON -> Theme.IRON;
-            case POTION -> Theme.HERBAL;
+            case MONSTER -> Theme.CARD_MONSTER;
+            case WEAPON -> Theme.CARD_WEAPON;
+            case POTION -> Theme.CARD_POTION;
         };
     }
 
