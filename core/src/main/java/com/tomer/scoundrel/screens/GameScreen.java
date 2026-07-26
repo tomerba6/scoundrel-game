@@ -745,7 +745,9 @@ public final class GameScreen extends ScreenAdapter {
             if (damage > 0) {
                 pulseDamage();
             } else if (healed > 0) {
-                pulseHeal();
+                // The green flash lands with the potion, not on the click: hold it
+                // until the flask has flown to the bar and spilled onto it.
+                hpBar.addAction(Actions.delay(Theme.POTION_FLIGHT, Actions.run(this::pulseHeal)));
             }
             List<Card> avoided = result.events().stream()
                     .filter(e -> e instanceof GameEvent.RoomAvoided)

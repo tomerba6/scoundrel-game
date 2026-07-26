@@ -249,7 +249,7 @@ final class Choreographer {
         card.setOrigin(Theme.CARD_WIDTH / 2f, Theme.CARD_HEIGHT / 2f);
         card.setPosition(fromSlot.x, fromSlot.y);
         card.addAction(Actions.parallel(
-                Actions.fadeOut(0.28f), Actions.scaleTo(0.72f, 0.72f, 0.28f)));
+                Actions.fadeOut(0.2f), Actions.scaleTo(0.72f, 0.72f, 0.2f)));
         flightLayer.addActor(card);
 
         float flaskSize = Theme.CARD_WIDTH * 0.5f;
@@ -264,17 +264,17 @@ final class Choreographer {
         flaskG.addActor(flask);
         flaskG.getColor().a = 0f;
         flaskG.addAction(Actions.sequence(
-                Actions.alpha(1f, 0.16f),
-                Actions.delay(0.14f),
+                Actions.alpha(1f, 0.11f),
+                Actions.delay(0.07f),
                 Actions.parallel(
-                        Actions.rotateBy(-48f, 0.3f, Interpolation.pow2In),
-                        Actions.moveBy(-7f, -5f, 0.3f)),
-                Actions.alpha(0f, 0.24f)));
+                        Actions.rotateBy(-48f, 0.2f, Interpolation.pow2In),
+                        Actions.moveBy(-7f, -5f, 0.2f)),
+                Actions.alpha(0f, 0.16f)));
         flightLayer.addActor(flaskG);
 
         // Grey drops dribble from the tipped mouth, off to the left.
-        float dropsEnd = spawnDrops(cx - 14f, cy - 4f, grey, 2, 0.5f);
-        return Math.max(0.9f, dropsEnd);
+        float dropsEnd = spawnDrops(cx - 14f, cy - 4f, grey, 2, 0.24f);
+        return Math.max(0.55f, dropsEnd);
     }
 
     /** A flight group at {@code fromSlot}: the card fades out as a tinted flask fades in over it. */

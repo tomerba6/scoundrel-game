@@ -58,7 +58,7 @@ public final class Theme implements Disposable {
 
     // An equipped weapon flies from its card slot into the trophy rail over this
     // long, shrinking into and morphing toward the rail's axe mini as it goes.
-    public static final float EQUIP_FLIGHT = 0.32f;
+    public static final float EQUIP_FLIGHT = 0.24f;
 
     // A drunk potion's card shrinks into a flask and flies up to the health bar
     // over this long, spilling a few drops as it lands (a wasted one just fizzles).
