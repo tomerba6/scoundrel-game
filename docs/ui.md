@@ -11,8 +11,8 @@ in sync with the code.
 > is *illustration* — no drawn card art or creature sprites; type is carried by
 > the value, label, and drawn suit pips. That illustration pass, when it comes,
 > swaps assets in `Theme` without rewriting screen logic. Motion (deal-in,
-> avoid-sweep, HP pulses, a bare-handed resolve strike) and the atmosphere
-> already ship.
+> avoid-sweep, HP pulses, the per-card resolve effects, and the YOU DIED death
+> cinematic) and the atmosphere already ship.
 
 ## Locked decisions (from the design interview)
 
@@ -59,7 +59,7 @@ Palette (all constants in `screens.Theme`):
 |---|---|---|
 | soot | `#17130f` | background |
 | stone | `#241d16` | frames, strips, popups |
-| dried blood | `#8c2f22` | monster tiles, slain chips, DEFEATED |
+| dried blood | `#8c2f22` | monster tiles, slain chips, the YOU DIED reveal & death bleed |
 | iron | `#7a8794` | weapon tiles |
 | herbal | `#5d8a4a` | potion tiles |
 | torchlight | `#d9a441` | accent: Avoid, threshold plate, ticker, CLEARED |
@@ -210,8 +210,10 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   "… wasted — one potion a turn", "Equipped the 5 of diamonds",
   "The weapon dulls — slays < 6" / "The weapon is spent",
   "Avoided the room".
-- **End overlay** — dim soot over the board; `DUNGEON CLEARED` (torchlight)
-  or `DEFEATED` (dried blood), the score in display type, a best-score line
+- **End overlay** — dim soot over the board. A **win** reads `DUNGEON CLEARED`
+  (torchlight); a **loss** instead runs the death cinematic (the YOU DIED reveal,
+  above) and settles this same panel in beneath it. Either way: the score in
+  display type, a best-score line
   (`New best!` in torchlight, or `best N` dimmed — from the persisted run
   history), any achievements just unlocked under a torchlight
   `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is

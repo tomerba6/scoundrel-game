@@ -4,7 +4,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 
 Scoundrel is a solitaire dungeon crawl played with a trimmed deck of 44 cards. You descend through a "dungeon" of face-up cards, fighting monsters, picking up weapons, and drinking health potions, trying to survive to the bottom of the deck. It's quick, tense, and entirely a game of managing risk with the hand the shuffle deals you.
 
-> **Status:** playable. The full base game works — a pure, fully unit-tested rules engine, a Scene2D UI (framed card tiles, press to resolve, a procedural torchlit backdrop with drifting embers), card motion, persisted high scores, a records screen, achievements, three difficulty modes, and a guided tutorial for new players. Only drawn card art and creature sprites are still to come. See [Roadmap](#roadmap).
+> **Status:** playable. The full base game works — a pure, fully unit-tested rules engine, a Scene2D UI (framed card tiles, press to resolve, a procedural torchlit backdrop with drifting embers), card motion, per-card resolve effects and a cinematic YOU DIED death screen, persisted high scores, a records screen, achievements, three difficulty modes, and a guided tutorial for new players. Only drawn card art and creature sprites are still to come. See [Roadmap](#roadmap).
 
 ## How to play
 
@@ -49,7 +49,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the full design rules and the complete game spe
 - [x] Rules engine: room dealing, avoiding, combat, weapon degradation, scoring
 - [x] Unit tests covering the tricky rules (degradation, one-potion-per-turn, scoring edge cases)
 - [x] Scene2D UI to play a full game (plain version: typed tiles, event feed, end overlay)
-- [x] Motion: cards deal in and sweep away on avoid; HP damage/heal pulses
+- [x] Motion: cards deal in and sweep away on avoid; HP damage/heal pulses; per-card resolve effects (bare-handed strike, weapon→battleaxe, potion pour, weapon-kill slice); a YOU DIED death cinematic
 - [x] Ambient atmosphere — procedural torchlit backdrop, flicker, drifting embers; framed cards
 - [ ] Card art and creature sprites (drawn illustration)
 - [x] High scores (persisted to `~/.scoundrel/runs.log`; best shown on the end screen)
