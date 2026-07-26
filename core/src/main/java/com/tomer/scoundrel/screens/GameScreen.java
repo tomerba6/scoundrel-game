@@ -297,10 +297,11 @@ public final class GameScreen extends ScreenAdapter {
         float targetHeight = 0;
         if (target != null) {
             Vector2 corner = target.localToStageCoordinates(new Vector2(0, 0));
-            targetCentre = new Vector2(corner.x + target.getWidth() / 2f,
-                    corner.y + target.getHeight() / 2f);
-            targetHeight = target.getHeight();
-            layer.addActor(glowRing(targetCentre, Math.max(target.getWidth(), target.getHeight())));
+            float w = target.getWidth();
+            float h = target.getHeight();
+            targetCentre = new Vector2(corner.x + w / 2f, corner.y + h / 2f);
+            targetHeight = h;
+            layer.addActor(frameHighlight(corner.x, corner.y, w, h));
         }
 
         Table callout = buildCallout(step);
@@ -333,17 +334,33 @@ public final class GameScreen extends ScreenAdapter {
         return null; // an explanation beat with no single focus
     }
 
-    /** A soft torchlight halo, gently pulsing, centred on the target. */
-    private Actor glowRing(Vector2 centre, float targetSize) {
-        float size = targetSize * 1.8f;
-        Image glow = new Image(theme.glowRegion());
-        glow.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, 0.28f);
-        glow.setSize(size, size);
-        glow.setPosition(centre.x - size / 2f, centre.y - size / 2f);
-        glow.setTouchable(Touchable.disabled);
-        glow.addAction(Actions.forever(Actions.sequence(
-                Actions.alpha(0.4f, 0.75f), Actions.alpha(0.18f, 0.75f))));
-        return glow;
+    /**
+     * A crisp outline hugging the target's frame, gently pulsing. Bone, not
+     * torchlight, so it stands out against both the dark cards and the lit Avoid
+     * button (a torchlight ring would vanish into the button's own colour).
+     */
+    private Actor frameHighlight(float x, float y, float w, float h) {
+        float gap = 3f;        // clearance between the target's edge and the outline
+        float thickness = 4f;
+        float fx = x - gap - thickness;
+        float fy = y - gap - thickness;
+        float fw = w + 2 * (gap + thickness);
+        float fh = h + 2 * (gap + thickness);
+        Group frame = new Group();
+        frame.setTouchable(Touchable.disabled);
+        frame.addActor(bar(fx, fy, fw, thickness));                  // bottom
+        frame.addActor(bar(fx, fy + fh - thickness, fw, thickness)); // top
+        frame.addActor(bar(fx, fy, thickness, fh));                  // left
+        frame.addActor(bar(fx + fw - thickness, fy, thickness, fh)); // right
+        frame.addAction(Actions.forever(Actions.sequence(
+                Actions.alpha(1f, 0.55f), Actions.alpha(0.45f, 0.55f))));
+        return frame;
+    }
+
+    private Image bar(float x, float y, float w, float h) {
+        Image bar = new Image(theme.solid(Theme.BONE));
+        bar.setBounds(x, y, w, h);
+        return bar;
     }
 
     private Table buildCallout(TutorialStep step) {
