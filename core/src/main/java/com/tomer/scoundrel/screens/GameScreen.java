@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.VerticalGroup;
@@ -85,6 +86,7 @@ public final class GameScreen extends ScreenAdapter {
     private Image hpFill;
     private Label hpNumber;
     private TextButton avoidButton;
+    private Table weaponMini;
     private GameState state;
     private RunRecorder recorder;
     private AchievementTracker tracker;
@@ -751,14 +753,20 @@ public final class GameScreen extends ScreenAdapter {
                     .findFirst().orElse(null);
             boolean roomDealt = result.events().stream()
                     .anyMatch(e -> e instanceof GameEvent.RoomDealt);
-            // A monster taken bare-handed is struck in its slot before any deal-in.
+            // A monster taken bare-handed is struck in its slot; an equipped
+            // weapon flies to the rail. Both resolve before any deal-in.
             Card struck = move instanceof Move.FightBarehanded fought ? fought.targetCard() : null;
             Vector2 struckSlot = struck != null ? previousSlots.get(struck.id()) : null;
+            Card equipped = move instanceof Move.TakeWeapon taken ? taken.targetCard() : null;
+            Vector2 equipSlot = equipped != null ? previousSlots.get(equipped.id()) : null;
             root.validate(); // force a fresh layout so tile destinations are real
             if (avoided != null) {
                 choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
             } else if (struck != null && struckSlot != null) {
                 choreographer.playBarehanded(struck, struckSlot, roomTiles, previousSlots,
+                        tickerCenter(), roomDealt);
+            } else if (equipped != null && equipSlot != null && weaponMini != null) {
+                choreographer.playEquip(equipped, equipSlot, weaponMini, roomTiles, previousSlots,
                         tickerCenter(), roomDealt);
             } else if (roomDealt) {
                 choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
@@ -855,17 +863,26 @@ public final class GameScreen extends ScreenAdapter {
     /** Equipped weapon, its slain stack, and the degradation plate. */
     private Actor trophyRail() {
         Table rail = new Table();
+        weaponMini = null;
         EquippedWeapon weapon = state.weapon();
         if (weapon == null) {
             rail.add(label("Barehanded", theme.body, dim(Theme.BONE, 0.6f)));
             return rail;
         }
-        // The rail echoes the board: the weapon and its slain use the card panel
-        // colours, so they read as miniatures of the cards they came from.
-        Table mini = new Table();
-        mini.setBackground(theme.solid(Theme.CARD_WEAPON));
-        mini.add(label(String.valueOf(weapon.weapon().value()), theme.bodyBold, Theme.BONE));
-        rail.add(mini).size(36, 50).padRight(8);
+        // The weapon is a big battleaxe with its value stamped inside the blades —
+        // no card frame; this is the shape the equip flight settles into. (Its
+        // slain still read as card-panel chips below.)
+        Image battleaxe = new Image(theme.axeRegion());
+        battleaxe.setColor(Theme.IRON);
+        Table axeLayer = new Table();
+        axeLayer.add(battleaxe).size(72, 72);
+        Table numLayer = new Table();
+        numLayer.add(label(String.valueOf(weapon.weapon().value()), theme.bodyBold, Theme.SOOT))
+                .expand().top().padTop(9);
+        Table slot = new Table();
+        slot.add(new Stack(axeLayer, numLayer)).size(72, 72);
+        weaponMini = slot;
+        rail.add(slot).size(72, 72).padRight(10);
         for (Card slain : weapon.slain()) {
             Table chip = new Table();
             chip.setBackground(theme.solid(Theme.CARD_MONSTER));

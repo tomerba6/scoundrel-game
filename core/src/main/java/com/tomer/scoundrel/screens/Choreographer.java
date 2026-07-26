@@ -137,6 +137,62 @@ final class Choreographer {
         return strike;
     }
 
+    /**
+     * Equip: the weapon card flies from its slot into the trophy rail, shrinking
+     * and cross-fading into an axe as it goes; the real rail mini stays hidden
+     * until it lands. If the room refilled, the fresh cards deal in behind it.
+     */
+    void playEquip(Card weapon, Vector2 fromSlot, Actor railMini, Map<Card, Table> roomTiles,
+                   Map<String, Vector2> previousSlots, Vector2 dungeonSource, boolean dealAfter) {
+        begin();
+        Vector2 to = railMini.localToStageCoordinates(new Vector2(0, 0));
+        railMini.setVisible(false);
+        hiddenTiles.add(railMini);
+        float fly = spawnEquipFlight(weapon, fromSlot,
+                to.x + railMini.getWidth() / 2f, to.y + railMini.getHeight() / 2f,
+                railMini.getHeight());
+        float total = dealAfter
+                ? spawnDealProxies(roomTiles, previousSlots, dungeonSource, fly)
+                : fly;
+        flightLayer.addAction(Actions.delay(total, Actions.run(this::finish)));
+    }
+
+    /** The card shrinks and fades into a battleaxe that lands {@code destAxeSize} tall at the slot. */
+    private float spawnEquipFlight(Card weapon, Vector2 fromSlot,
+                                   float destCentreX, float destCentreY, float destAxeSize) {
+        float fly = Theme.EQUIP_FLIGHT;
+        Group flyer = new Group();
+        flyer.setSize(Theme.CARD_WIDTH, Theme.CARD_HEIGHT);
+        flyer.setTransform(true);
+        flyer.setOrigin(Theme.CARD_WIDTH / 2f, Theme.CARD_HEIGHT / 2f);
+        flyer.setPosition(fromSlot.x, fromSlot.y);
+
+        Table card = CardTiles.build(theme, weapon);
+        card.setSize(Theme.CARD_WIDTH, Theme.CARD_HEIGHT);
+        card.addAction(Actions.fadeOut(fly * 0.55f));
+        flyer.addActor(card);
+
+        // A battleaxe that fills the card, cross-fading in as the card fades out.
+        float axeSize = Theme.CARD_WIDTH * 0.7f;
+        Image axeIcon = new Image(theme.axeRegion());
+        axeIcon.setColor(Theme.IRON);
+        axeIcon.setSize(axeSize, axeSize);
+        axeIcon.setPosition((Theme.CARD_WIDTH - axeSize) / 2f, (Theme.CARD_HEIGHT - axeSize) / 2f);
+        axeIcon.getColor().a = 0f;
+        axeIcon.addAction(Actions.sequence(
+                Actions.delay(fly * 0.2f), Actions.alpha(1f, fly * 0.4f)));
+        flyer.addActor(axeIcon);
+
+        // Scale so the in-group axe ends exactly the rail axe's size — no pop on landing.
+        float finalScale = destAxeSize / axeSize;
+        flyer.addAction(Actions.parallel(
+                Actions.moveTo(destCentreX - Theme.CARD_WIDTH / 2f,
+                        destCentreY - Theme.CARD_HEIGHT / 2f, fly, Interpolation.pow2In),
+                Actions.scaleTo(finalScale, finalScale, fly, Interpolation.pow2In)));
+        flightLayer.addActor(flyer);
+        return fly;
+    }
+
     /** A bone flare that punches in and fades, scaling up around its centre. */
     private Group spawnFlare(float centreX, float centreY, float delay) {
         float d = 92f;

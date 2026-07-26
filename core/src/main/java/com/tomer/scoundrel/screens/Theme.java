@@ -56,6 +56,10 @@ public final class Theme implements Disposable {
     public static final float STRIKE_HIT_DURATION = 0.16f;
     public static final float STRIKE_HIT_STAGGER = 0.10f;
 
+    // An equipped weapon flies from its card slot into the trophy rail over this
+    // long, shrinking into and morphing toward the rail's axe mini as it goes.
+    public static final float EQUIP_FLIGHT = 0.32f;
+
     // Card tile size (virtual pixels), shared by the board layout and flight proxies.
     public static final float CARD_WIDTH = 170;
     public static final float CARD_HEIGHT = 240;
@@ -80,11 +84,13 @@ public final class Theme implements Disposable {
     private final Texture dot;
     private final Texture shade;
     private final Texture burst;
+    private final Texture axe;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
     private final TextureRegion dotRegion;
     private final TextureRegion shadeRegion;
     private final TextureRegion burstRegion;
+    private final TextureRegion axeRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -114,11 +120,13 @@ public final class Theme implements Disposable {
         dot = softDotTexture(32);
         shade = verticalShadeTexture(64);
         burst = burstTexture(64);
+        axe = axeTexture(64);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
         dotRegion = new TextureRegion(dot);
         shadeRegion = new TextureRegion(shade);
         burstRegion = new TextureRegion(burst);
+        axeRegion = new TextureRegion(axe);
 
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
@@ -154,6 +162,11 @@ public final class Theme implements Disposable {
     /** A spiky impact star (white; tinted at draw) flared when a monster is struck. */
     TextureRegion burstRegion() {
         return burstRegion;
+    }
+
+    /** A single-bit axe (white; tinted at draw) for the equipped-weapon flight and rail. */
+    TextureRegion axeRegion() {
+        return axeRegion;
     }
 
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
@@ -340,6 +353,52 @@ public final class Theme implements Disposable {
         return texture;
     }
 
+    /**
+     * A big double-bit battleaxe: a broad twin-bladed head riding the TOP of a
+     * central haft, its cutting edges flaring out to either side. The head is
+     * tall and solid through the middle so the weapon's value sits inside the
+     * blades, clear of the shaft. Drawn bold so it reads even shrunk into the
+     * trophy rail. White on a transparent canvas, tinted where used.
+     */
+    private static Texture axeTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setColor(Color.WHITE);
+        int c = size / 2;
+        // Haft: a stout bar down the centre, dropping from under the head. It
+        // stops below the horns so the head's throat (the notch between the two
+        // bits) reads at the top.
+        p.fillRectangle(c - Math.round(size * 0.05f), Math.round(size * 0.18f),
+                Math.round(size * 0.10f), Math.round(size * 0.76f));
+        axeBlade(p, c, -1, size); // left bit
+        axeBlade(p, c, +1, size); // right bit, mirrored
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
+    /**
+     * One bit of the battleaxe head. The blade attaches to the haft over a middle
+     * band (solid, behind the value) but its horn and beard pull away and up/down,
+     * so above and below that band the haft shows through — the throat that makes
+     * two bits read instead of one block. {@code dir} is its side.
+     */
+    private static void axeBlade(Pixmap p, int c, int dir, int size) {
+        float s = size;
+        int attachTopX = c, attachTopY = Math.round(s * 0.20f);
+        int attachBotX = c, attachBotY = Math.round(s * 0.38f);
+        int hornX = c + dir * Math.round(s * 0.30f), hornY = Math.round(s * 0.06f);
+        int edgeUpX = c + dir * Math.round(s * 0.42f), edgeUpY = Math.round(s * 0.17f);
+        int edgeMidX = c + dir * Math.round(s * 0.46f), edgeMidY = Math.round(s * 0.29f);
+        int edgeLowX = c + dir * Math.round(s * 0.42f), edgeLowY = Math.round(s * 0.41f);
+        int beardX = c + dir * Math.round(s * 0.30f), beardY = Math.round(s * 0.52f);
+        p.fillTriangle(attachTopX, attachTopY, hornX, hornY, edgeUpX, edgeUpY);
+        p.fillTriangle(attachTopX, attachTopY, edgeUpX, edgeUpY, edgeMidX, edgeMidY);
+        p.fillTriangle(attachTopX, attachTopY, edgeMidX, edgeMidY, attachBotX, attachBotY);
+        p.fillTriangle(attachBotX, attachBotY, edgeMidX, edgeMidY, edgeLowX, edgeLowY);
+        p.fillTriangle(attachBotX, attachBotY, edgeLowX, edgeLowY, beardX, beardY);
+    }
+
     @Override
     public void dispose() {
         display.dispose();
@@ -353,6 +412,7 @@ public final class Theme implements Disposable {
         dot.dispose();
         shade.dispose();
         burst.dispose();
+        axe.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }

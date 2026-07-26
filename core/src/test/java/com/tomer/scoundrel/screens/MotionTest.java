@@ -73,4 +73,11 @@ class MotionTest {
         float total = Motion.dealWindow(4, strike, Theme.DEAL_STAGGER, Theme.DEAL_DURATION);
         assertTrue(total <= 0.60f, "strike+deal gate was " + total + "s");
     }
+
+    @Test
+    void theEquipGateStaysShort() {
+        // The equipped weapon flies to the rail, then the next card deals in behind it.
+        float total = Motion.dealWindow(4, Theme.EQUIP_FLIGHT, Theme.DEAL_STAGGER, Theme.DEAL_DURATION);
+        assertTrue(total <= 0.65f, "equip+deal gate was " + total + "s");
+    }
 }

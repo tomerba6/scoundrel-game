@@ -106,8 +106,11 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   shudders the HP bar and flashes the number dried blood; healing glows the
   fill back in, herbal); and **resolve effects** — a bare-handed kill shudders
   the monster's tile under two bone impact stars (`Theme.burstRegion`,
-  `Motion.strikeWindow`) in its slot before the next card deals in. Resolve
-  effects run under the same gate: the strike plays, then the deal-in follows.
+  `Motion.strikeWindow`), and equipping a weapon flies its card to the trophy
+  rail, shrinking and cross-fading into the rail's battleaxe (`Theme.axeRegion`,
+  `Theme.EQUIP_FLIGHT`) — the real rail mini stays hidden until it lands. Resolve
+  effects run under the same gate: the effect plays in the resolved card's slot,
+  then the deal-in follows.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the
@@ -173,11 +176,12 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   offering three moves gets three buttons. It carries no padding, so its whole
   area is button; a press *outside* it dismisses the chooser **and** resolves
   the card it landed on, so the press is never spent merely closing the popup.
-- **Trophy rail** (bottom-left) — equipped weapon mini-tile and slain-monster
-  chips in kill order, both in the card panel colours so they read as miniatures
-  of the cards they came from, and the threshold plate: `slays anything`
-  (fresh), `slays < N`, or `spent` (slew a 2). Reads `Barehanded` when nothing
-  is equipped.
+- **Trophy rail** (bottom-left) — the equipped weapon as a big iron battleaxe
+  (`Theme.axeRegion`) with its value stamped inside the blades (no card frame —
+  it's what the equip flight lands as), then slain-monster chips in kill order
+  in the card panel colours so they read as miniatures of the cards they came
+  from, and the threshold plate: `slays anything` (fresh), `slays < N`, or
+  `spent` (slew a 2). Reads `Barehanded` when nothing is equipped.
 - **Potion marker** (bottom-right) — `potion ready` (dim) or
   `• potion used this turn` (torchlight).
 - **Fading feed** (top-right) — up to four lines, fading after ~4s:
