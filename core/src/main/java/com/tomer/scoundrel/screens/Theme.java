@@ -62,7 +62,7 @@ public final class Theme implements Disposable {
 
     // A drunk potion's card shrinks into a flask and flies up to the health bar
     // over this long, spilling a few drops as it lands (a wasted one just fizzles).
-    public static final float POTION_FLIGHT = 0.42f;
+    public static final float POTION_FLIGHT = 0.3f;
 
     // A weapon kill cleaves the monster's card in two along a curved diagonal; the
     // halves lift and slide apart over this long before the next card deals in.

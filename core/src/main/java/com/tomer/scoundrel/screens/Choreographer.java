@@ -264,21 +264,26 @@ final class Choreographer {
     /** The card morphs into a flask, flies to the health bar, and spills drops on arrival. */
     private float spawnPotionFlight(Card potion, Vector2 fromSlot, Actor healthBar) {
         float fly = Theme.POTION_FLIGHT;
-        Vector2 to = healthBar.localToStageCoordinates(
+        Vector2 bar = healthBar.localToStageCoordinates(
                 new Vector2(healthBar.getWidth() / 2f, healthBar.getHeight() / 2f));
+        float hover = 20f; // the flask comes to rest a little ABOVE the bar
+        float landX = bar.x;
+        float landY = bar.y + hover;
 
         float flaskSize = Theme.CARD_WIDTH * 0.62f;
         Group flyer = potionFlyer(potion, fromSlot, Theme.HERBAL, flaskSize, fly);
-        float finalScale = 38f / flaskSize; // lands a small flask on the bar
+        float finalScale = 38f / flaskSize;
         flyer.addAction(Actions.parallel(
-                Actions.moveTo(to.x - Theme.CARD_WIDTH / 2f, to.y - Theme.CARD_HEIGHT / 2f,
+                Actions.moveTo(landX - Theme.CARD_WIDTH / 2f, landY - Theme.CARD_HEIGHT / 2f,
                         fly, Interpolation.pow2In),
-                Actions.scaleTo(finalScale, finalScale, fly, Interpolation.pow2In)));
+                Actions.scaleTo(finalScale, finalScale, fly, Interpolation.pow2In),
+                Actions.rotateBy(-38f, fly, Interpolation.pow2In))); // arrives tipped, as if pouring
         flightLayer.addActor(flyer);
 
-        // Drops start spilling just before it lands and keep falling after; the
-        // gate must stay up until they finish, so fold their tail into the return.
-        float dropsEnd = spawnDrops(to.x, to.y, Theme.HERBAL, 3, fly * 0.85f);
+        // Drops spill only once the flask has arrived — from its raised mouth
+        // (up and to the side) straight down onto the bar. The gate must outlast
+        // their fall, so fold that tail into the return.
+        float dropsEnd = spawnDrops(landX + 9f, landY + 9f, Theme.HERBAL, 3, fly, 40f);
         return Math.max(fly, dropsEnd);
     }
 
@@ -322,7 +327,7 @@ final class Choreographer {
         flightLayer.addActor(flaskG);
 
         // Grey drops dribble from the tipped mouth, off to the left.
-        float dropsEnd = spawnDrops(cx - 14f, cy - 4f, grey, 2, 0.18f);
+        float dropsEnd = spawnDrops(cx - 14f, cy - 4f, grey, 2, 0.18f, 26f);
         return Math.max(0.42f, dropsEnd);
     }
 
@@ -355,7 +360,7 @@ final class Choreographer {
      * each fading as it falls. Returns when the last drop is gone — callers must
      * keep the gate open at least this long or {@link #finish} wipes them mid-fall.
      */
-    private float spawnDrops(float x, float y, Color tint, int count, float startDelay) {
+    private float spawnDrops(float x, float y, Color tint, int count, float startDelay, float fallDist) {
         float fall = 0.24f;
         float stagger = 0.045f;
         for (int i = 0; i < count; i++) {
@@ -370,7 +375,7 @@ final class Choreographer {
                     Actions.parallel(
                             Actions.sequence(Actions.alpha(0.95f, 0.05f),
                                     Actions.delay(0.1f), Actions.alpha(0f, fall - 0.15f)),
-                            Actions.moveBy(0, -26f, fall, Interpolation.pow2In))));
+                            Actions.moveBy(0, -fallDist, fall, Interpolation.pow2In))));
             flightLayer.addActor(drop);
         }
         return startDelay + (count - 1) * stagger + fall;
