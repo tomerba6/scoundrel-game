@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
@@ -84,6 +85,7 @@ public final class GameScreen extends ScreenAdapter {
     private Actor tickerTicks;
     private Table hpBar;
     private Image hpFill;
+    private Cell<Image> hpFillCell;
     private Label hpNumber;
     private TextButton avoidButton;
     private Table weaponMini;
@@ -468,8 +470,21 @@ public final class GameScreen extends ScreenAdapter {
         hpBar.setBackground(theme.solid(Theme.STONE));
         hpBar.left().pad(2);
         hpFill = new Image(theme.solid(fill));
-        hpBar.add(hpFill).width(156 * fraction).height(10);
+        hpFillCell = hpBar.add(hpFill).width(156 * fraction).height(10);
         return hpBar;
+    }
+
+    /**
+     * Paints the bar and number for an arbitrary health value — not necessarily
+     * the current state's. Lets a potion heal hold the pre-heal reading during
+     * the flask's flight and only tick up once it lands.
+     */
+    private void renderHealth(int value) {
+        float fraction = Math.max(0f, Math.min(1f, value / (float) rules.healthCap()));
+        hpNumber.setText(String.valueOf(value));
+        hpFill.setDrawable(theme.solid(new Color(Theme.DRIED_BLOOD).lerp(Theme.BONE, fraction)));
+        hpFillCell.width(156 * fraction);
+        hpBar.invalidate();
     }
 
     /** Damage: the bar shudders and the number flashes dried blood. */
@@ -745,9 +760,15 @@ public final class GameScreen extends ScreenAdapter {
             if (damage > 0) {
                 pulseDamage();
             } else if (healed > 0) {
-                // The green flash lands with the potion, not on the click: hold it
-                // until the flask has flown to the bar and spilled onto it.
-                hpBar.addAction(Actions.delay(Theme.POTION_FLIGHT, Actions.run(this::pulseHeal)));
+                // The heal — count, fill, and green flash — all land with the
+                // potion, not on the click: hold the pre-heal reading during the
+                // flight, then tick up when the flask spills onto the bar.
+                int landed = state.health();
+                renderHealth(landed - healed);
+                hpBar.addAction(Actions.delay(Theme.POTION_FLIGHT, Actions.run(() -> {
+                    renderHealth(landed);
+                    pulseHeal();
+                })));
             }
             List<Card> avoided = result.events().stream()
                     .filter(e -> e instanceof GameEvent.RoomAvoided)
