@@ -100,6 +100,7 @@ public final class GameScreen extends ScreenAdapter {
     private boolean dealInPending;
     private boolean deathPending;
     private Actor deathLayer;
+    private Actor backdrop;
     private Runnable settleDeath;
 
     /** A normal run in the given mode, recorded to the run log. */
@@ -124,7 +125,8 @@ public final class GameScreen extends ScreenAdapter {
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
         this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
-        stage.addActor(new Backdrop(theme));
+        backdrop = new Backdrop(theme);
+        stage.addActor(backdrop);
         this.choreographer = new Choreographer(stage, theme, this::resolveCardAt);
         startRun();
 
@@ -180,6 +182,11 @@ public final class GameScreen extends ScreenAdapter {
             deathLayer.remove();
             deathLayer = null;
             settleDeath = null;
+            // Undo the death's board shake and snuffed torch.
+            root.clearActions();
+            root.setPosition(0, 0);
+            backdrop.clearActions();
+            backdrop.getColor().a = 1f;
         }
         if (tutorialLayer != null) {
             tutorialLayer.remove();
@@ -285,21 +292,63 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     /**
-     * The death cinematic. The screen bleeds dark, then YOU DIED fades in with a
-     * slow grow, holds a beat, and the score + buttons settle in beneath it. A
-     * click fast-forwards straight to that settled screen. (Commit 2 adds the
-     * amplified final blow and the red bleed-out/torch-snuff before the reveal.)
+     * The death cinematic. The fatal blow flares red on the killer's card and
+     * shakes the whole board; the screen then bleeds dark from the edges as the
+     * torch snuffs out; YOU DIED fades in with a slow grow, holds, and the score
+     * + buttons settle in beneath it. A click fast-forwards to that settled screen.
      */
-    private void playDeath() {
+    private void playDeath(Vector2 killerSlot) {
         Group layer = new Group();
         layer.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         layer.setTouchable(Touchable.enabled); // seals off the dead board underneath
 
-        Image scrim = new Image(theme.solid(dim(Theme.SOOT, 0.9f)));
+        float bleedAt = Theme.DEATH_BLOW;
+        float revealAt = bleedAt + Theme.DEATH_DIM;
+        float settleAt = revealAt + Theme.DEATH_REVEAL + Theme.DEATH_HOLD;
+
+        // The cold-dark void, bled in after the blow.
+        Image scrim = new Image(theme.solid(dim(Theme.SOOT, 0.86f)));
         scrim.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         scrim.getColor().a = 0f;
-        scrim.addAction(Actions.fadeIn(Theme.DEATH_DIM));
+        scrim.addAction(Actions.delay(bleedAt, Actions.fadeIn(Theme.DEATH_DIM)));
         layer.addActor(scrim);
+
+        // Blood creeping in from the edges.
+        Image bleed = new Image(theme.vignette(Theme.DRIED_BLOOD));
+        bleed.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        bleed.getColor().a = 0f;
+        bleed.addAction(Actions.delay(bleedAt * 0.5f, Actions.fadeIn(Theme.DEATH_DIM)));
+        layer.addActor(bleed);
+
+        // The torch dies: the backdrop's living light fades to a cold ember.
+        backdrop.addAction(Actions.delay(bleedAt, Actions.alpha(0.12f, Theme.DEATH_DIM)));
+
+        // The amplified final blow: a red flash, a heavy board shake, and a large
+        // crimson burst over the card that killed you.
+        Image flash = new Image(theme.solid(Theme.DRIED_BLOOD));
+        flash.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        flash.getColor().a = 0f;
+        flash.addAction(Actions.sequence(
+                Actions.alpha(0.42f, 0.06f), Actions.alpha(0f, 0.3f)));
+        layer.addActor(flash);
+        shakeBoard();
+        Image burst = null;
+        if (killerSlot != null) {
+            burst = new Image(theme.burstRegion());
+            float bs = 150f;
+            burst.setColor(Theme.DRIED_BLOOD);
+            burst.setSize(bs, bs);
+            burst.setOrigin(bs / 2f, bs / 2f);
+            burst.setPosition(killerSlot.x + Theme.CARD_WIDTH / 2f - bs / 2f,
+                    killerSlot.y + Theme.CARD_HEIGHT / 2f - bs / 2f);
+            burst.getColor().a = 0f;
+            burst.setScale(0.4f);
+            burst.addAction(Actions.parallel(
+                    Actions.sequence(Actions.alpha(1f, Theme.DEATH_BLOW * 0.25f),
+                            Actions.alpha(0f, Theme.DEATH_BLOW * 0.75f)),
+                    Actions.scaleTo(1.7f, 1.7f, Theme.DEATH_BLOW, Interpolation.pow2Out)));
+            layer.addActor(burst);
+        }
 
         // YOU DIED — big serif, dried blood, a slow fade with a gentle grow.
         Label text = label("YOU DIED", theme.display, Theme.DRIED_BLOOD);
@@ -313,7 +362,7 @@ public final class GameScreen extends ScreenAdapter {
         textWrap.getColor().a = 0f;
         textWrap.setScale(1.25f);
         float finalScale = 1.7f;
-        textWrap.addAction(Actions.delay(Theme.DEATH_DIM, Actions.parallel(
+        textWrap.addAction(Actions.delay(revealAt, Actions.parallel(
                 Actions.fadeIn(Theme.DEATH_REVEAL, Interpolation.pow2),
                 Actions.scaleTo(finalScale, finalScale, Theme.DEATH_REVEAL, Interpolation.pow2Out))));
         layer.addActor(textWrap);
@@ -340,13 +389,23 @@ public final class GameScreen extends ScreenAdapter {
             catcher.remove();
             settleDeath = null;
         };
-        float settleAt = Theme.DEATH_DIM + Theme.DEATH_REVEAL + Theme.DEATH_HOLD;
         panel.addAction(Actions.sequence(
                 Actions.delay(settleAt), Actions.fadeIn(Theme.DEATH_SETTLE), Actions.run(enable)));
 
+        Image burstRef = burst;
         settleDeath = () -> {
+            root.clearActions();
+            root.setPosition(0, 0);
+            backdrop.clearActions();
+            backdrop.getColor().a = 0.12f;
             scrim.clearActions();
             scrim.getColor().a = 1f;
+            bleed.clearActions();
+            bleed.getColor().a = 1f;
+            flash.remove();
+            if (burstRef != null) {
+                burstRef.remove();
+            }
             textWrap.clearActions();
             textWrap.getColor().a = 1f;
             textWrap.setScale(finalScale);
@@ -358,6 +417,19 @@ public final class GameScreen extends ScreenAdapter {
         stage.addActor(layer);
         deathLayer = layer;
         deathPending = false;
+    }
+
+    /** A heavy, decaying shake of the whole board — the impact of the fatal blow. */
+    private void shakeBoard() {
+        float a = 18f;
+        root.addAction(Actions.sequence(
+                Actions.moveBy(a, 0, 0.04f),
+                Actions.moveBy(-2f * a, 6, 0.06f),
+                Actions.moveBy(1.7f * a, -10, 0.05f),
+                Actions.moveBy(-1.4f * a, 8, 0.05f),
+                Actions.moveBy(a, -4, 0.05f),
+                Actions.moveBy(-0.6f * a, 0, 0.05f),
+                Actions.moveTo(0, 0, 0.05f)));
     }
 
     /** Fast-forward the death cinematic to its settled screen; harmless if already there. */
@@ -857,10 +929,13 @@ public final class GameScreen extends ScreenAdapter {
         // Death is always a monster fight (health only drops in combat) and never
         // happens in the tutorial. Withhold the overlay and play the cinematic.
         boolean died = tutorial == null && state.status() == Status.LOST;
+        Vector2 killerSlot = died && move instanceof Move.CardMove cm
+                ? previousSlots.get(cm.targetCard().id())
+                : null;
         deathPending = died;
         rebuild();
         if (died) {
-            playDeath();
+            playDeath(killerSlot);
         }
         if (state.status() == Status.IN_PROGRESS) {
             int damage = result.events().stream()

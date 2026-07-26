@@ -119,13 +119,18 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   effects run under the same gate: the effect plays in the resolved card's slot,
   then the deal-in follows.
 - **Death cinematic.** A losing blow withholds the instant end overlay: `rebuild`
-  skips it while `deathPending`, and `GameScreen.playDeath` runs a sequence
-  (`Theme.DEATH_*` beats) — the screen bleeds dark, **YOU DIED** fades in with a
-  slow grow, holds, and the score + buttons (the shared `buildEndPanel`) settle in
-  beneath it. A click fast-forwards straight to that settled screen (a catcher
-  takes the click while it plays, then retires so the buttons beneath go live).
-  Only losses animate — a win keeps the instant `DUNGEON CLEARED` overlay, and the
-  tutorial never dies.
+  skips it while `deathPending`, and `GameScreen.playDeath(killerSlot)` runs a
+  sequence (`Theme.DEATH_*` beats). The fatal blow flares — a red screen flash, a
+  heavy board shake (`shakeBoard`), and a large crimson burst over the card that
+  killed you — then the screen bleeds dark: a cold scrim and a blood-red edge
+  vignette (`Theme.vignette(tint)`) creep in while the torch snuffs out (the
+  `Backdrop` honours its actor alpha, so fading it kills the glow and embers but
+  keeps the dark vignette). Then **YOU DIED** fades in with a slow grow, holds,
+  and the score + buttons (the shared `buildEndPanel`) settle in beneath it. A
+  click fast-forwards straight to that settled screen (a catcher takes the click
+  while it plays, then retires so the buttons beneath go live); the shake and
+  snuffed torch are undone on `rebuild`. Only losses animate — a win keeps the
+  instant `DUNGEON CLEARED` overlay, and the tutorial never dies.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the

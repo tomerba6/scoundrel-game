@@ -68,8 +68,10 @@ public final class Theme implements Disposable {
     // halves lift and slide apart over this long before the next card deals in.
     public static final float SLICE_DURATION = 0.36f;
 
-    // Death cinematic beats (seconds): the screen bleeds dark, then YOU DIED
-    // fades and grows, holds, and the score + buttons settle in beneath it.
+    // Death cinematic beats (seconds): the fatal blow flares and shakes, then the
+    // screen bleeds dark, then YOU DIED fades and grows, holds, and the score +
+    // buttons settle in beneath it.
+    public static final float DEATH_BLOW = 0.4f;
     public static final float DEATH_DIM = 0.8f;
     public static final float DEATH_REVEAL = 1.2f;
     public static final float DEATH_HOLD = 0.6f;
@@ -174,6 +176,11 @@ public final class Theme implements Disposable {
     /** Black edge-darkening vignette with its alpha baked in. */
     TextureRegion vignetteRegion() {
         return vignetteRegion;
+    }
+
+    /** The edge vignette as a tinted drawable — blood-red for the death bleed-out. */
+    Drawable vignette(Color tint) {
+        return new TextureRegionDrawable(new TextureRegion(vignetteRegion)).tint(tint);
     }
 
     /** A soft round mote (white; tinted at draw) for the drifting embers. */
