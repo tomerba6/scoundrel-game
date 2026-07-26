@@ -3,6 +3,7 @@ package com.tomer.scoundrel.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -97,6 +98,9 @@ public final class GameScreen extends ScreenAdapter {
     private Actor endOverlay;
     private Actor tutorialLayer;
     private boolean dealInPending;
+    private boolean deathPending;
+    private Actor deathLayer;
+    private Runnable settleDeath;
 
     /** A normal run in the given mode, recorded to the run log. */
     public GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
@@ -172,6 +176,11 @@ public final class GameScreen extends ScreenAdapter {
             endOverlay.remove();
             endOverlay = null;
         }
+        if (deathLayer != null) {
+            deathLayer.remove();
+            deathLayer = null;
+            settleDeath = null;
+        }
         if (tutorialLayer != null) {
             tutorialLayer.remove();
             tutorialLayer = null;
@@ -183,7 +192,9 @@ public final class GameScreen extends ScreenAdapter {
         root.add(roomRow()).grow();
         root.row();
         root.add(bottomStrip()).growX().height(64).pad(0, 24, 12, 24);
-        if (state.status() != Status.IN_PROGRESS) {
+        if (state.status() != Status.IN_PROGRESS && !deathPending) {
+            // A death withholds the overlay: playDeath runs the cinematic first
+            // and settles the score + buttons in at its end.
             endOverlay = tutorial != null ? buildTutorialComplete() : buildEndOverlay();
             stage.addActor(endOverlay);
         } else if (tutorial != null && !tutorial.isComplete()) {
@@ -212,17 +223,28 @@ public final class GameScreen extends ScreenAdapter {
         overlay.add(label(won ? "DUNGEON CLEARED" : "DEFEATED",
                 theme.title, won ? Theme.TORCHLIGHT : Theme.DRIED_BLOOD)).padBottom(4);
         overlay.row();
-        overlay.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(8);
-        overlay.row();
+        overlay.add(buildEndPanel());
+        return overlay;
+    }
+
+    /**
+     * The score, best line, unlocked banner, and the four navigation buttons —
+     * no title, no background. Shared by the instant end overlay and the death
+     * cinematic, which settles this panel in beneath its own YOU DIED reveal.
+     */
+    private Table buildEndPanel() {
+        Table panel = new Table();
+        panel.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(8);
+        panel.row();
         if (endBestLine != null) {
             Color bestColor = endBestLine.equals("New best!")
                     ? Theme.TORCHLIGHT : dim(Theme.BONE, 0.6f);
-            overlay.add(label(endBestLine, theme.bodyBold, bestColor)).padBottom(24);
-            overlay.row();
+            panel.add(label(endBestLine, theme.bodyBold, bestColor)).padBottom(24);
+            panel.row();
         }
         if (!newlyUnlocked.isEmpty()) {
-            overlay.add(unlockedBanner()).padBottom(24);
-            overlay.row();
+            panel.add(unlockedBanner()).padBottom(24);
+            panel.row();
         }
         TextButton newGame = torchButton(theme, "New game");
         newGame.addListener(new ChangeListener() {
@@ -231,8 +253,8 @@ public final class GameScreen extends ScreenAdapter {
                 startNewGame();
             }
         });
-        overlay.add(newGame).padBottom(10);
-        overlay.row();
+        panel.add(newGame).padBottom(10);
+        panel.row();
         TextButton mainMenu = torchButton(theme, "Main menu");
         mainMenu.addListener(new ChangeListener() {
             @Override
@@ -240,8 +262,8 @@ public final class GameScreen extends ScreenAdapter {
                 game.showTitle();
             }
         });
-        overlay.add(mainMenu).padBottom(10);
-        overlay.row();
+        panel.add(mainMenu).padBottom(10);
+        panel.row();
         TextButton trophies = torchButton(theme, "Trophies");
         trophies.addListener(new ChangeListener() {
             @Override
@@ -249,8 +271,8 @@ public final class GameScreen extends ScreenAdapter {
                 game.showTrophies();
             }
         });
-        overlay.add(trophies).padBottom(10);
-        overlay.row();
+        panel.add(trophies).padBottom(10);
+        panel.row();
         TextButton records = torchButton(theme, "Records");
         records.addListener(new ChangeListener() {
             @Override
@@ -258,8 +280,93 @@ public final class GameScreen extends ScreenAdapter {
                 game.showRecords();
             }
         });
-        overlay.add(records);
-        return overlay;
+        panel.add(records);
+        return panel;
+    }
+
+    /**
+     * The death cinematic. The screen bleeds dark, then YOU DIED fades in with a
+     * slow grow, holds a beat, and the score + buttons settle in beneath it. A
+     * click fast-forwards straight to that settled screen. (Commit 2 adds the
+     * amplified final blow and the red bleed-out/torch-snuff before the reveal.)
+     */
+    private void playDeath() {
+        Group layer = new Group();
+        layer.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        layer.setTouchable(Touchable.enabled); // seals off the dead board underneath
+
+        Image scrim = new Image(theme.solid(dim(Theme.SOOT, 0.9f)));
+        scrim.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        scrim.getColor().a = 0f;
+        scrim.addAction(Actions.fadeIn(Theme.DEATH_DIM));
+        layer.addActor(scrim);
+
+        // YOU DIED — big serif, dried blood, a slow fade with a gentle grow.
+        Label text = label("YOU DIED", theme.display, Theme.DRIED_BLOOD);
+        text.pack();
+        Group textWrap = new Group();
+        textWrap.setSize(text.getWidth(), text.getHeight());
+        textWrap.setTransform(true);
+        textWrap.setOrigin(text.getWidth() / 2f, text.getHeight() / 2f);
+        textWrap.setPosition((Theme.WORLD_WIDTH - text.getWidth()) / 2f, 430);
+        textWrap.addActor(text);
+        textWrap.getColor().a = 0f;
+        textWrap.setScale(1.25f);
+        float finalScale = 1.7f;
+        textWrap.addAction(Actions.delay(Theme.DEATH_DIM, Actions.parallel(
+                Actions.fadeIn(Theme.DEATH_REVEAL, Interpolation.pow2),
+                Actions.scaleTo(finalScale, finalScale, Theme.DEATH_REVEAL, Interpolation.pow2Out))));
+        layer.addActor(textWrap);
+
+        // Score + buttons settle in beneath, after the reveal has held a beat.
+        Table panel = buildEndPanel();
+        panel.pack();
+        panel.setPosition((Theme.WORLD_WIDTH - panel.getWidth()) / 2f, 110);
+        panel.setTouchable(Touchable.disabled); // no clicking invisible buttons yet
+        panel.getColor().a = 0f;
+        layer.addActor(panel);
+
+        // A catcher on top takes the fast-forward click during the animation;
+        // once settled it is removed and the buttons beneath receive clicks.
+        Actor catcher = new Actor();
+        catcher.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        catcher.addListener(Widgets.pressListener(this::settleDeathNow));
+        layer.addActor(catcher);
+
+        // Whether the reveal plays out or a click fast-forwards it, the end is the
+        // same: the buttons become live and the fast-forward catcher is retired.
+        Runnable enable = () -> {
+            panel.setTouchable(Touchable.childrenOnly);
+            catcher.remove();
+            settleDeath = null;
+        };
+        float settleAt = Theme.DEATH_DIM + Theme.DEATH_REVEAL + Theme.DEATH_HOLD;
+        panel.addAction(Actions.sequence(
+                Actions.delay(settleAt), Actions.fadeIn(Theme.DEATH_SETTLE), Actions.run(enable)));
+
+        settleDeath = () -> {
+            scrim.clearActions();
+            scrim.getColor().a = 1f;
+            textWrap.clearActions();
+            textWrap.getColor().a = 1f;
+            textWrap.setScale(finalScale);
+            panel.clearActions();
+            panel.getColor().a = 1f;
+            enable.run();
+        };
+
+        stage.addActor(layer);
+        deathLayer = layer;
+        deathPending = false;
+    }
+
+    /** Fast-forward the death cinematic to its settled screen; harmless if already there. */
+    private void settleDeathNow() {
+        if (settleDeath != null) {
+            Runnable done = settleDeath;
+            settleDeath = null;
+            done.run();
+        }
     }
 
     /**
@@ -747,7 +854,14 @@ public final class GameScreen extends ScreenAdapter {
             }
         }
         Map<String, Vector2> previousSlots = captureRoomSlots();
+        // Death is always a monster fight (health only drops in combat) and never
+        // happens in the tutorial. Withhold the overlay and play the cinematic.
+        boolean died = tutorial == null && state.status() == Status.LOST;
+        deathPending = died;
         rebuild();
+        if (died) {
+            playDeath();
+        }
         if (state.status() == Status.IN_PROGRESS) {
             int damage = result.events().stream()
                     .filter(e -> e instanceof GameEvent.MonsterDefeated)

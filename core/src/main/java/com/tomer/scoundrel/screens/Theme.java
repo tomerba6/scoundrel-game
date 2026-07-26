@@ -68,6 +68,13 @@ public final class Theme implements Disposable {
     // halves lift and slide apart over this long before the next card deals in.
     public static final float SLICE_DURATION = 0.36f;
 
+    // Death cinematic beats (seconds): the screen bleeds dark, then YOU DIED
+    // fades and grows, holds, and the score + buttons settle in beneath it.
+    public static final float DEATH_DIM = 0.8f;
+    public static final float DEATH_REVEAL = 1.2f;
+    public static final float DEATH_HOLD = 0.6f;
+    public static final float DEATH_SETTLE = 0.5f;
+
     // Card tile size (virtual pixels), shared by the board layout and flight proxies.
     public static final float CARD_WIDTH = 170;
     public static final float CARD_HEIGHT = 240;
