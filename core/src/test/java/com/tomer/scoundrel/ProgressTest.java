@@ -5,6 +5,7 @@ import com.tomer.scoundrel.achievements.UnlockedAchievement;
 import com.tomer.scoundrel.model.Status;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.runs.RunRecord;
+import com.tomer.scoundrel.tutorial.TutorialFlag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ProgressTest {
 
@@ -28,23 +30,30 @@ class ProgressTest {
         return new AchievementStore(dir.resolve("achievements.log"));
     }
 
+    private TutorialFlag tutorial() {
+        return new TutorialFlag(dir.resolve("tutorial.seen"));
+    }
+
     @Test
-    void eraseAllWipesBothStoresAndLeavesEachRecoverable() {
+    void eraseAllWipesEveryStoreAndLeavesEachRecoverable() {
         RunLog runLog = runLog();
         AchievementStore achievements = achievements();
+        TutorialFlag tutorial = tutorial();
         RunRecord record = new RunRecord(1L, "standard", Status.WON, 20,
                 Instant.parse("2026-07-06T10:00:00Z"), 60, 5, 4, 3, 2, 1, 1, 0);
         UnlockedAchievement unlocked = new UnlockedAchievement("first_blood",
                 Instant.parse("2026-07-06T10:00:00Z"));
         runLog.append(record);
         achievements.append(unlocked);
+        tutorial.markSeen();
 
-        Progress.eraseAll(runLog, achievements);
+        Progress.eraseAll(runLog, achievements, tutorial);
 
-        // Both stores are emptied together...
+        // Every store is emptied together...
         assertEquals(List.of(), runLog.readAll());
         assertEquals(Set.of(), achievements.unlockedIds());
-        // ...and both remain recoverable from their .bak siblings.
+        assertFalse(tutorial.isSeen(), "a full reset makes the player new again");
+        // ...and each remains recoverable from its .bak sibling.
         assertEquals(List.of(record), new RunLog(dir.resolve("runs.log.bak")).readAll());
         assertEquals(List.of(unlocked),
                 new AchievementStore(dir.resolve("achievements.log.bak")).readAll());
@@ -54,8 +63,10 @@ class ProgressTest {
     void eraseAllOnEmptyStoresIsANoOp() {
         RunLog runLog = runLog();
         AchievementStore achievements = achievements();
-        Progress.eraseAll(runLog, achievements);
+        TutorialFlag tutorial = tutorial();
+        Progress.eraseAll(runLog, achievements, tutorial);
         assertEquals(List.of(), runLog.readAll());
         assertEquals(Set.of(), achievements.unlockedIds());
+        assertFalse(tutorial.isSeen());
     }
 }

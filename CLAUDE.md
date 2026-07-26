@@ -30,6 +30,10 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
   - `...scoundrel.achievements` — achievement definitions, evaluation, and the
     unlocked-latch persistence (pure Java; observes the engine + run log from
     outside — `model`/`rules`/`runs` never import it).
+  - `...scoundrel.tutorial` — the guided first-run: a scripted deck + narrated
+    steps and the gating state machine, plus the tutorial-seen flag (pure Java;
+    drives the engine through its public ordered-deck entry — `model`/`rules`
+    never import it). The Scene2D tutorial *mode* lives in `screens.GameScreen`.
 - **Detailed design reference:** the full rules-engine design — the `model`/`rules`
   types, the turn loop, extension seams, and the locked edge-case decisions — is
   documented in [`docs/design.md`](docs/design.md) (prose + Mermaid diagrams).
@@ -45,8 +49,11 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 
 ## Working preferences
 - For any non-trivial change, propose a plan first and wait for review before coding.
-- Write unit tests for the rules engine, especially the tricky rules below. Prefer getting
-  tests green before touching the UI.
+- **Tests first (red-green).** For pure logic, write the failing test, run it to confirm it
+  fails, then implement to green — not code-then-tests. The `model`/`rules`/`runs`/
+  `achievements`/`tutorial` code is pure and headless, so TDD applies throughout. UI
+  rendering, which can't be unit-tested, is the exception: verify it by screenshot instead.
+  Cover the tricky rules below especially, and get tests green before touching the UI.
 - Keep commits small and focused; commit after each working piece.
 
 ---
