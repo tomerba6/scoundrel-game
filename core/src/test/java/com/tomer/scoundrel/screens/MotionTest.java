@@ -88,4 +88,11 @@ class MotionTest {
         float total = Motion.dealWindow(4, Theme.POTION_FLIGHT, Theme.DEAL_STAGGER, Theme.DEAL_DURATION);
         assertTrue(total <= 0.90f, "potion+deal gate was " + total + "s");
     }
+
+    @Test
+    void theSliceGateStaysShort() {
+        // A weapon kill cleaves the monster, then the next card deals in behind it.
+        float total = Motion.dealWindow(4, Theme.SLICE_DURATION, Theme.DEAL_STAGGER, Theme.DEAL_DURATION);
+        assertTrue(total <= 0.85f, "slice+deal gate was " + total + "s");
+    }
 }

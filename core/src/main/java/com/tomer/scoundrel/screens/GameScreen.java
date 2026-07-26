@@ -787,6 +787,8 @@ public final class GameScreen extends ScreenAdapter {
             Vector2 drunkSlot = drunk != null ? previousSlots.get(drunk.id()) : null;
             boolean potionWasted = result.events().stream()
                     .anyMatch(e -> e instanceof GameEvent.PotionWasted);
+            Card slain = move instanceof Move.FightWithWeapon slew ? slew.targetCard() : null;
+            Vector2 slainSlot = slain != null ? previousSlots.get(slain.id()) : null;
             root.validate(); // force a fresh layout so tile destinations are real
             if (avoided != null) {
                 choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
@@ -799,6 +801,9 @@ public final class GameScreen extends ScreenAdapter {
             } else if (drunk != null && drunkSlot != null) {
                 choreographer.playPotion(drunk, drunkSlot, hpBar, potionWasted, roomTiles,
                         previousSlots, tickerCenter(), roomDealt);
+            } else if (slain != null && slainSlot != null) {
+                choreographer.playSlice(slainSlot, roomTiles, previousSlots,
+                        tickerCenter(), roomDealt);
             } else if (roomDealt) {
                 choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
             }

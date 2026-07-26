@@ -110,10 +110,14 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   shrinking and cross-fading into the rail's battleaxe (`Theme.axeRegion`,
   `Theme.EQUIP_FLIGHT`) with the real rail mini hidden until it lands; and
   drinking a potion flies its card up to the HP bar as a herbal flask that
-  spills a few drops on arrival (`Theme.flaskRegion`, `Theme.POTION_FLIGHT`),
-  while a wasted second potion just fizzles grey in its slot. Resolve effects
-  run under the same gate: the effect plays in the resolved card's slot, then
-  the deal-in follows.
+  spills a few drops on arrival (`Theme.flaskRegion`, `Theme.POTION_FLIGHT`) —
+  the HP count, fill, and green flash all wait for the flask to land, not the
+  click — while a wasted second potion just fizzles grey in its slot; and a
+  weapon kill cleaves the monster's card along a curved top-right→bottom-left
+  diagonal into two halves that lift, part, rotate, and fade
+  (`Theme.sliceUpperRegion`/`sliceLowerRegion`, `Theme.SLICE_DURATION`). Resolve
+  effects run under the same gate: the effect plays in the resolved card's slot,
+  then the deal-in follows.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the

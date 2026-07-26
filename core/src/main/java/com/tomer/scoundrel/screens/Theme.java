@@ -64,6 +64,10 @@ public final class Theme implements Disposable {
     // over this long, spilling a few drops as it lands (a wasted one just fizzles).
     public static final float POTION_FLIGHT = 0.55f;
 
+    // A weapon kill cleaves the monster's card in two along a curved diagonal; the
+    // halves lift and slide apart over this long before the next card deals in.
+    public static final float SLICE_DURATION = 0.5f;
+
     // Card tile size (virtual pixels), shared by the board layout and flight proxies.
     public static final float CARD_WIDTH = 170;
     public static final float CARD_HEIGHT = 240;
@@ -90,6 +94,8 @@ public final class Theme implements Disposable {
     private final Texture burst;
     private final Texture axe;
     private final Texture flask;
+    private final Texture sliceUpper;
+    private final Texture sliceLower;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
     private final TextureRegion dotRegion;
@@ -97,6 +103,8 @@ public final class Theme implements Disposable {
     private final TextureRegion burstRegion;
     private final TextureRegion axeRegion;
     private final TextureRegion flaskRegion;
+    private final TextureRegion sliceUpperRegion;
+    private final TextureRegion sliceLowerRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -128,6 +136,8 @@ public final class Theme implements Disposable {
         burst = burstTexture(64);
         axe = axeTexture(64);
         flask = flaskTexture(64);
+        sliceUpper = sliceHalfTexture((int) CARD_WIDTH, (int) CARD_HEIGHT, true);
+        sliceLower = sliceHalfTexture((int) CARD_WIDTH, (int) CARD_HEIGHT, false);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
         dotRegion = new TextureRegion(dot);
@@ -135,6 +145,8 @@ public final class Theme implements Disposable {
         burstRegion = new TextureRegion(burst);
         axeRegion = new TextureRegion(axe);
         flaskRegion = new TextureRegion(flask);
+        sliceUpperRegion = new TextureRegion(sliceUpper);
+        sliceLowerRegion = new TextureRegion(sliceLower);
 
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
@@ -180,6 +192,16 @@ public final class Theme implements Disposable {
     /** A round-bodied potion flask (white; tinted at draw) for the drink flight. */
     TextureRegion flaskRegion() {
         return flaskRegion;
+    }
+
+    /** The upper-left half of a monster card cleaved along a curved TR→BL diagonal. */
+    TextureRegion sliceUpperRegion() {
+        return sliceUpperRegion;
+    }
+
+    /** The lower-right half of a monster card cleaved along a curved TR→BL diagonal. */
+    TextureRegion sliceLowerRegion() {
+        return sliceLowerRegion;
     }
 
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
@@ -435,6 +457,47 @@ public final class Theme implements Disposable {
         return texture;
     }
 
+    /**
+     * One half of a cleaved monster card. The cut runs from the top-right corner
+     * to the bottom-left as a straight diagonal plus a gentle sine bulge (zero at
+     * both corners, widest in the middle) — a slightly curved slash. Pixels on the
+     * chosen side get the monster panel, its dark border on the original card
+     * edges, and a bright seared line right along the cut; the rest is transparent.
+     */
+    private static Texture sliceHalfTexture(int w, int h, boolean upper) {
+        Pixmap p = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+        p.setBlending(Pixmap.Blending.None);
+        Color frame = new Color(CARD_MONSTER.r * 0.45f, CARD_MONSTER.g * 0.45f,
+                CARD_MONSTER.b * 0.45f, 1f);
+        float bulge = Math.min(w, h) * 0.14f;
+        float[] boundary = new float[w];
+        for (int x = 0; x < w; x++) {
+            boundary[x] = h * (1f - x / (float) w) - bulge * (float) Math.sin(Math.PI * x / w);
+        }
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                boolean isUpper = y < boundary[x];
+                if (isUpper != upper) {
+                    continue; // the other half — leave it transparent
+                }
+                Color c;
+                if (Math.abs(y - boundary[x]) < 2.5f) {
+                    c = BONE;                 // the seared cut edge
+                } else if (x < 3 || x >= w - 3 || y < 3 || y >= h - 3) {
+                    c = frame;                // the card's dark border
+                } else {
+                    c = CARD_MONSTER;         // the monster panel
+                }
+                p.setColor(c);
+                p.drawPixel(x, y);
+            }
+        }
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
     @Override
     public void dispose() {
         display.dispose();
@@ -450,6 +513,8 @@ public final class Theme implements Disposable {
         burst.dispose();
         axe.dispose();
         flask.dispose();
+        sliceUpper.dispose();
+        sliceLower.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }

@@ -1,6 +1,7 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -210,6 +211,54 @@ final class Choreographer {
                 ? spawnDealProxies(roomTiles, previousSlots, dungeonSource, effect)
                 : effect;
         flightLayer.addAction(Actions.delay(total, Actions.run(this::finish)));
+    }
+
+    /**
+     * Weapon kill: the monster's card, cleaved along a curved diagonal, lifts and
+     * its two halves slide apart, rotate, and fade in its slot before any deal-in.
+     */
+    void playSlice(Vector2 slot, Map<Card, Table> roomTiles, Map<String, Vector2> previousSlots,
+                   Vector2 dungeonSource, boolean dealAfter) {
+        begin();
+        float cut = spawnSlice(slot);
+        float total = dealAfter
+                ? spawnDealProxies(roomTiles, previousSlots, dungeonSource, cut)
+                : cut;
+        flightLayer.addAction(Actions.delay(total, Actions.run(this::finish)));
+    }
+
+    /** The two curved halves lift together, then part along the cut. Returns its length. */
+    private float spawnSlice(Vector2 slot) {
+        float dur = Theme.SLICE_DURATION;
+        float lift = dur * 0.16f;
+        float part = dur - lift;
+        Image upper = sliceHalf(theme.sliceUpperRegion(), slot);
+        Image lower = sliceHalf(theme.sliceLowerRegion(), slot);
+        // Perpendicular to the top-right→bottom-left cut: the upper-left half drifts
+        // up and left, the lower-right half down and right.
+        upper.addAction(Actions.sequence(
+                Actions.moveBy(0, 7, lift, Interpolation.pow2Out),
+                Actions.parallel(
+                        Actions.moveBy(-26, 15, part, Interpolation.pow2Out),
+                        Actions.rotateBy(8, part),
+                        Actions.fadeOut(part, Interpolation.pow2In))));
+        lower.addAction(Actions.sequence(
+                Actions.moveBy(0, 7, lift, Interpolation.pow2Out),
+                Actions.parallel(
+                        Actions.moveBy(26, -19, part, Interpolation.pow2In),
+                        Actions.rotateBy(-8, part),
+                        Actions.fadeOut(part, Interpolation.pow2In))));
+        flightLayer.addActor(lower);
+        flightLayer.addActor(upper);
+        return dur;
+    }
+
+    private Image sliceHalf(TextureRegion region, Vector2 slot) {
+        Image half = new Image(region);
+        half.setSize(Theme.CARD_WIDTH, Theme.CARD_HEIGHT);
+        half.setOrigin(Theme.CARD_WIDTH / 2f, Theme.CARD_HEIGHT / 2f);
+        half.setPosition(slot.x, slot.y);
+        return half;
     }
 
     /** The card morphs into a flask, flies to the health bar, and spills drops on arrival. */
