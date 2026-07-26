@@ -751,11 +751,16 @@ public final class GameScreen extends ScreenAdapter {
                     .findFirst().orElse(null);
             boolean roomDealt = result.events().stream()
                     .anyMatch(e -> e instanceof GameEvent.RoomDealt);
+            // A monster taken bare-handed is struck in its slot before any deal-in.
+            Card struck = move instanceof Move.FightBarehanded fought ? fought.targetCard() : null;
+            Vector2 struckSlot = struck != null ? previousSlots.get(struck.id()) : null;
+            root.validate(); // force a fresh layout so tile destinations are real
             if (avoided != null) {
-                root.validate(); // force a fresh layout so tile destinations are real
                 choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
+            } else if (struck != null && struckSlot != null) {
+                choreographer.playBarehanded(struck, struckSlot, roomTiles, previousSlots,
+                        tickerCenter(), roomDealt);
             } else if (roomDealt) {
-                root.validate();
                 choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
             }
         }

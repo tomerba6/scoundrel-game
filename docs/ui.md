@@ -11,7 +11,8 @@ in sync with the code.
 > is *illustration* — no drawn card art or creature sprites; type is carried by
 > the value, label, and drawn suit pips. That illustration pass, when it comes,
 > swaps assets in `Theme` without rewriting screen logic. Motion (deal-in,
-> avoid-sweep, HP pulses) and the atmosphere already ship.
+> avoid-sweep, HP pulses, a bare-handed resolve strike) and the atmosphere
+> already ship.
 
 ## Locked decisions (from the design interview)
 
@@ -100,10 +101,13 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   dropped clicks (`Motion.dealWindow` pins that span: 0.30s deal, 0.50s after
   an avoid). The pure parts — the window arithmetic and the "which card is
   under this point" lookup — live in `Motion` and `CardHitRegions` so they are
-  unit tested headlessly. Locked motion set, both shipped:
-  traveling cards (deal-in + avoid sweep) and feedback pulses (damage
+  unit tested headlessly. Shipped motion set:
+  traveling cards (deal-in + avoid sweep); feedback pulses (damage
   shudders the HP bar and flashes the number dried blood; healing glows the
-  fill back in, herbal). No reveals or ambient effects yet.
+  fill back in, herbal); and **resolve effects** — a bare-handed kill shudders
+  the monster's tile under two bone impact stars (`Theme.burstRegion`,
+  `Motion.strikeWindow`) in its slot before the next card deals in. Resolve
+  effects run under the same gate: the strike plays, then the deal-in follows.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the

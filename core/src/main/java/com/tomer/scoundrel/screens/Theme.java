@@ -50,6 +50,12 @@ public final class Theme implements Disposable {
     public static final float DEAL_STAGGER = 0.04f;
     public static final float SWEEP_DURATION = 0.20f;
 
+    // A bare-handed monster is struck this many times; each blow takes
+    // STRIKE_HIT_DURATION to flare and fade, the next follows one stagger later.
+    public static final int STRIKE_HITS = 2;
+    public static final float STRIKE_HIT_DURATION = 0.16f;
+    public static final float STRIKE_HIT_STAGGER = 0.10f;
+
     // Card tile size (virtual pixels), shared by the board layout and flight proxies.
     public static final float CARD_WIDTH = 170;
     public static final float CARD_HEIGHT = 240;
@@ -73,10 +79,12 @@ public final class Theme implements Disposable {
     private final Texture vignette;
     private final Texture dot;
     private final Texture shade;
+    private final Texture burst;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
     private final TextureRegion dotRegion;
     private final TextureRegion shadeRegion;
+    private final TextureRegion burstRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -105,10 +113,12 @@ public final class Theme implements Disposable {
         vignette = vignetteTexture(256);
         dot = softDotTexture(32);
         shade = verticalShadeTexture(64);
+        burst = burstTexture(64);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
         dotRegion = new TextureRegion(dot);
         shadeRegion = new TextureRegion(shade);
+        burstRegion = new TextureRegion(burst);
 
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
@@ -139,6 +149,11 @@ public final class Theme implements Disposable {
     /** A symmetric top-and-bottom edge shade (black, alpha baked in) for card panels. */
     TextureRegion shadeRegion() {
         return shadeRegion;
+    }
+
+    /** A spiky impact star (white; tinted at draw) flared when a monster is struck. */
+    TextureRegion burstRegion() {
+        return burstRegion;
     }
 
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
@@ -296,6 +311,35 @@ public final class Theme implements Disposable {
         return texture;
     }
 
+    /**
+     * A spiky impact star: eight points, drawn as triangles fanned from the
+     * centre out to alternating far/near vertices. White, tinted where used.
+     */
+    private static Texture burstTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setColor(Color.WHITE);
+        int c = size / 2;
+        float outer = size / 2f - 1f;
+        float inner = size / 6f;
+        int spikes = 8;
+        int points = spikes * 2;
+        for (int i = 0; i < points; i++) {
+            double a0 = Math.PI * i / spikes;
+            double a1 = Math.PI * (i + 1) / spikes;
+            float r0 = (i % 2 == 0) ? outer : inner;
+            float r1 = (i % 2 == 0) ? inner : outer;
+            p.fillTriangle(c, c,
+                    c + Math.round(r0 * (float) Math.cos(a0)),
+                    c + Math.round(r0 * (float) Math.sin(a0)),
+                    c + Math.round(r1 * (float) Math.cos(a1)),
+                    c + Math.round(r1 * (float) Math.sin(a1)));
+        }
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
     @Override
     public void dispose() {
         display.dispose();
@@ -308,6 +352,7 @@ public final class Theme implements Disposable {
         vignette.dispose();
         dot.dispose();
         shade.dispose();
+        burst.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }

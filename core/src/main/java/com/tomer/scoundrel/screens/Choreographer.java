@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.tomer.scoundrel.model.Card;
 
@@ -94,6 +95,68 @@ final class Choreographer {
         }
         float total = spawnDealProxies(roomTiles, Map.of(), dungeonSource, Theme.SWEEP_DURATION);
         flightLayer.addAction(Actions.delay(total, Actions.run(this::finish)));
+    }
+
+    /**
+     * Bare-handed kill: the monster's tile shudders under two impact flares in
+     * its old slot, then — if the room refilled — the fresh cards deal in once
+     * the last blow has landed. One gate covers the whole beat.
+     */
+    void playBarehanded(Card monster, Vector2 slot, Map<Card, Table> roomTiles,
+                        Map<String, Vector2> previousSlots, Vector2 dungeonSource, boolean dealAfter) {
+        begin();
+        float strike = spawnStrike(monster, slot);
+        float total = dealAfter
+                ? spawnDealProxies(roomTiles, previousSlots, dungeonSource, strike)
+                : strike;
+        flightLayer.addAction(Actions.delay(total, Actions.run(this::finish)));
+    }
+
+    /** The struck tile shakes and two flares land in turn; returns the strike's length. */
+    private float spawnStrike(Card monster, Vector2 slot) {
+        float strike = Motion.strikeWindow(
+                Theme.STRIKE_HITS, Theme.STRIKE_HIT_STAGGER, Theme.STRIKE_HIT_DURATION);
+        Table proxy = buildProxy(monster);
+        proxy.setPosition(slot.x, slot.y);
+        proxy.addAction(Actions.sequence(
+                Actions.moveBy(8, 0, 0.04f), Actions.moveBy(-16, 0, 0.06f),
+                Actions.moveBy(12, 0, 0.05f), Actions.moveBy(-4, 0, 0.04f)));
+        proxy.addAction(Actions.sequence(
+                Actions.delay(strike * 0.6f),
+                Actions.fadeOut(strike * 0.4f, Interpolation.pow2In)));
+        flightLayer.addActor(proxy);
+
+        float centreX = slot.x + Theme.CARD_WIDTH / 2f;
+        float centreY = slot.y + Theme.CARD_HEIGHT / 2f;
+        for (int i = 0; i < Theme.STRIKE_HITS; i++) {
+            float offsetX = (i % 2 == 0) ? -18f : 20f; // the blows land a little apart
+            float offsetY = (i % 2 == 0) ? 22f : -20f;
+            flightLayer.addActor(spawnFlare(centreX + offsetX, centreY + offsetY,
+                    i * Theme.STRIKE_HIT_STAGGER));
+        }
+        return strike;
+    }
+
+    /** A bone flare that punches in and fades, scaling up around its centre. */
+    private Group spawnFlare(float centreX, float centreY, float delay) {
+        float d = 92f;
+        Image star = new Image(theme.burstRegion());
+        star.setSize(d, d);
+        star.setColor(Theme.BONE);
+        Group flare = new Group();
+        flare.setSize(d, d);
+        flare.setTransform(true);
+        flare.setOrigin(d / 2f, d / 2f);
+        flare.setPosition(centreX - d / 2f, centreY - d / 2f);
+        flare.addActor(star);
+        flare.setScale(0.4f);
+        flare.getColor().a = 0f;
+        flare.addAction(Actions.delay(delay, Actions.parallel(
+                Actions.sequence(
+                        Actions.alpha(1f, Theme.STRIKE_HIT_DURATION * 0.3f),
+                        Actions.alpha(0f, Theme.STRIKE_HIT_DURATION * 0.7f)),
+                Actions.scaleTo(1.3f, 1.3f, Theme.STRIKE_HIT_DURATION, Interpolation.pow2Out))));
+        return flare;
     }
 
     private void begin() {

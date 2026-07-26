@@ -44,4 +44,33 @@ class MotionTest {
         assertTrue(deal <= 0.30f, "deal gate was " + deal + "s");
         assertTrue(avoid <= 0.50f, "avoid gate was " + avoid + "s");
     }
+
+    // A bare-handed strike lands its blows before the next card deals in, so its
+    // window is what the gate holds for while the monster is being pummelled.
+
+    @Test
+    void aSingleBlowLastsOneHit() {
+        assertEquals(0.16f, Motion.strikeWindow(1, 0.10f, 0.16f), EPS);
+    }
+
+    @Test
+    void eachExtraBlowAddsOneStagger() {
+        assertEquals(0.26f, Motion.strikeWindow(2, 0.10f, 0.16f), EPS);
+        assertEquals(0.36f, Motion.strikeWindow(3, 0.10f, 0.16f), EPS);
+    }
+
+    @Test
+    void noBlowsIsInstant() {
+        assertEquals(0f, Motion.strikeWindow(0, 0.10f, 0.16f), EPS);
+    }
+
+    @Test
+    void theShippedStrikeStaysSnappy() {
+        float strike = Motion.strikeWindow(
+                Theme.STRIKE_HITS, Theme.STRIKE_HIT_STAGGER, Theme.STRIKE_HIT_DURATION);
+        assertTrue(strike <= 0.30f, "strike gate was " + strike + "s");
+        // And chaining the deal after the strike still clears in well under a second.
+        float total = Motion.dealWindow(4, strike, Theme.DEAL_STAGGER, Theme.DEAL_DURATION);
+        assertTrue(total <= 0.60f, "strike+deal gate was " + total + "s");
+    }
 }
