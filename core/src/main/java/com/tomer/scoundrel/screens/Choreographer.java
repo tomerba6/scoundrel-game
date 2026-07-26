@@ -278,7 +278,7 @@ final class Choreographer {
 
         // Drops start spilling just before it lands and keep falling after; the
         // gate must stay up until they finish, so fold their tail into the return.
-        float dropsEnd = spawnDrops(to.x, to.y, Theme.HERBAL, 4, fly * 0.85f);
+        float dropsEnd = spawnDrops(to.x, to.y, Theme.HERBAL, 3, fly * 0.85f);
         return Math.max(fly, dropsEnd);
     }
 
@@ -298,7 +298,7 @@ final class Choreographer {
         card.setOrigin(Theme.CARD_WIDTH / 2f, Theme.CARD_HEIGHT / 2f);
         card.setPosition(fromSlot.x, fromSlot.y);
         card.addAction(Actions.parallel(
-                Actions.fadeOut(0.2f), Actions.scaleTo(0.72f, 0.72f, 0.2f)));
+                Actions.fadeOut(0.16f), Actions.scaleTo(0.72f, 0.72f, 0.16f)));
         flightLayer.addActor(card);
 
         float flaskSize = Theme.CARD_WIDTH * 0.5f;
@@ -313,17 +313,17 @@ final class Choreographer {
         flaskG.addActor(flask);
         flaskG.getColor().a = 0f;
         flaskG.addAction(Actions.sequence(
-                Actions.alpha(1f, 0.11f),
-                Actions.delay(0.07f),
+                Actions.alpha(1f, 0.09f),
+                Actions.delay(0.05f),
                 Actions.parallel(
-                        Actions.rotateBy(-48f, 0.2f, Interpolation.pow2In),
-                        Actions.moveBy(-7f, -5f, 0.2f)),
-                Actions.alpha(0f, 0.16f)));
+                        Actions.rotateBy(-48f, 0.16f, Interpolation.pow2In),
+                        Actions.moveBy(-7f, -5f, 0.16f)),
+                Actions.alpha(0f, 0.12f)));
         flightLayer.addActor(flaskG);
 
         // Grey drops dribble from the tipped mouth, off to the left.
-        float dropsEnd = spawnDrops(cx - 14f, cy - 4f, grey, 2, 0.24f);
-        return Math.max(0.55f, dropsEnd);
+        float dropsEnd = spawnDrops(cx - 14f, cy - 4f, grey, 2, 0.18f);
+        return Math.max(0.42f, dropsEnd);
     }
 
     /** A flight group at {@code fromSlot}: the card fades out as a tinted flask fades in over it. */
@@ -356,8 +356,8 @@ final class Choreographer {
      * keep the gate open at least this long or {@link #finish} wipes them mid-fall.
      */
     private float spawnDrops(float x, float y, Color tint, int count, float startDelay) {
-        float fall = 0.34f;
-        float stagger = 0.06f;
+        float fall = 0.24f;
+        float stagger = 0.045f;
         for (int i = 0; i < count; i++) {
             Image drop = new Image(theme.dotRegion());
             drop.setColor(tint);
