@@ -106,11 +106,14 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   shudders the HP bar and flashes the number dried blood; healing glows the
   fill back in, herbal); and **resolve effects** — a bare-handed kill shudders
   the monster's tile under two bone impact stars (`Theme.burstRegion`,
-  `Motion.strikeWindow`), and equipping a weapon flies its card to the trophy
-  rail, shrinking and cross-fading into the rail's battleaxe (`Theme.axeRegion`,
-  `Theme.EQUIP_FLIGHT`) — the real rail mini stays hidden until it lands. Resolve
-  effects run under the same gate: the effect plays in the resolved card's slot,
-  then the deal-in follows.
+  `Motion.strikeWindow`); equipping a weapon flies its card to the trophy rail,
+  shrinking and cross-fading into the rail's battleaxe (`Theme.axeRegion`,
+  `Theme.EQUIP_FLIGHT`) with the real rail mini hidden until it lands; and
+  drinking a potion flies its card up to the HP bar as a herbal flask that
+  spills a few drops on arrival (`Theme.flaskRegion`, `Theme.POTION_FLIGHT`),
+  while a wasted second potion just fizzles grey in its slot. Resolve effects
+  run under the same gate: the effect plays in the resolved card's slot, then
+  the deal-in follows.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the

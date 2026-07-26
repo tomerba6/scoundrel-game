@@ -60,6 +60,10 @@ public final class Theme implements Disposable {
     // long, shrinking into and morphing toward the rail's axe mini as it goes.
     public static final float EQUIP_FLIGHT = 0.32f;
 
+    // A drunk potion's card shrinks into a flask and flies up to the health bar
+    // over this long, spilling a few drops as it lands (a wasted one just fizzles).
+    public static final float POTION_FLIGHT = 0.55f;
+
     // Card tile size (virtual pixels), shared by the board layout and flight proxies.
     public static final float CARD_WIDTH = 170;
     public static final float CARD_HEIGHT = 240;
@@ -85,12 +89,14 @@ public final class Theme implements Disposable {
     private final Texture shade;
     private final Texture burst;
     private final Texture axe;
+    private final Texture flask;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
     private final TextureRegion dotRegion;
     private final TextureRegion shadeRegion;
     private final TextureRegion burstRegion;
     private final TextureRegion axeRegion;
+    private final TextureRegion flaskRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -121,12 +127,14 @@ public final class Theme implements Disposable {
         shade = verticalShadeTexture(64);
         burst = burstTexture(64);
         axe = axeTexture(64);
+        flask = flaskTexture(64);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
         dotRegion = new TextureRegion(dot);
         shadeRegion = new TextureRegion(shade);
         burstRegion = new TextureRegion(burst);
         axeRegion = new TextureRegion(axe);
+        flaskRegion = new TextureRegion(flask);
 
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
@@ -167,6 +175,11 @@ public final class Theme implements Disposable {
     /** A single-bit axe (white; tinted at draw) for the equipped-weapon flight and rail. */
     TextureRegion axeRegion() {
         return axeRegion;
+    }
+
+    /** A round-bodied potion flask (white; tinted at draw) for the drink flight. */
+    TextureRegion flaskRegion() {
+        return flaskRegion;
     }
 
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
@@ -399,6 +412,29 @@ public final class Theme implements Disposable {
         p.fillTriangle(attachBotX, attachBotY, edgeLowX, edgeLowY, beardX, beardY);
     }
 
+    /**
+     * A round-bodied potion flask: a rim, a slim neck, cone shoulders, and a
+     * bulbous body. White on a transparent canvas, tinted where used.
+     */
+    private static Texture flaskTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setColor(Color.WHITE);
+        int c = size / 2;
+        float s = size;
+        p.fillRectangle(c - Math.round(s * 0.11f), Math.round(s * 0.08f),
+                Math.round(s * 0.22f), Math.round(s * 0.07f));   // rim
+        p.fillRectangle(c - Math.round(s * 0.08f), Math.round(s * 0.13f),
+                Math.round(s * 0.16f), Math.round(s * 0.24f));   // neck
+        p.fillTriangle(c - Math.round(s * 0.26f), Math.round(s * 0.66f),
+                c + Math.round(s * 0.26f), Math.round(s * 0.66f),
+                c, Math.round(s * 0.34f));                       // shoulders
+        p.fillCircle(c, Math.round(s * 0.70f), Math.round(s * 0.26f)); // body
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
     @Override
     public void dispose() {
         display.dispose();
@@ -413,6 +449,7 @@ public final class Theme implements Disposable {
         shade.dispose();
         burst.dispose();
         axe.dispose();
+        flask.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }

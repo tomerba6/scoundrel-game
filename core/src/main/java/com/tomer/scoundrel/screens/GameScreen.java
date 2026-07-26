@@ -754,11 +754,16 @@ public final class GameScreen extends ScreenAdapter {
             boolean roomDealt = result.events().stream()
                     .anyMatch(e -> e instanceof GameEvent.RoomDealt);
             // A monster taken bare-handed is struck in its slot; an equipped
-            // weapon flies to the rail. Both resolve before any deal-in.
+            // weapon flies to the rail; a drunk potion flies to the HP bar. Each
+            // resolves before any deal-in.
             Card struck = move instanceof Move.FightBarehanded fought ? fought.targetCard() : null;
             Vector2 struckSlot = struck != null ? previousSlots.get(struck.id()) : null;
             Card equipped = move instanceof Move.TakeWeapon taken ? taken.targetCard() : null;
             Vector2 equipSlot = equipped != null ? previousSlots.get(equipped.id()) : null;
+            Card drunk = move instanceof Move.TakePotion sipped ? sipped.targetCard() : null;
+            Vector2 drunkSlot = drunk != null ? previousSlots.get(drunk.id()) : null;
+            boolean potionWasted = result.events().stream()
+                    .anyMatch(e -> e instanceof GameEvent.PotionWasted);
             root.validate(); // force a fresh layout so tile destinations are real
             if (avoided != null) {
                 choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
@@ -768,6 +773,9 @@ public final class GameScreen extends ScreenAdapter {
             } else if (equipped != null && equipSlot != null && weaponMini != null) {
                 choreographer.playEquip(equipped, equipSlot, weaponMini, roomTiles, previousSlots,
                         tickerCenter(), roomDealt);
+            } else if (drunk != null && drunkSlot != null) {
+                choreographer.playPotion(drunk, drunkSlot, hpBar, potionWasted, roomTiles,
+                        previousSlots, tickerCenter(), roomDealt);
             } else if (roomDealt) {
                 choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
             }

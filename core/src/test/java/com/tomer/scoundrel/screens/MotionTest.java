@@ -80,4 +80,12 @@ class MotionTest {
         float total = Motion.dealWindow(4, Theme.EQUIP_FLIGHT, Theme.DEAL_STAGGER, Theme.DEAL_DURATION);
         assertTrue(total <= 0.65f, "equip+deal gate was " + total + "s");
     }
+
+    @Test
+    void thePotionGateStaysShort() {
+        // The potion flies up to the health bar, then the next card deals in behind
+        // it (the Choreographer adds a short drop-spill tail beyond this).
+        float total = Motion.dealWindow(4, Theme.POTION_FLIGHT, Theme.DEAL_STAGGER, Theme.DEAL_DURATION);
+        assertTrue(total <= 0.90f, "potion+deal gate was " + total + "s");
+    }
 }

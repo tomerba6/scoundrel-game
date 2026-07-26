@@ -1,5 +1,6 @@
 package com.tomer.scoundrel.screens;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -191,6 +192,139 @@ final class Choreographer {
                 Actions.scaleTo(finalScale, finalScale, fly, Interpolation.pow2In)));
         flightLayer.addActor(flyer);
         return fly;
+    }
+
+    /**
+     * Drink: the potion's card shrinks into a flask and flies up to the health
+     * bar, spilling a few herbal drops as it lands; a wasted potion just fizzles
+     * grey in its slot. Either way, any deal-in follows under the same gate.
+     */
+    void playPotion(Card potion, Vector2 fromSlot, Actor healthBar, boolean wasted,
+                    Map<Card, Table> roomTiles, Map<String, Vector2> previousSlots,
+                    Vector2 dungeonSource, boolean dealAfter) {
+        begin();
+        float effect = wasted
+                ? spawnFizzle(potion, fromSlot)
+                : spawnPotionFlight(potion, fromSlot, healthBar);
+        float total = dealAfter
+                ? spawnDealProxies(roomTiles, previousSlots, dungeonSource, effect)
+                : effect;
+        flightLayer.addAction(Actions.delay(total, Actions.run(this::finish)));
+    }
+
+    /** The card morphs into a flask, flies to the health bar, and spills drops on arrival. */
+    private float spawnPotionFlight(Card potion, Vector2 fromSlot, Actor healthBar) {
+        float fly = Theme.POTION_FLIGHT;
+        Vector2 to = healthBar.localToStageCoordinates(
+                new Vector2(healthBar.getWidth() / 2f, healthBar.getHeight() / 2f));
+
+        float flaskSize = Theme.CARD_WIDTH * 0.62f;
+        Group flyer = potionFlyer(potion, fromSlot, Theme.HERBAL, flaskSize, fly);
+        float finalScale = 38f / flaskSize; // lands a small flask on the bar
+        flyer.addAction(Actions.parallel(
+                Actions.moveTo(to.x - Theme.CARD_WIDTH / 2f, to.y - Theme.CARD_HEIGHT / 2f,
+                        fly, Interpolation.pow2In),
+                Actions.scaleTo(finalScale, finalScale, fly, Interpolation.pow2In)));
+        flightLayer.addActor(flyer);
+
+        // Drops start spilling just before it lands and keep falling after; the
+        // gate must stay up until they finish, so fold their tail into the return.
+        float dropsEnd = spawnDrops(to.x, to.y, Theme.HERBAL, 4, fly * 0.85f);
+        return Math.max(fly, dropsEnd);
+    }
+
+    /**
+     * A wasted potion: the card fades where it sat and a grey flask rises, tips
+     * over pouring uselessly, and dribbles a couple of grey drops before fading.
+     * It goes nowhere and heals nothing — clearly distinct from the herbal flight.
+     */
+    private float spawnFizzle(Card potion, Vector2 fromSlot) {
+        Color grey = new Color(0.55f, 0.55f, 0.5f, 1f);
+        float cx = fromSlot.x + Theme.CARD_WIDTH / 2f;
+        float cy = fromSlot.y + Theme.CARD_HEIGHT / 2f;
+
+        Table card = CardTiles.build(theme, potion);
+        card.setSize(Theme.CARD_WIDTH, Theme.CARD_HEIGHT);
+        card.setTransform(true);
+        card.setOrigin(Theme.CARD_WIDTH / 2f, Theme.CARD_HEIGHT / 2f);
+        card.setPosition(fromSlot.x, fromSlot.y);
+        card.addAction(Actions.parallel(
+                Actions.fadeOut(0.28f), Actions.scaleTo(0.72f, 0.72f, 0.28f)));
+        flightLayer.addActor(card);
+
+        float flaskSize = Theme.CARD_WIDTH * 0.5f;
+        Group flaskG = new Group();
+        flaskG.setSize(flaskSize, flaskSize);
+        flaskG.setTransform(true);
+        flaskG.setOrigin(flaskSize / 2f, flaskSize / 2f);
+        flaskG.setPosition(cx - flaskSize / 2f, cy - flaskSize / 2f);
+        Image flask = new Image(theme.flaskRegion());
+        flask.setColor(grey);
+        flask.setSize(flaskSize, flaskSize);
+        flaskG.addActor(flask);
+        flaskG.getColor().a = 0f;
+        flaskG.addAction(Actions.sequence(
+                Actions.alpha(1f, 0.16f),
+                Actions.delay(0.14f),
+                Actions.parallel(
+                        Actions.rotateBy(-48f, 0.3f, Interpolation.pow2In),
+                        Actions.moveBy(-7f, -5f, 0.3f)),
+                Actions.alpha(0f, 0.24f)));
+        flightLayer.addActor(flaskG);
+
+        // Grey drops dribble from the tipped mouth, off to the left.
+        float dropsEnd = spawnDrops(cx - 14f, cy - 4f, grey, 2, 0.5f);
+        return Math.max(0.9f, dropsEnd);
+    }
+
+    /** A flight group at {@code fromSlot}: the card fades out as a tinted flask fades in over it. */
+    private Group potionFlyer(Card potion, Vector2 fromSlot, Color flaskTint, float flaskSize, float span) {
+        Group flyer = new Group();
+        flyer.setSize(Theme.CARD_WIDTH, Theme.CARD_HEIGHT);
+        flyer.setTransform(true);
+        flyer.setOrigin(Theme.CARD_WIDTH / 2f, Theme.CARD_HEIGHT / 2f);
+        flyer.setPosition(fromSlot.x, fromSlot.y);
+
+        Table card = CardTiles.build(theme, potion);
+        card.setSize(Theme.CARD_WIDTH, Theme.CARD_HEIGHT);
+        card.addAction(Actions.fadeOut(span * 0.5f));
+        flyer.addActor(card);
+
+        Image flask = new Image(theme.flaskRegion());
+        flask.setColor(flaskTint);
+        flask.setSize(flaskSize, flaskSize);
+        flask.setPosition((Theme.CARD_WIDTH - flaskSize) / 2f, (Theme.CARD_HEIGHT - flaskSize) / 2f);
+        flask.getColor().a = 0f;
+        flask.addAction(Actions.sequence(
+                Actions.delay(span * 0.15f), Actions.alpha(1f, span * 0.35f)));
+        flyer.addActor(flask);
+        return flyer;
+    }
+
+    /**
+     * {@code count} drops spilling from (x, y) starting after {@code startDelay},
+     * each fading as it falls. Returns when the last drop is gone — callers must
+     * keep the gate open at least this long or {@link #finish} wipes them mid-fall.
+     */
+    private float spawnDrops(float x, float y, Color tint, int count, float startDelay) {
+        float fall = 0.34f;
+        float stagger = 0.06f;
+        for (int i = 0; i < count; i++) {
+            Image drop = new Image(theme.dotRegion());
+            drop.setColor(tint);
+            float d = 13f;
+            drop.setSize(d, d);
+            drop.setPosition(x + (i - (count - 1) / 2f) * 11f - d / 2f, y - d / 2f);
+            drop.getColor().a = 0f;
+            drop.addAction(Actions.sequence(
+                    Actions.delay(startDelay + i * stagger),
+                    Actions.parallel(
+                            Actions.sequence(Actions.alpha(0.95f, 0.05f),
+                                    Actions.delay(0.1f), Actions.alpha(0f, fall - 0.15f)),
+                            Actions.moveBy(0, -26f, fall, Interpolation.pow2In))));
+            flightLayer.addActor(drop);
+        }
+        return startDelay + (count - 1) * stagger + fall;
     }
 
     /** A bone flare that punches in and fades, scaling up around its centre. */
