@@ -50,6 +50,33 @@ public final class Theme implements Disposable {
     public static final float DEAL_STAGGER = 0.04f;
     public static final float SWEEP_DURATION = 0.20f;
 
+    // A bare-handed monster is struck this many times; each blow takes
+    // STRIKE_HIT_DURATION to flare and fade, the next follows one stagger later.
+    public static final int STRIKE_HITS = 2;
+    public static final float STRIKE_HIT_DURATION = 0.16f;
+    public static final float STRIKE_HIT_STAGGER = 0.10f;
+
+    // An equipped weapon flies from its card slot into the trophy rail over this
+    // long, shrinking into and morphing toward the rail's axe mini as it goes.
+    public static final float EQUIP_FLIGHT = 0.24f;
+
+    // A drunk potion's card shrinks into a flask and flies up to the health bar
+    // over this long, spilling a few drops as it lands (a wasted one just fizzles).
+    public static final float POTION_FLIGHT = 0.3f;
+
+    // A weapon kill cleaves the monster's card in two along a curved diagonal; the
+    // halves lift and slide apart over this long before the next card deals in.
+    public static final float SLICE_DURATION = 0.36f;
+
+    // Death cinematic beats (seconds): the fatal blow flares and shakes, then the
+    // screen bleeds dark, then YOU DIED fades and grows, holds, and the score +
+    // buttons settle in beneath it.
+    public static final float DEATH_BLOW = 0.4f;
+    public static final float DEATH_DIM = 0.8f;
+    public static final float DEATH_REVEAL = 1.2f;
+    public static final float DEATH_HOLD = 0.6f;
+    public static final float DEATH_SETTLE = 0.5f;
+
     // Card tile size (virtual pixels), shared by the board layout and flight proxies.
     public static final float CARD_WIDTH = 170;
     public static final float CARD_HEIGHT = 240;
@@ -73,10 +100,20 @@ public final class Theme implements Disposable {
     private final Texture vignette;
     private final Texture dot;
     private final Texture shade;
+    private final Texture burst;
+    private final Texture axe;
+    private final Texture flask;
+    private final Texture sliceUpper;
+    private final Texture sliceLower;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
     private final TextureRegion dotRegion;
     private final TextureRegion shadeRegion;
+    private final TextureRegion burstRegion;
+    private final TextureRegion axeRegion;
+    private final TextureRegion flaskRegion;
+    private final TextureRegion sliceUpperRegion;
+    private final TextureRegion sliceLowerRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
@@ -105,10 +142,20 @@ public final class Theme implements Disposable {
         vignette = vignetteTexture(256);
         dot = softDotTexture(32);
         shade = verticalShadeTexture(64);
+        burst = burstTexture(64);
+        axe = axeTexture(64);
+        flask = flaskTexture(64);
+        sliceUpper = sliceHalfTexture((int) CARD_WIDTH, (int) CARD_HEIGHT, true);
+        sliceLower = sliceHalfTexture((int) CARD_WIDTH, (int) CARD_HEIGHT, false);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
         dotRegion = new TextureRegion(dot);
         shadeRegion = new TextureRegion(shade);
+        burstRegion = new TextureRegion(burst);
+        axeRegion = new TextureRegion(axe);
+        flaskRegion = new TextureRegion(flask);
+        sliceUpperRegion = new TextureRegion(sliceUpper);
+        sliceLowerRegion = new TextureRegion(sliceLower);
 
         suitTextures.put('S', suitTexture('S'));
         suitTextures.put('H', suitTexture('H'));
@@ -131,6 +178,11 @@ public final class Theme implements Disposable {
         return vignetteRegion;
     }
 
+    /** The edge vignette as a tinted drawable — blood-red for the death bleed-out. */
+    Drawable vignette(Color tint) {
+        return new TextureRegionDrawable(new TextureRegion(vignetteRegion)).tint(tint);
+    }
+
     /** A soft round mote (white; tinted at draw) for the drifting embers. */
     TextureRegion dotRegion() {
         return dotRegion;
@@ -139,6 +191,31 @@ public final class Theme implements Disposable {
     /** A symmetric top-and-bottom edge shade (black, alpha baked in) for card panels. */
     TextureRegion shadeRegion() {
         return shadeRegion;
+    }
+
+    /** A spiky impact star (white; tinted at draw) flared when a monster is struck. */
+    TextureRegion burstRegion() {
+        return burstRegion;
+    }
+
+    /** A single-bit axe (white; tinted at draw) for the equipped-weapon flight and rail. */
+    TextureRegion axeRegion() {
+        return axeRegion;
+    }
+
+    /** A round-bodied potion flask (white; tinted at draw) for the drink flight. */
+    TextureRegion flaskRegion() {
+        return flaskRegion;
+    }
+
+    /** The upper-left half of a monster card cleaved along a curved TR→BL diagonal. */
+    TextureRegion sliceUpperRegion() {
+        return sliceUpperRegion;
+    }
+
+    /** The lower-right half of a monster card cleaved along a curved TR→BL diagonal. */
+    TextureRegion sliceLowerRegion() {
+        return sliceLowerRegion;
     }
 
     /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
@@ -296,6 +373,145 @@ public final class Theme implements Disposable {
         return texture;
     }
 
+    /**
+     * A spiky impact star: eight points, drawn as triangles fanned from the
+     * centre out to alternating far/near vertices. White, tinted where used.
+     */
+    private static Texture burstTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setColor(Color.WHITE);
+        int c = size / 2;
+        float outer = size / 2f - 1f;
+        float inner = size / 6f;
+        int spikes = 8;
+        int points = spikes * 2;
+        for (int i = 0; i < points; i++) {
+            double a0 = Math.PI * i / spikes;
+            double a1 = Math.PI * (i + 1) / spikes;
+            float r0 = (i % 2 == 0) ? outer : inner;
+            float r1 = (i % 2 == 0) ? inner : outer;
+            p.fillTriangle(c, c,
+                    c + Math.round(r0 * (float) Math.cos(a0)),
+                    c + Math.round(r0 * (float) Math.sin(a0)),
+                    c + Math.round(r1 * (float) Math.cos(a1)),
+                    c + Math.round(r1 * (float) Math.sin(a1)));
+        }
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
+    /**
+     * A big double-bit battleaxe: a broad twin-bladed head riding the TOP of a
+     * central haft, its cutting edges flaring out to either side. The head is
+     * tall and solid through the middle so the weapon's value sits inside the
+     * blades, clear of the shaft. Drawn bold so it reads even shrunk into the
+     * trophy rail. White on a transparent canvas, tinted where used.
+     */
+    private static Texture axeTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setColor(Color.WHITE);
+        int c = size / 2;
+        // Haft: a stout bar down the centre, dropping from under the head. It
+        // stops below the horns so the head's throat (the notch between the two
+        // bits) reads at the top.
+        p.fillRectangle(c - Math.round(size * 0.05f), Math.round(size * 0.18f),
+                Math.round(size * 0.10f), Math.round(size * 0.76f));
+        axeBlade(p, c, -1, size); // left bit
+        axeBlade(p, c, +1, size); // right bit, mirrored
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
+    /**
+     * One bit of the battleaxe head. The blade attaches to the haft over a middle
+     * band (solid, behind the value) but its horn and beard pull away and up/down,
+     * so above and below that band the haft shows through — the throat that makes
+     * two bits read instead of one block. {@code dir} is its side.
+     */
+    private static void axeBlade(Pixmap p, int c, int dir, int size) {
+        float s = size;
+        int attachTopX = c, attachTopY = Math.round(s * 0.20f);
+        int attachBotX = c, attachBotY = Math.round(s * 0.38f);
+        int hornX = c + dir * Math.round(s * 0.30f), hornY = Math.round(s * 0.06f);
+        int edgeUpX = c + dir * Math.round(s * 0.42f), edgeUpY = Math.round(s * 0.17f);
+        int edgeMidX = c + dir * Math.round(s * 0.46f), edgeMidY = Math.round(s * 0.29f);
+        int edgeLowX = c + dir * Math.round(s * 0.42f), edgeLowY = Math.round(s * 0.41f);
+        int beardX = c + dir * Math.round(s * 0.30f), beardY = Math.round(s * 0.52f);
+        p.fillTriangle(attachTopX, attachTopY, hornX, hornY, edgeUpX, edgeUpY);
+        p.fillTriangle(attachTopX, attachTopY, edgeUpX, edgeUpY, edgeMidX, edgeMidY);
+        p.fillTriangle(attachTopX, attachTopY, edgeMidX, edgeMidY, attachBotX, attachBotY);
+        p.fillTriangle(attachBotX, attachBotY, edgeMidX, edgeMidY, edgeLowX, edgeLowY);
+        p.fillTriangle(attachBotX, attachBotY, edgeLowX, edgeLowY, beardX, beardY);
+    }
+
+    /**
+     * A round-bodied potion flask: a rim, a slim neck, cone shoulders, and a
+     * bulbous body. White on a transparent canvas, tinted where used.
+     */
+    private static Texture flaskTexture(int size) {
+        Pixmap p = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        p.setColor(Color.WHITE);
+        int c = size / 2;
+        float s = size;
+        p.fillRectangle(c - Math.round(s * 0.11f), Math.round(s * 0.08f),
+                Math.round(s * 0.22f), Math.round(s * 0.07f));   // rim
+        p.fillRectangle(c - Math.round(s * 0.08f), Math.round(s * 0.13f),
+                Math.round(s * 0.16f), Math.round(s * 0.24f));   // neck
+        p.fillTriangle(c - Math.round(s * 0.26f), Math.round(s * 0.66f),
+                c + Math.round(s * 0.26f), Math.round(s * 0.66f),
+                c, Math.round(s * 0.34f));                       // shoulders
+        p.fillCircle(c, Math.round(s * 0.70f), Math.round(s * 0.26f)); // body
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
+    /**
+     * One half of a cleaved monster card. The cut runs from the top-right corner
+     * to the bottom-left as a straight diagonal plus a gentle sine bulge (zero at
+     * both corners, widest in the middle) — a slightly curved slash. Pixels on the
+     * chosen side get the monster panel, its dark border on the original card
+     * edges, and a bright seared line right along the cut; the rest is transparent.
+     */
+    private static Texture sliceHalfTexture(int w, int h, boolean upper) {
+        Pixmap p = new Pixmap(w, h, Pixmap.Format.RGBA8888);
+        p.setBlending(Pixmap.Blending.None);
+        Color frame = new Color(CARD_MONSTER.r * 0.45f, CARD_MONSTER.g * 0.45f,
+                CARD_MONSTER.b * 0.45f, 1f);
+        float bulge = Math.min(w, h) * 0.14f;
+        float[] boundary = new float[w];
+        for (int x = 0; x < w; x++) {
+            boundary[x] = h * (1f - x / (float) w) - bulge * (float) Math.sin(Math.PI * x / w);
+        }
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                boolean isUpper = y < boundary[x];
+                if (isUpper != upper) {
+                    continue; // the other half — leave it transparent
+                }
+                Color c;
+                if (Math.abs(y - boundary[x]) < 2.5f) {
+                    c = BONE;                 // the seared cut edge
+                } else if (x < 3 || x >= w - 3 || y < 3 || y >= h - 3) {
+                    c = frame;                // the card's dark border
+                } else {
+                    c = CARD_MONSTER;         // the monster panel
+                }
+                p.setColor(c);
+                p.drawPixel(x, y);
+            }
+        }
+        Texture texture = new Texture(p);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        p.dispose();
+        return texture;
+    }
+
     @Override
     public void dispose() {
         display.dispose();
@@ -308,6 +524,11 @@ public final class Theme implements Disposable {
         vignette.dispose();
         dot.dispose();
         shade.dispose();
+        burst.dispose();
+        axe.dispose();
+        flask.dispose();
+        sliceUpper.dispose();
+        sliceLower.dispose();
         suitTextures.values().forEach(Texture::dispose);
     }
 }

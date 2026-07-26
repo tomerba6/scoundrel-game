@@ -3,14 +3,17 @@ package com.tomer.scoundrel.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.VerticalGroup;
@@ -83,8 +86,10 @@ public final class GameScreen extends ScreenAdapter {
     private Actor tickerTicks;
     private Table hpBar;
     private Image hpFill;
+    private Cell<Image> hpFillCell;
     private Label hpNumber;
     private TextButton avoidButton;
+    private Table weaponMini;
     private GameState state;
     private RunRecorder recorder;
     private AchievementTracker tracker;
@@ -93,6 +98,10 @@ public final class GameScreen extends ScreenAdapter {
     private Actor endOverlay;
     private Actor tutorialLayer;
     private boolean dealInPending;
+    private boolean deathPending;
+    private Actor deathLayer;
+    private Actor backdrop;
+    private Runnable settleDeath;
 
     /** A normal run in the given mode, recorded to the run log. */
     public GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
@@ -116,7 +125,8 @@ public final class GameScreen extends ScreenAdapter {
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
         this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
-        stage.addActor(new Backdrop(theme));
+        backdrop = new Backdrop(theme);
+        stage.addActor(backdrop);
         this.choreographer = new Choreographer(stage, theme, this::resolveCardAt);
         startRun();
 
@@ -168,6 +178,16 @@ public final class GameScreen extends ScreenAdapter {
             endOverlay.remove();
             endOverlay = null;
         }
+        if (deathLayer != null) {
+            deathLayer.remove();
+            deathLayer = null;
+            settleDeath = null;
+            // Undo the death's board shake and snuffed torch.
+            root.clearActions();
+            root.setPosition(0, 0);
+            backdrop.clearActions();
+            backdrop.getColor().a = 1f;
+        }
         if (tutorialLayer != null) {
             tutorialLayer.remove();
             tutorialLayer = null;
@@ -179,7 +199,9 @@ public final class GameScreen extends ScreenAdapter {
         root.add(roomRow()).grow();
         root.row();
         root.add(bottomStrip()).growX().height(64).pad(0, 24, 12, 24);
-        if (state.status() != Status.IN_PROGRESS) {
+        if (state.status() != Status.IN_PROGRESS && !deathPending) {
+            // A death withholds the overlay: playDeath runs the cinematic first
+            // and settles the score + buttons in at its end.
             endOverlay = tutorial != null ? buildTutorialComplete() : buildEndOverlay();
             stage.addActor(endOverlay);
         } else if (tutorial != null && !tutorial.isComplete()) {
@@ -208,17 +230,28 @@ public final class GameScreen extends ScreenAdapter {
         overlay.add(label(won ? "DUNGEON CLEARED" : "DEFEATED",
                 theme.title, won ? Theme.TORCHLIGHT : Theme.DRIED_BLOOD)).padBottom(4);
         overlay.row();
-        overlay.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(8);
-        overlay.row();
+        overlay.add(buildEndPanel());
+        return overlay;
+    }
+
+    /**
+     * The score, best line, unlocked banner, and the four navigation buttons —
+     * no title, no background. Shared by the instant end overlay and the death
+     * cinematic, which settles this panel in beneath its own YOU DIED reveal.
+     */
+    private Table buildEndPanel() {
+        Table panel = new Table();
+        panel.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(8);
+        panel.row();
         if (endBestLine != null) {
             Color bestColor = endBestLine.equals("New best!")
                     ? Theme.TORCHLIGHT : dim(Theme.BONE, 0.6f);
-            overlay.add(label(endBestLine, theme.bodyBold, bestColor)).padBottom(24);
-            overlay.row();
+            panel.add(label(endBestLine, theme.bodyBold, bestColor)).padBottom(24);
+            panel.row();
         }
         if (!newlyUnlocked.isEmpty()) {
-            overlay.add(unlockedBanner()).padBottom(24);
-            overlay.row();
+            panel.add(unlockedBanner()).padBottom(24);
+            panel.row();
         }
         TextButton newGame = torchButton(theme, "New game");
         newGame.addListener(new ChangeListener() {
@@ -227,8 +260,8 @@ public final class GameScreen extends ScreenAdapter {
                 startNewGame();
             }
         });
-        overlay.add(newGame).padBottom(10);
-        overlay.row();
+        panel.add(newGame).padBottom(10);
+        panel.row();
         TextButton mainMenu = torchButton(theme, "Main menu");
         mainMenu.addListener(new ChangeListener() {
             @Override
@@ -236,8 +269,8 @@ public final class GameScreen extends ScreenAdapter {
                 game.showTitle();
             }
         });
-        overlay.add(mainMenu).padBottom(10);
-        overlay.row();
+        panel.add(mainMenu).padBottom(10);
+        panel.row();
         TextButton trophies = torchButton(theme, "Trophies");
         trophies.addListener(new ChangeListener() {
             @Override
@@ -245,8 +278,8 @@ public final class GameScreen extends ScreenAdapter {
                 game.showTrophies();
             }
         });
-        overlay.add(trophies).padBottom(10);
-        overlay.row();
+        panel.add(trophies).padBottom(10);
+        panel.row();
         TextButton records = torchButton(theme, "Records");
         records.addListener(new ChangeListener() {
             @Override
@@ -254,8 +287,158 @@ public final class GameScreen extends ScreenAdapter {
                 game.showRecords();
             }
         });
-        overlay.add(records);
-        return overlay;
+        panel.add(records);
+        return panel;
+    }
+
+    /**
+     * The death cinematic. The fatal blow flares red on the killer's card and
+     * shakes the whole board; the screen then bleeds dark from the edges as the
+     * torch snuffs out; YOU DIED fades in with a slow grow, holds, and the score
+     * + buttons settle in beneath it. A click fast-forwards to that settled screen.
+     */
+    private void playDeath(Vector2 killerSlot) {
+        Group layer = new Group();
+        layer.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        layer.setTouchable(Touchable.enabled); // seals off the dead board underneath
+
+        float bleedAt = Theme.DEATH_BLOW;
+        float revealAt = bleedAt + Theme.DEATH_DIM;
+        float settleAt = revealAt + Theme.DEATH_REVEAL + Theme.DEATH_HOLD;
+
+        // The cold-dark void, bled in after the blow.
+        Image scrim = new Image(theme.solid(dim(Theme.SOOT, 0.86f)));
+        scrim.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        scrim.getColor().a = 0f;
+        scrim.addAction(Actions.delay(bleedAt, Actions.fadeIn(Theme.DEATH_DIM)));
+        layer.addActor(scrim);
+
+        // Blood creeping in from the edges.
+        Image bleed = new Image(theme.vignette(Theme.DRIED_BLOOD));
+        bleed.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        bleed.getColor().a = 0f;
+        bleed.addAction(Actions.delay(bleedAt * 0.5f, Actions.fadeIn(Theme.DEATH_DIM)));
+        layer.addActor(bleed);
+
+        // The torch dies: the backdrop's living light fades to a cold ember.
+        backdrop.addAction(Actions.delay(bleedAt, Actions.alpha(0.12f, Theme.DEATH_DIM)));
+
+        // The amplified final blow: a red flash, a heavy board shake, and a large
+        // crimson burst over the card that killed you.
+        Image flash = new Image(theme.solid(Theme.DRIED_BLOOD));
+        flash.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        flash.getColor().a = 0f;
+        flash.addAction(Actions.sequence(
+                Actions.alpha(0.42f, 0.06f), Actions.alpha(0f, 0.3f)));
+        layer.addActor(flash);
+        shakeBoard();
+        Image burst = null;
+        if (killerSlot != null) {
+            burst = new Image(theme.burstRegion());
+            float bs = 150f;
+            burst.setColor(Theme.DRIED_BLOOD);
+            burst.setSize(bs, bs);
+            burst.setOrigin(bs / 2f, bs / 2f);
+            burst.setPosition(killerSlot.x + Theme.CARD_WIDTH / 2f - bs / 2f,
+                    killerSlot.y + Theme.CARD_HEIGHT / 2f - bs / 2f);
+            burst.getColor().a = 0f;
+            burst.setScale(0.4f);
+            burst.addAction(Actions.parallel(
+                    Actions.sequence(Actions.alpha(1f, Theme.DEATH_BLOW * 0.25f),
+                            Actions.alpha(0f, Theme.DEATH_BLOW * 0.75f)),
+                    Actions.scaleTo(1.7f, 1.7f, Theme.DEATH_BLOW, Interpolation.pow2Out)));
+            layer.addActor(burst);
+        }
+
+        // YOU DIED — big serif, dried blood, a slow fade with a gentle grow.
+        Label text = label("YOU DIED", theme.display, Theme.DRIED_BLOOD);
+        text.pack();
+        Group textWrap = new Group();
+        textWrap.setSize(text.getWidth(), text.getHeight());
+        textWrap.setTransform(true);
+        textWrap.setOrigin(text.getWidth() / 2f, text.getHeight() / 2f);
+        textWrap.setPosition((Theme.WORLD_WIDTH - text.getWidth()) / 2f, 430);
+        textWrap.addActor(text);
+        textWrap.getColor().a = 0f;
+        textWrap.setScale(1.25f);
+        float finalScale = 1.7f;
+        textWrap.addAction(Actions.delay(revealAt, Actions.parallel(
+                Actions.fadeIn(Theme.DEATH_REVEAL, Interpolation.pow2),
+                Actions.scaleTo(finalScale, finalScale, Theme.DEATH_REVEAL, Interpolation.pow2Out))));
+        layer.addActor(textWrap);
+
+        // Score + buttons settle in beneath, after the reveal has held a beat.
+        Table panel = buildEndPanel();
+        panel.pack();
+        panel.setPosition((Theme.WORLD_WIDTH - panel.getWidth()) / 2f, 110);
+        panel.setTouchable(Touchable.disabled); // no clicking invisible buttons yet
+        panel.getColor().a = 0f;
+        layer.addActor(panel);
+
+        // A catcher on top takes the fast-forward click during the animation;
+        // once settled it is removed and the buttons beneath receive clicks.
+        Actor catcher = new Actor();
+        catcher.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        catcher.addListener(Widgets.pressListener(this::settleDeathNow));
+        layer.addActor(catcher);
+
+        // Whether the reveal plays out or a click fast-forwards it, the end is the
+        // same: the buttons become live and the fast-forward catcher is retired.
+        Runnable enable = () -> {
+            panel.setTouchable(Touchable.childrenOnly);
+            catcher.remove();
+            settleDeath = null;
+        };
+        panel.addAction(Actions.sequence(
+                Actions.delay(settleAt), Actions.fadeIn(Theme.DEATH_SETTLE), Actions.run(enable)));
+
+        Image burstRef = burst;
+        settleDeath = () -> {
+            root.clearActions();
+            root.setPosition(0, 0);
+            backdrop.clearActions();
+            backdrop.getColor().a = 0.12f;
+            scrim.clearActions();
+            scrim.getColor().a = 1f;
+            bleed.clearActions();
+            bleed.getColor().a = 1f;
+            flash.remove();
+            if (burstRef != null) {
+                burstRef.remove();
+            }
+            textWrap.clearActions();
+            textWrap.getColor().a = 1f;
+            textWrap.setScale(finalScale);
+            panel.clearActions();
+            panel.getColor().a = 1f;
+            enable.run();
+        };
+
+        stage.addActor(layer);
+        deathLayer = layer;
+        deathPending = false;
+    }
+
+    /** A heavy, decaying shake of the whole board — the impact of the fatal blow. */
+    private void shakeBoard() {
+        float a = 18f;
+        root.addAction(Actions.sequence(
+                Actions.moveBy(a, 0, 0.04f),
+                Actions.moveBy(-2f * a, 6, 0.06f),
+                Actions.moveBy(1.7f * a, -10, 0.05f),
+                Actions.moveBy(-1.4f * a, 8, 0.05f),
+                Actions.moveBy(a, -4, 0.05f),
+                Actions.moveBy(-0.6f * a, 0, 0.05f),
+                Actions.moveTo(0, 0, 0.05f)));
+    }
+
+    /** Fast-forward the death cinematic to its settled screen; harmless if already there. */
+    private void settleDeathNow() {
+        if (settleDeath != null) {
+            Runnable done = settleDeath;
+            settleDeath = null;
+            done.run();
+        }
     }
 
     /**
@@ -466,8 +649,21 @@ public final class GameScreen extends ScreenAdapter {
         hpBar.setBackground(theme.solid(Theme.STONE));
         hpBar.left().pad(2);
         hpFill = new Image(theme.solid(fill));
-        hpBar.add(hpFill).width(156 * fraction).height(10);
+        hpFillCell = hpBar.add(hpFill).width(156 * fraction).height(10);
         return hpBar;
+    }
+
+    /**
+     * Paints the bar and number for an arbitrary health value — not necessarily
+     * the current state's. Lets a potion heal hold the pre-heal reading during
+     * the flask's flight and only tick up once it lands.
+     */
+    private void renderHealth(int value) {
+        float fraction = Math.max(0f, Math.min(1f, value / (float) rules.healthCap()));
+        hpNumber.setText(String.valueOf(value));
+        hpFill.setDrawable(theme.solid(new Color(Theme.DRIED_BLOOD).lerp(Theme.BONE, fraction)));
+        hpFillCell.width(156 * fraction);
+        hpBar.invalidate();
     }
 
     /** Damage: the bar shudders and the number flashes dried blood. */
@@ -730,7 +926,17 @@ public final class GameScreen extends ScreenAdapter {
             }
         }
         Map<String, Vector2> previousSlots = captureRoomSlots();
+        // Death is always a monster fight (health only drops in combat) and never
+        // happens in the tutorial. Withhold the overlay and play the cinematic.
+        boolean died = tutorial == null && state.status() == Status.LOST;
+        Vector2 killerSlot = died && move instanceof Move.CardMove cm
+                ? previousSlots.get(cm.targetCard().id())
+                : null;
+        deathPending = died;
         rebuild();
+        if (died) {
+            playDeath(killerSlot);
+        }
         if (state.status() == Status.IN_PROGRESS) {
             int damage = result.events().stream()
                     .filter(e -> e instanceof GameEvent.MonsterDefeated)
@@ -743,7 +949,15 @@ public final class GameScreen extends ScreenAdapter {
             if (damage > 0) {
                 pulseDamage();
             } else if (healed > 0) {
-                pulseHeal();
+                // The heal — count, fill, and green flash — all land with the
+                // potion, not on the click: hold the pre-heal reading during the
+                // flight, then tick up when the flask spills onto the bar.
+                int landed = state.health();
+                renderHealth(landed - healed);
+                hpBar.addAction(Actions.delay(Theme.POTION_FLIGHT, Actions.run(() -> {
+                    renderHealth(landed);
+                    pulseHeal();
+                })));
             }
             List<Card> avoided = result.events().stream()
                     .filter(e -> e instanceof GameEvent.RoomAvoided)
@@ -751,11 +965,35 @@ public final class GameScreen extends ScreenAdapter {
                     .findFirst().orElse(null);
             boolean roomDealt = result.events().stream()
                     .anyMatch(e -> e instanceof GameEvent.RoomDealt);
+            // A monster taken bare-handed is struck in its slot; an equipped
+            // weapon flies to the rail; a drunk potion flies to the HP bar. Each
+            // resolves before any deal-in.
+            Card struck = move instanceof Move.FightBarehanded fought ? fought.targetCard() : null;
+            Vector2 struckSlot = struck != null ? previousSlots.get(struck.id()) : null;
+            Card equipped = move instanceof Move.TakeWeapon taken ? taken.targetCard() : null;
+            Vector2 equipSlot = equipped != null ? previousSlots.get(equipped.id()) : null;
+            Card drunk = move instanceof Move.TakePotion sipped ? sipped.targetCard() : null;
+            Vector2 drunkSlot = drunk != null ? previousSlots.get(drunk.id()) : null;
+            boolean potionWasted = result.events().stream()
+                    .anyMatch(e -> e instanceof GameEvent.PotionWasted);
+            Card slain = move instanceof Move.FightWithWeapon slew ? slew.targetCard() : null;
+            Vector2 slainSlot = slain != null ? previousSlots.get(slain.id()) : null;
+            root.validate(); // force a fresh layout so tile destinations are real
             if (avoided != null) {
-                root.validate(); // force a fresh layout so tile destinations are real
                 choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
+            } else if (struck != null && struckSlot != null) {
+                choreographer.playBarehanded(struck, struckSlot, roomTiles, previousSlots,
+                        tickerCenter(), roomDealt);
+            } else if (equipped != null && equipSlot != null && weaponMini != null) {
+                choreographer.playEquip(equipped, equipSlot, weaponMini, roomTiles, previousSlots,
+                        tickerCenter(), roomDealt);
+            } else if (drunk != null && drunkSlot != null) {
+                choreographer.playPotion(drunk, drunkSlot, hpBar, potionWasted, roomTiles,
+                        previousSlots, tickerCenter(), roomDealt);
+            } else if (slain != null && slainSlot != null) {
+                choreographer.playSlice(slainSlot, roomTiles, previousSlots,
+                        tickerCenter(), roomDealt);
             } else if (roomDealt) {
-                root.validate();
                 choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
             }
         }
@@ -850,17 +1088,26 @@ public final class GameScreen extends ScreenAdapter {
     /** Equipped weapon, its slain stack, and the degradation plate. */
     private Actor trophyRail() {
         Table rail = new Table();
+        weaponMini = null;
         EquippedWeapon weapon = state.weapon();
         if (weapon == null) {
             rail.add(label("Barehanded", theme.body, dim(Theme.BONE, 0.6f)));
             return rail;
         }
-        // The rail echoes the board: the weapon and its slain use the card panel
-        // colours, so they read as miniatures of the cards they came from.
-        Table mini = new Table();
-        mini.setBackground(theme.solid(Theme.CARD_WEAPON));
-        mini.add(label(String.valueOf(weapon.weapon().value()), theme.bodyBold, Theme.BONE));
-        rail.add(mini).size(36, 50).padRight(8);
+        // The weapon is a big battleaxe with its value stamped inside the blades —
+        // no card frame; this is the shape the equip flight settles into. (Its
+        // slain still read as card-panel chips below.)
+        Image battleaxe = new Image(theme.axeRegion());
+        battleaxe.setColor(Theme.IRON);
+        Table axeLayer = new Table();
+        axeLayer.add(battleaxe).size(72, 72);
+        Table numLayer = new Table();
+        numLayer.add(label(String.valueOf(weapon.weapon().value()), theme.bodyBold, Theme.SOOT))
+                .expand().top().padTop(9);
+        Table slot = new Table();
+        slot.add(new Stack(axeLayer, numLayer)).size(72, 72);
+        weaponMini = slot;
+        rail.add(slot).size(72, 72).padRight(10);
         for (Card slain : weapon.slain()) {
             Table chip = new Table();
             chip.setBackground(theme.solid(Theme.CARD_MONSTER));

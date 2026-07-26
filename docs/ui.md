@@ -11,7 +11,8 @@ in sync with the code.
 > is *illustration* — no drawn card art or creature sprites; type is carried by
 > the value, label, and drawn suit pips. That illustration pass, when it comes,
 > swaps assets in `Theme` without rewriting screen logic. Motion (deal-in,
-> avoid-sweep, HP pulses) and the atmosphere already ship.
+> avoid-sweep, HP pulses, the per-card resolve effects, and the YOU DIED death
+> cinematic) and the atmosphere already ship.
 
 ## Locked decisions (from the design interview)
 
@@ -58,7 +59,7 @@ Palette (all constants in `screens.Theme`):
 |---|---|---|
 | soot | `#17130f` | background |
 | stone | `#241d16` | frames, strips, popups |
-| dried blood | `#8c2f22` | monster tiles, slain chips, DEFEATED |
+| dried blood | `#8c2f22` | monster tiles, slain chips, the YOU DIED reveal & death bleed |
 | iron | `#7a8794` | weapon tiles |
 | herbal | `#5d8a4a` | potion tiles |
 | torchlight | `#d9a441` | accent: Avoid, threshold plate, ticker, CLEARED |
@@ -100,10 +101,36 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   dropped clicks (`Motion.dealWindow` pins that span: 0.30s deal, 0.50s after
   an avoid). The pure parts — the window arithmetic and the "which card is
   under this point" lookup — live in `Motion` and `CardHitRegions` so they are
-  unit tested headlessly. Locked motion set, both shipped:
-  traveling cards (deal-in + avoid sweep) and feedback pulses (damage
+  unit tested headlessly. Shipped motion set:
+  traveling cards (deal-in + avoid sweep); feedback pulses (damage
   shudders the HP bar and flashes the number dried blood; healing glows the
-  fill back in, herbal). No reveals or ambient effects yet.
+  fill back in, herbal); and **resolve effects** — a bare-handed kill shudders
+  the monster's tile under two bone impact stars (`Theme.burstRegion`,
+  `Motion.strikeWindow`); equipping a weapon flies its card to the trophy rail,
+  shrinking and cross-fading into the rail's battleaxe (`Theme.axeRegion`,
+  `Theme.EQUIP_FLIGHT`) with the real rail mini hidden until it lands; and
+  drinking a potion flies its card up to the HP bar as a herbal flask that
+  spills a few drops on arrival (`Theme.flaskRegion`, `Theme.POTION_FLIGHT`) —
+  the HP count, fill, and green flash all wait for the flask to land, not the
+  click — while a wasted second potion just fizzles grey in its slot; and a
+  weapon kill cleaves the monster's card along a curved top-right→bottom-left
+  diagonal into two halves that lift, part, rotate, and fade
+  (`Theme.sliceUpperRegion`/`sliceLowerRegion`, `Theme.SLICE_DURATION`). Resolve
+  effects run under the same gate: the effect plays in the resolved card's slot,
+  then the deal-in follows.
+- **Death cinematic.** A losing blow withholds the instant end overlay: `rebuild`
+  skips it while `deathPending`, and `GameScreen.playDeath(killerSlot)` runs a
+  sequence (`Theme.DEATH_*` beats). The fatal blow flares — a red screen flash, a
+  heavy board shake (`shakeBoard`), and a large crimson burst over the card that
+  killed you — then the screen bleeds dark: a cold scrim and a blood-red edge
+  vignette (`Theme.vignette(tint)`) creep in while the torch snuffs out (the
+  `Backdrop` honours its actor alpha, so fading it kills the glow and embers but
+  keeps the dark vignette). Then **YOU DIED** fades in with a slow grow, holds,
+  and the score + buttons (the shared `buildEndPanel`) settle in beneath it. A
+  click fast-forwards straight to that settled screen (a catcher takes the click
+  while it plays, then retires so the buttons beneath go live); the shake and
+  snuffed torch are undone on `rebuild`. Only losses animate — a win keeps the
+  instant `DUNGEON CLEARED` overlay, and the tutorial never dies.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the
@@ -169,11 +196,12 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   offering three moves gets three buttons. It carries no padding, so its whole
   area is button; a press *outside* it dismisses the chooser **and** resolves
   the card it landed on, so the press is never spent merely closing the popup.
-- **Trophy rail** (bottom-left) — equipped weapon mini-tile and slain-monster
-  chips in kill order, both in the card panel colours so they read as miniatures
-  of the cards they came from, and the threshold plate: `slays anything`
-  (fresh), `slays < N`, or `spent` (slew a 2). Reads `Barehanded` when nothing
-  is equipped.
+- **Trophy rail** (bottom-left) — the equipped weapon as a big iron battleaxe
+  (`Theme.axeRegion`) with its value stamped inside the blades (no card frame —
+  it's what the equip flight lands as), then slain-monster chips in kill order
+  in the card panel colours so they read as miniatures of the cards they came
+  from, and the threshold plate: `slays anything` (fresh), `slays < N`, or
+  `spent` (slew a 2). Reads `Barehanded` when nothing is equipped.
 - **Potion marker** (bottom-right) — `potion ready` (dim) or
   `• potion used this turn` (torchlight).
 - **Fading feed** (top-right) — up to four lines, fading after ~4s:
@@ -182,8 +210,10 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   "… wasted — one potion a turn", "Equipped the 5 of diamonds",
   "The weapon dulls — slays < 6" / "The weapon is spent",
   "Avoided the room".
-- **End overlay** — dim soot over the board; `DUNGEON CLEARED` (torchlight)
-  or `DEFEATED` (dried blood), the score in display type, a best-score line
+- **End overlay** — dim soot over the board. A **win** reads `DUNGEON CLEARED`
+  (torchlight); a **loss** instead runs the death cinematic (the YOU DIED reveal,
+  above) and settles this same panel in beneath it. Either way: the score in
+  display type, a best-score line
   (`New best!` in torchlight, or `best N` dimmed — from the persisted run
   history), any achievements just unlocked under a torchlight
   `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is

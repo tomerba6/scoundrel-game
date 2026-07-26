@@ -36,9 +36,13 @@ final class Backdrop extends Actor {
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
+        // The actor's own alpha dims the living fire — the glow and embers — so a
+        // death can snuff the torch (fade it to near zero) while the dark vignette
+        // stays. Normally it is 1, so nothing changes.
+        float light = getColor().a;
         float gx = (Theme.WORLD_WIDTH - GLOW_SIZE) / 2f;
         float gy = (Theme.WORLD_HEIGHT - GLOW_SIZE) / 2f + GLOW_Y_OFFSET;
-        float glowAlpha = GLOW_ALPHA * TorchFlicker.intensityAt(elapsed);
+        float glowAlpha = GLOW_ALPHA * TorchFlicker.intensityAt(elapsed) * light;
         batch.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, glowAlpha);
         batch.draw(theme.glowRegion(), gx, gy, GLOW_SIZE, GLOW_SIZE);
 
@@ -47,7 +51,7 @@ final class Backdrop extends Actor {
 
         // Drifting embers, over the vignette so they still glow in the dark corners.
         for (Embers.Ember e : embers.particles()) {
-            batch.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, e.alpha);
+            batch.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, e.alpha * light);
             batch.draw(theme.dotRegion(), e.x - e.size / 2f, e.y - e.size / 2f, e.size, e.size);
         }
         // Leave the batch colour as we found it for the actors drawn on top.
