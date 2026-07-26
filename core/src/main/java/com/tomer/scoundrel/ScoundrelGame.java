@@ -37,11 +37,17 @@ public class ScoundrelGame extends Game {
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
         tutorialFlag = new TutorialFlag(home.resolve("tutorial.seen"));
-        showTitle();
+        // First ever launch offers the tutorial; afterward it lives under "How to play".
+        switchTo(new TitleScreen(this, theme, !tutorialFlag.isSeen()));
     }
 
     public void showTitle() {
         switchTo(new TitleScreen(this, theme));
+    }
+
+    /** Records that the first-run tutorial prompt has been answered (played or skipped). */
+    public void markTutorialSeen() {
+        tutorialFlag.markSeen();
     }
 
     /** The mode picker — where a run is chosen before it begins. */
