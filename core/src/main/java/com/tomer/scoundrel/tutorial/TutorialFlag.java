@@ -11,7 +11,7 @@ import java.nio.file.StandardCopyOption;
  * A one-bit local marker: has the player seen the tutorial? A sibling of
  * {@link com.tomer.scoundrel.runs.RunLog} — the path is injected, a missing file
  * simply means "not yet," and {@link #clear()} is a recoverable soft-delete
- * (moves the marker aside to a {@code .bak} sibling) so a progress reset can make
+ * (moves the marker aside to a {@code .bak} sibling) so progress reset can make
  * the game "new" again without destroying anything. Pure Java.
  */
 public final class TutorialFlag {

@@ -41,6 +41,9 @@ import com.tomer.scoundrel.runs.HighScores;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.runs.RunRecord;
 import com.tomer.scoundrel.runs.RunRecorder;
+import com.tomer.scoundrel.tutorial.TutorialGuide;
+import com.tomer.scoundrel.tutorial.TutorialScript;
+import com.tomer.scoundrel.tutorial.TutorialStep;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -53,6 +56,7 @@ import java.util.Random;
 
 import static com.tomer.scoundrel.screens.Widgets.dim;
 import static com.tomer.scoundrel.screens.Widgets.label;
+import static com.tomer.scoundrel.screens.Widgets.mutedButton;
 import static com.tomer.scoundrel.screens.Widgets.torchButton;
 
 /**
@@ -71,6 +75,7 @@ public final class GameScreen extends ScreenAdapter {
     private final Stage stage;
     private final RunLog runLog;
     private final AchievementStore achievements;
+    private final TutorialGuide tutorial; // null unless this is the guided tutorial
     private final Table root = new Table();
     private final VerticalGroup feed = new VerticalGroup();
     private final Choreographer choreographer;
@@ -79,21 +84,35 @@ public final class GameScreen extends ScreenAdapter {
     private Table hpBar;
     private Image hpFill;
     private Label hpNumber;
+    private TextButton avoidButton;
     private GameState state;
     private RunRecorder recorder;
     private AchievementTracker tracker;
     private String endBestLine;
     private List<Achievement> newlyUnlocked = List.of();
     private Actor endOverlay;
+    private Actor tutorialLayer;
     private boolean dealInPending;
 
+    /** A normal run in the given mode, recorded to the run log. */
     public GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
                       AchievementStore achievements, GameMode mode) {
+        this(game, theme, runLog, achievements, mode, null);
+    }
+
+    /** The guided tutorial: a scripted deck with narration, never recorded. */
+    public GameScreen(ScoundrelGame game, Theme theme, GameMode mode, TutorialGuide tutorial) {
+        this(game, theme, null, null, mode, tutorial);
+    }
+
+    private GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
+                       AchievementStore achievements, GameMode mode, TutorialGuide tutorial) {
         this.game = game;
         this.theme = theme;
         this.runLog = runLog;
         this.achievements = achievements;
         this.mode = mode;
+        this.tutorial = tutorial;
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
         this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
@@ -149,6 +168,10 @@ public final class GameScreen extends ScreenAdapter {
             endOverlay.remove();
             endOverlay = null;
         }
+        if (tutorialLayer != null) {
+            tutorialLayer.remove();
+            tutorialLayer = null;
+        }
         root.clearChildren();
         root.top();
         root.add(topStrip()).growX().height(72).pad(12, 24, 0, 24);
@@ -157,8 +180,12 @@ public final class GameScreen extends ScreenAdapter {
         root.row();
         root.add(bottomStrip()).growX().height(64).pad(0, 24, 12, 24);
         if (state.status() != Status.IN_PROGRESS) {
-            endOverlay = buildEndOverlay();
+            endOverlay = tutorial != null ? buildTutorialComplete() : buildEndOverlay();
             stage.addActor(endOverlay);
+        } else if (tutorial != null && !tutorial.isComplete()) {
+            root.validate(); // real tile and button positions for the glow and callout
+            tutorialLayer = buildTutorialLayer();
+            stage.addActor(tutorialLayer);
         }
         if (dealInPending && state.status() == Status.IN_PROGRESS) {
             // The opening room has no previous slots, so every card flies in from
@@ -254,6 +281,147 @@ public final class GameScreen extends ScreenAdapter {
         rebuild();
     }
 
+    // --- the guided tutorial's overlay ---
+
+    /** Glow on the current step's target, a callout of its narration, and Skip. */
+    private Actor buildTutorialLayer() {
+        Group layer = new Group();
+        layer.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        // Only the callout's buttons and Skip are hit targets; a full-bleed Group
+        // otherwise swallows every click before it reaches the card underneath.
+        layer.setTouchable(Touchable.childrenOnly);
+        TutorialStep step = tutorial.current();
+
+        Actor target = tutorialTarget(step);
+        Vector2 targetCentre = null;
+        float targetHeight = 0;
+        if (target != null) {
+            Vector2 corner = target.localToStageCoordinates(new Vector2(0, 0));
+            targetCentre = new Vector2(corner.x + target.getWidth() / 2f,
+                    corner.y + target.getHeight() / 2f);
+            targetHeight = target.getHeight();
+            layer.addActor(glowRing(targetCentre, Math.max(target.getWidth(), target.getHeight())));
+        }
+
+        Table callout = buildCallout(step);
+        callout.pack();
+        positionCallout(callout, targetCentre, targetHeight);
+        layer.addActor(callout);
+
+        TextButton skip = mutedButton(theme, "Skip tutorial");
+        skip.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                game.showTitle();
+            }
+        });
+        skip.pack();
+        // Bottom-right, but lifted clear of the potion marker in the bottom strip.
+        skip.setPosition(Theme.WORLD_WIDTH - skip.getWidth() - 20, 90);
+        layer.addActor(skip);
+        return layer;
+    }
+
+    /** The board actor the current step points at: a room card, the Avoid button, or none. */
+    private Actor tutorialTarget(TutorialStep step) {
+        if (step.expectedMove() instanceof Move.CardMove cardMove) {
+            return roomTiles.get(cardMove.targetCard());
+        }
+        if (step.expectedMove() instanceof Move.AvoidRoom) {
+            return avoidButton;
+        }
+        return null; // an explanation beat with no single focus
+    }
+
+    /** A soft torchlight halo, gently pulsing, centred on the target. */
+    private Actor glowRing(Vector2 centre, float targetSize) {
+        float size = targetSize * 1.8f;
+        Image glow = new Image(theme.glowRegion());
+        glow.setColor(Theme.TORCHLIGHT.r, Theme.TORCHLIGHT.g, Theme.TORCHLIGHT.b, 0.28f);
+        glow.setSize(size, size);
+        glow.setPosition(centre.x - size / 2f, centre.y - size / 2f);
+        glow.setTouchable(Touchable.disabled);
+        glow.addAction(Actions.forever(Actions.sequence(
+                Actions.alpha(0.4f, 0.75f), Actions.alpha(0.18f, 0.75f))));
+        return glow;
+    }
+
+    private Table buildCallout(TutorialStep step) {
+        Table callout = new Table();
+        callout.setBackground(theme.solid(Theme.STONE));
+        callout.pad(14, 18, 14, 18);
+        Label text = label(step.narration(), theme.body, Theme.BONE);
+        text.setWrap(true);
+        callout.add(text).width(320);
+        if (!step.isAction()) {
+            callout.row();
+            TextButton next = torchButton(theme, "Next");
+            next.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    tutorial.next();
+                    rebuild();
+                }
+            });
+            callout.add(next).right().padTop(12);
+        }
+        return callout;
+    }
+
+    /** Above the target if it fits, else below; centred when there is no target. */
+    private void positionCallout(Table callout, Vector2 targetCentre, float targetHeight) {
+        float w = callout.getWidth();
+        float h = callout.getHeight();
+        if (targetCentre == null) {
+            callout.setPosition((Theme.WORLD_WIDTH - w) / 2f, (Theme.WORLD_HEIGHT - h) / 2f);
+            return;
+        }
+        float x = clamp(targetCentre.x - w / 2f, 16, Theme.WORLD_WIDTH - w - 16);
+        float above = targetCentre.y + targetHeight / 2f + 18;
+        float y = above + h <= Theme.WORLD_HEIGHT - 16
+                ? above
+                : targetCentre.y - targetHeight / 2f - h - 18;
+        callout.setPosition(x, y);
+    }
+
+    private static float clamp(float value, float lo, float hi) {
+        return Math.max(lo, Math.min(hi, value));
+    }
+
+    /** The tutorial's end: no score-keeping, just the way onward. */
+    private Actor buildTutorialComplete() {
+        Table overlay = new Table();
+        overlay.setFillParent(true);
+        overlay.setTouchable(Touchable.enabled);
+        overlay.setBackground(theme.solid(dim(Theme.SOOT, 0.85f)));
+        overlay.add(label("TUTORIAL COMPLETE", theme.title, Theme.TORCHLIGHT)).padBottom(10);
+        overlay.row();
+        Label blurb = label("You cleared it. A cleared dungeon scores your remaining health — "
+                + "that is everything you need to know. Good luck down there.", theme.body, Theme.BONE);
+        blurb.setWrap(true);
+        blurb.setAlignment(com.badlogic.gdx.utils.Align.center);
+        overlay.add(blurb).width(560).padBottom(26);
+        overlay.row();
+        TextButton play = torchButton(theme, "Play for real");
+        play.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                game.showModeSelect();
+            }
+        });
+        overlay.add(play).padBottom(10);
+        overlay.row();
+        TextButton menu = torchButton(theme, "Main menu");
+        menu.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                game.showTitle();
+            }
+        });
+        overlay.add(menu);
+        return overlay;
+    }
+
     // --- top strip: health, depth ticker, avoid ---
 
     private Actor topStrip() {
@@ -330,15 +498,25 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private Actor avoidButton() {
-        TextButton button = torchButton(theme, "Avoid");
-        button.setDisabled(!engine.legalMoves(state).contains(new Move.AvoidRoom()));
-        button.addListener(new ChangeListener() {
+        avoidButton = torchButton(theme, "Avoid");
+        // In the tutorial, Avoid is live only on the step that teaches it.
+        boolean enabled = tutorial != null
+                ? tutorialExpects(new Move.AvoidRoom())
+                : engine.legalMoves(state).contains(new Move.AvoidRoom());
+        avoidButton.setDisabled(!enabled);
+        avoidButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 applyMove(new Move.AvoidRoom());
             }
         });
-        return button;
+        return avoidButton;
+    }
+
+    /** True when the tutorial's current step expects exactly this move. */
+    private boolean tutorialExpects(Move move) {
+        return tutorial != null && !tutorial.isComplete()
+                && move.equals(tutorial.current().expectedMove());
     }
 
     // --- center: the room ---
@@ -383,6 +561,16 @@ public final class GameScreen extends ScreenAdapter {
 
     /** One legal move plays immediately; two or more open the chooser. */
     private void onCardClicked(Card card, Actor tile) {
+        if (tutorial != null) {
+            // In the tutorial only the highlighted card responds, and it makes
+            // exactly the scripted move — no chooser to wander into.
+            if (!tutorial.isComplete()
+                    && tutorial.current().expectedMove() instanceof Move.CardMove cm
+                    && cm.targetCard().equals(card)) {
+                applyMove(cm);
+            }
+            return;
+        }
         List<Move> moves = engine.legalMoves(state).stream()
                 .filter(m -> m instanceof Move.CardMove cm && cm.targetCard().equals(card))
                 .toList();
@@ -443,12 +631,16 @@ public final class GameScreen extends ScreenAdapter {
         };
     }
 
-    /** Fresh shuffle, fresh recorder and achievement tracker for the new run. */
+    /** Fresh run. The tutorial plays its scripted deck and records nothing. */
     private void startRun() {
-        long seed = new Random().nextLong();
-        state = engine.newGame(seed);
-        recorder = new RunRecorder(seed, mode.id(), Clock.systemUTC());
-        tracker = new AchievementTracker(rules.cardsResolvedPerTurn());
+        if (tutorial != null) {
+            state = engine.newGame(TutorialScript.deck());
+        } else {
+            long seed = new Random().nextLong();
+            state = engine.newGame(seed);
+            recorder = new RunRecorder(seed, mode.id(), Clock.systemUTC());
+            tracker = new AchievementTracker(rules.cardsResolvedPerTurn());
+        }
         endBestLine = null;
         newlyUnlocked = List.of();
         dealInPending = true; // the opening room deals in from the dungeon like any other
@@ -500,12 +692,19 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private void applyMove(Move move) {
+        if (tutorial != null && !tutorial.accepts(move)) {
+            return; // only the current step's highlighted move is allowed
+        }
         MoveResult result = engine.apply(state, move);
         state = result.state();
-        recorder.observe(result);
-        tracker.observe(result);
-        if (state.status() != Status.IN_PROGRESS) {
-            finishRun();
+        if (tutorial != null) {
+            tutorial.onMoveApplied(move);
+        } else {
+            recorder.observe(result);
+            tracker.observe(result);
+            if (state.status() != Status.IN_PROGRESS) {
+                finishRun();
+            }
         }
         for (GameEvent event : result.events()) {
             String line = feedLine(event);

@@ -41,6 +41,15 @@ public final class TitleScreen extends ScreenAdapter {
         });
         root.add(newGame).width(240).padBottom(12);
         root.row();
+        TextButton howToPlay = torchButton(theme, "How to play");
+        howToPlay.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                game.showTutorial();
+            }
+        });
+        root.add(howToPlay).width(240).padBottom(12);
+        root.row();
         TextButton records = torchButton(theme, "Records");
         records.addListener(new ChangeListener() {
             @Override

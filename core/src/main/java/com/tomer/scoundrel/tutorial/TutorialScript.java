@@ -12,8 +12,7 @@ import java.util.List;
  * every rule surfaces in turn — bare-handed and armed combat, weapon
  * degradation both ways, a weapon upgrade, potion healing and the one-per-turn
  * cap, avoiding (and not twice in a row) — and the run ends in a win with
- * health to spare. {@link TutorialScriptTest} plays it through the real engine
- * to prove the deck and the steps stay in lockstep.
+ * health to spare.
  */
 public final class TutorialScript {
 

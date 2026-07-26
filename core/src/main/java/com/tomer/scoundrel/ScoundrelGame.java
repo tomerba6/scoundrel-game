@@ -4,8 +4,11 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
 import com.tomer.scoundrel.achievements.AchievementStore;
 import com.tomer.scoundrel.rules.GameMode;
+import com.tomer.scoundrel.rules.GameModes;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.tutorial.TutorialFlag;
+import com.tomer.scoundrel.tutorial.TutorialGuide;
+import com.tomer.scoundrel.tutorial.TutorialScript;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.ModeSelectScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
@@ -48,6 +51,16 @@ public class ScoundrelGame extends Game {
 
     public void showGame(GameMode mode) {
         switchTo(new GameScreen(this, theme, runLog, achievements, mode));
+    }
+
+    /**
+     * The guided tutorial — a scripted Standard game with narration, recorded
+     * nowhere. Entering it marks the tutorial seen, so it is only auto-offered
+     * once even if the player leaves partway.
+     */
+    public void showTutorial() {
+        tutorialFlag.markSeen();
+        switchTo(new GameScreen(this, theme, GameModes.STANDARD, new TutorialGuide(TutorialScript.steps())));
     }
 
     public void showRecords() {
