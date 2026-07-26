@@ -189,10 +189,27 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is
   earned), then **New game** (reshuffles in place, in the same mode),
   **Trophies**, and **Records**.
-- **Title screen** — `SCOUNDREL` in display type over soot, New game,
-  Records, and Trophies buttons, and a dim designer-credit line. Deliberately
-  empty otherwise; future menus join the button column. **New game** opens the
-  mode picker rather than starting a run directly.
+- **Title screen** — `SCOUNDREL` in display type over soot, then New game,
+  **How to play**, Records, and Trophies buttons, and a dim designer-credit
+  line. **New game** opens the mode picker; **How to play** starts the tutorial.
+  On the very first launch (`!TutorialFlag.isSeen()`) a modal **New here?** prompt
+  pops over the menu — **Play tutorial** / **Maybe later** — and either choice
+  marks it seen, so it is offered exactly once.
+- **Tutorial** — a scripted, guided run played on the real board
+  (`GameScreen` in tutorial mode, given a `TutorialGuide`). It deals the curated
+  `TutorialScript` deck, records nothing, and layers guidance on top: each step
+  marks its target — a room card or the Avoid button — with a pulsing **bone
+  frame outline** (bone, not torchlight, so it reads against both the dark cards
+  and the lit Avoid button), and a **contextual callout** of the narration that
+  points above the card, below the Avoid button, or sits centred for
+  rule-explanation beats. Input is **gated** to the current step: only the
+  outlined card responds (no chooser), and Avoid is live only on the step that
+  teaches it. Explanation beats carry a **Next**; a persistent **Skip tutorial**
+  corner button leaves to the title. Clearing the deck shows a **Tutorial
+  complete** screen (Play for real / Main menu). The whole thing teaches every
+  rule in sequence — combat, degradation both ways, potions and the one-per-turn
+  cap, avoiding and never-twice — and is proven end-to-end by a headless test
+  that plays the script through the engine to a win.
 - **NEW GAME (mode picker)** — headed `NEW GAME` over `Choose your descent.`,
   one hairline-ruled row per mode from `GameModes.all()`: the mode's name as the
   torchlight button that starts the run, what it changes, and a right-aligned
@@ -232,7 +249,13 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - `core/src/main/java/com/tomer/scoundrel/screens/Theme.java` — tokens
   (palette, motion timings, card size), fonts, drawables, suit shapes.
 - `core/src/main/java/com/tomer/scoundrel/screens/GameScreen.java` — the one
-  screen: layout builders, interaction, feed, overlay, run recording.
+  screen: layout builders, interaction, feed, overlay, run recording, and
+  (given a `TutorialGuide`) the guided-tutorial mode — glow outline, callout,
+  gating, and the Tutorial-complete ending.
+- `core/src/main/java/com/tomer/scoundrel/tutorial/` — the pure tutorial logic:
+  `TutorialScript` (curated deck + narrated steps), `TutorialStep`,
+  `TutorialGuide` (the gating state machine), and `TutorialFlag` (the seen
+  marker). No LibGDX; drives the engine via its ordered-deck entry.
 - `core/src/main/java/com/tomer/scoundrel/screens/Choreographer.java` — the
   flight layer: deal-in and avoid-sweep choreographies, input gate, skip.
 - `core/src/main/java/com/tomer/scoundrel/screens/TitleScreen.java` /
