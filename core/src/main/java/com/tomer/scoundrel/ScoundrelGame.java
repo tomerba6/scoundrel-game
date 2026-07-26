@@ -5,6 +5,7 @@ import com.badlogic.gdx.Screen;
 import com.tomer.scoundrel.achievements.AchievementStore;
 import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.runs.RunLog;
+import com.tomer.scoundrel.tutorial.TutorialFlag;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.ModeSelectScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
@@ -24,6 +25,7 @@ public class ScoundrelGame extends Game {
     private Theme theme;
     private RunLog runLog;
     private AchievementStore achievements;
+    private TutorialFlag tutorialFlag;
 
     @Override
     public void create() {
@@ -31,6 +33,7 @@ public class ScoundrelGame extends Game {
         Path home = Path.of(System.getProperty("user.home"), ".scoundrel");
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
+        tutorialFlag = new TutorialFlag(home.resolve("tutorial.seen"));
         showTitle();
     }
 
@@ -56,13 +59,14 @@ public class ScoundrelGame extends Game {
     }
 
     /**
-     * Wipes all recorded runs and earned achievements. Both files are moved
-     * aside to recoverable {@code .bak} backups rather than deleted. Guarded in
-     * the UI behind a confirmation; callers own that safety step. The wipe itself
-     * is the pure {@link Progress#eraseAll} so it can be tested headlessly.
+     * Wipes all recorded runs, earned achievements, and the tutorial-seen marker
+     * (so a reset makes the player new again). Every file is moved aside to a
+     * recoverable {@code .bak} backup rather than deleted. Guarded in the UI
+     * behind a confirmation; callers own that safety step. The wipe itself is the
+     * pure {@link Progress#eraseAll} so it can be tested headlessly.
      */
     public void eraseAllProgress() {
-        Progress.eraseAll(runLog, achievements);
+        Progress.eraseAll(runLog, achievements, tutorialFlag);
     }
 
     /** setScreen only hides the previous screen; it must also be disposed. */
