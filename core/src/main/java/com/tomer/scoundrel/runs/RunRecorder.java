@@ -70,6 +70,15 @@ public final class RunRecorder {
         return outcome != null;
     }
 
+    /**
+     * Wall-clock seconds since the run began — drives the live HUD timer. Reads
+     * the same injected clock as {@link #toRecord}, so it agrees with the
+     * persisted {@link RunRecord#seconds()}.
+     */
+    public long elapsedSeconds() {
+        return Duration.between(startedAt, clock.instant()).getSeconds();
+    }
+
     /** Only valid once the observed game has ended. */
     public RunRecord toRecord() {
         if (!isFinished()) {

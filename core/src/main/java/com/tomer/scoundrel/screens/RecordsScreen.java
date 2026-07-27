@@ -187,7 +187,7 @@ public final class RecordsScreen extends ScreenAdapter {
                     .left().padRight(28);
             table.add(label(DAY.format(run.endedAt()), theme.small, dim(Theme.BONE, 0.5f)))
                     .left().padRight(28);
-            table.add(label(duration(run.seconds()), theme.small, dim(Theme.BONE, 0.5f)))
+            table.add(label(ClockText.format(run.seconds()), theme.small, dim(Theme.BONE, 0.5f)))
                     .left().padRight(28);
             table.add(label(run.monstersDefeated() + " slain", theme.small, dim(Theme.BONE, 0.5f)))
                     .left();
@@ -217,7 +217,7 @@ public final class RecordsScreen extends ScreenAdapter {
         stat(side, theme, "potions drunk", totals.potionsDrunk() + "  (" + totals.potionsWasted() + " wasted)");
         stat(side, theme, "weapons equipped", String.valueOf(totals.weaponsEquipped()));
         stat(side, theme, "rooms avoided", String.valueOf(totals.roomsAvoided()));
-        stat(side, theme, "time below", duration(totals.secondsPlayed()));
+        stat(side, theme, "time below", ClockText.format(totals.secondsPlayed()));
         return side;
     }
 
@@ -225,13 +225,6 @@ public final class RecordsScreen extends ScreenAdapter {
         side.add(label(name, theme.body, dim(Theme.BONE, 0.55f))).left().padRight(28).padBottom(5);
         side.add(label(value, theme.bodyBold, Theme.BONE)).right().padBottom(5);
         side.row();
-    }
-
-    private static String duration(long seconds) {
-        long hours = seconds / 3600;
-        long minutes = (seconds % 3600) / 60;
-        long rest = seconds % 60;
-        return hours > 0 ? hours + "h " + minutes + "m" : minutes + ":" + String.format("%02d", rest);
     }
 
     @Override
