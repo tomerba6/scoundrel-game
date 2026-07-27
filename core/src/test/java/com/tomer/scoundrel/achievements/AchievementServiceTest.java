@@ -52,7 +52,7 @@ class AchievementServiceTest {
 
     @Test
     void theRealCatalogUnlocksSeveralAtOnceFromOneContext() {
-        // A first, full-health, sub-90s win with no bare-handed kills and a flawless room.
+        // A first, full-health, sub-80s win with no bare-handed kills and a flawless room.
         AchievementContext ctx = context(
                 summary(Status.WON, 20, 20, 45, 0, 0, true),
                 run(Status.WON, 20, 12));

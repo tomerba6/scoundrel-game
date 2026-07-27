@@ -41,7 +41,7 @@ class AchievementFlowTest {
         ScoundrelEngine engine = new ScoundrelEngine(rules);
         RunLog runLog = new RunLog(dir.resolve("runs.log"));
         AchievementStore store = new AchievementStore(dir.resolve("achievements.log"));
-        // A two-minute game, so Speedrunner (< 90s) does not also fire here.
+        // A two-minute game, so Speedrunner (< 80s) does not also fire here.
         Clock clock = advancingClock(
                 Instant.parse("2026-07-10T10:00:00Z"), Instant.parse("2026-07-10T10:02:00Z"));
 
@@ -81,7 +81,7 @@ class AchievementFlowTest {
         MoveResult result = engine.apply(state, new Move.FightBarehanded(state.room().get(0)));
         tracker.observe(result);
 
-        RunSummary summary = tracker.toSummary(120); // over 90s, so Speedrunner stays out of it
+        RunSummary summary = tracker.toSummary(120); // over 80s, so Speedrunner stays out of it
         AchievementContext context = new AchievementContext(summary,
                 List.of(new RunRecord(1L, "standard", Status.WON, 7,
                         Instant.parse("2026-07-10T10:00:00Z"), 120, 1, 13, 0, 0, 0, 0, 0)));

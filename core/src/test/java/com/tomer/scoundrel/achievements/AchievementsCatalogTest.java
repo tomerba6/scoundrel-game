@@ -61,19 +61,21 @@ class AchievementsCatalogTest {
     }
 
     @Test
-    void seasonedAtTenFinishedRuns() {
-        RunSummary any = summary(Status.LOST, -5, 0, 60, 0, 0, false);
-        assertTrue(earns("seasoned", context(any, runsOf(10))));
-        assertFalse(earns("seasoned", context(any, runsOf(9))));
+    void seasonedAtTenClears() {
+        RunSummary any = summary(Status.WON, 10, 10, 60, 0, 0, false);
+        assertTrue(earns("seasoned", context(any, winsOf(10))));
+        assertFalse(earns("seasoned", context(any, winsOf(9))));
+        // It is ten *clears*, not merely finished runs — ten losses do not count.
+        assertFalse(earns("seasoned", context(any, runsOf(10))));
     }
 
     @Test
-    void monsterHunterAtHundredLifetimeKills() {
+    void monsterHunterAtAThousandLifetimeKills() {
         RunSummary any = summary(Status.WON, 10, 10, 60, 0, 0, false);
         assertTrue(earns("monster_hunter",
-                context(any, run(Status.WON, 10, 60), run(Status.LOST, -5, 40))));
+                context(any, run(Status.WON, 10, 600), run(Status.LOST, -5, 400))));
         assertFalse(earns("monster_hunter",
-                context(any, run(Status.WON, 10, 60), run(Status.LOST, -5, 39))));
+                context(any, run(Status.WON, 10, 600), run(Status.LOST, -5, 399))));
     }
 
     @Test
@@ -109,17 +111,17 @@ class AchievementsCatalogTest {
     }
 
     @Test
-    void speedrunnerForAWinStrictlyUnderNinetySeconds() {
-        assertTrue(earns("speedrunner", context(summary(Status.WON, 10, 10, 89, 0, 0, false))));
-        assertFalse(earns("speedrunner", context(summary(Status.WON, 10, 10, 90, 0, 0, false))));
+    void speedrunnerForAWinStrictlyUnderEightySeconds() {
+        assertTrue(earns("speedrunner", context(summary(Status.WON, 10, 10, 79, 0, 0, false))));
+        assertFalse(earns("speedrunner", context(summary(Status.WON, 10, 10, 80, 0, 0, false))));
         assertFalse(earns("speedrunner", context(summary(Status.LOST, -5, 0, 10, 0, 0, false))));
     }
 
     @Test
-    void rockBottomForACatastrophicLoss() {
-        assertTrue(earns("rock_bottom", context(summary(Status.LOST, -150, 0, 60, 0, 0, false))));
-        assertTrue(earns("rock_bottom", context(summary(Status.LOST, -200, 0, 60, 0, 0, false))));
-        assertFalse(earns("rock_bottom", context(summary(Status.LOST, -149, 0, 60, 0, 0, false))));
+    void rockBottomOnlyAtTheAbsoluteFloor() {
+        // -188 = 20 starting health - 208 total monster value; nothing can go lower.
+        assertTrue(earns("rock_bottom", context(summary(Status.LOST, -188, 0, 60, 0, 0, false))));
+        assertFalse(earns("rock_bottom", context(summary(Status.LOST, -187, 0, 60, 0, 0, false))));
         assertFalse(earns("rock_bottom", context(summary(Status.WON, 20, 20, 60, 0, 0, false))));
     }
 
@@ -127,6 +129,14 @@ class AchievementsCatalogTest {
         RunRecord[] runs = new RunRecord[count];
         for (int i = 0; i < count; i++) {
             runs[i] = run(Status.LOST, -5, 3);
+        }
+        return runs;
+    }
+
+    private static RunRecord[] winsOf(int count) {
+        RunRecord[] runs = new RunRecord[count];
+        for (int i = 0; i < count; i++) {
+            runs[i] = run(Status.WON, 10, 3);
         }
         return runs;
     }

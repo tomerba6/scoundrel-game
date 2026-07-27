@@ -17,21 +17,23 @@ public final class Achievements {
     }
 
     private static final int HEALTH_CAP = 20;
-    private static final int SEASONED_RUNS = 10;
-    private static final int MONSTER_HUNTER_KILLS = 100;
+    private static final int SEASONED_WINS = 10;
+    private static final int MONSTER_HUNTER_KILLS = 1000;
     private static final int GIANT_VALUE = 13;        // King; Ace is 14
-    private static final int SPEEDRUN_SECONDS = 90;
-    private static final int ROCK_BOTTOM_SCORE = -150;
+    private static final int SPEEDRUN_SECONDS = 80;
+    // The mathematical floor: starting health (20) minus the total value of all
+    // 26 monsters (2+..+14 = 104 per suit, ×2 = 208). Nothing can score lower.
+    private static final int ROCK_BOTTOM_SCORE = -188;
 
     private static final List<Achievement> CATALOG = List.of(
             new Achievement("first_blood", "First Blood",
                     "Clear the dungeon for the first time.", false,
                     ctx -> ctx.run().outcome() == Status.WON && ctx.totals().wins() == 1),
             new Achievement("seasoned", "Seasoned",
-                    "Finish ten runs.", false,
-                    ctx -> ctx.history().size() >= SEASONED_RUNS),
+                    "Clear the dungeon ten times.", false,
+                    ctx -> ctx.totals().wins() >= SEASONED_WINS),
             new Achievement("monster_hunter", "Monster Hunter",
-                    "Defeat a hundred monsters across all your runs.", false,
+                    "Defeat a thousand monsters across all your runs.", false,
                     ctx -> ctx.totals().monstersDefeated() >= MONSTER_HUNTER_KILLS),
             new Achievement("giant_slayer", "Giant Slayer",
                     "Slay a King or Ace with your bare hands.", false,
@@ -49,10 +51,11 @@ public final class Achievements {
                     "Win without slaying a single monster bare-handed.", false,
                     ctx -> ctx.run().outcome() == Status.WON && ctx.run().barehandedKillCount() == 0),
             new Achievement("speedrunner", "Speedrunner",
-                    "Clear the dungeon in under ninety seconds.", false,
+                    "Clear the dungeon in under eighty seconds.", false,
                     ctx -> ctx.run().outcome() == Status.WON && ctx.run().seconds() < SPEEDRUN_SECONDS),
             new Achievement("rock_bottom", "Rock Bottom",
-                    "Fall to a score of minus one hundred and fifty or worse.", true,
+                    "Fall to the worst score the dungeon can inflict — minus one hundred "
+                            + "and eighty-eight.", true,
                     ctx -> ctx.run().outcome() == Status.LOST && ctx.run().score() <= ROCK_BOTTOM_SCORE));
 
     public static List<Achievement> all() {
