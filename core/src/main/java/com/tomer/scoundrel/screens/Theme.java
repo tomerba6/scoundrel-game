@@ -84,6 +84,11 @@ public final class Theme implements Disposable {
     /** Characters beyond the freetype defaults used by the UI copy. */
     private static final String EXTRA_CHARS = "—–×•";
 
+    // Fonts are rasterised at this multiple of their design size, then scaled back
+    // down to world units — a high-res glyph atlas that stays crisp when the
+    // FitViewport upscales the 720p design to a larger screen (crisp up to ~4K).
+    private static final int FONT_SUPERSAMPLE = 3;
+
     /** IM Fell English — card values and other large set pieces. */
     public final BitmapFont display;
     /** IM Fell English — overlay titles and the wordmark. */
@@ -329,11 +334,16 @@ public final class Theme implements Disposable {
 
     private static BitmapFont generate(FreeTypeFontGenerator generator, int size) {
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();
-        parameter.size = size;
+        parameter.size = size * FONT_SUPERSAMPLE;
         parameter.characters = FreeTypeFontGenerator.DEFAULT_CHARS + EXTRA_CHARS;
         parameter.minFilter = Texture.TextureFilter.Linear;
         parameter.magFilter = Texture.TextureFilter.Linear;
-        return generator.generateFont(parameter);
+        BitmapFont font = generator.generateFont(parameter);
+        // Scale back to the design size (so layout is unchanged) while keeping the
+        // high-res atlas; fractional positions let the downscaled glyphs stay smooth.
+        font.getData().setScale(1f / FONT_SUPERSAMPLE);
+        font.setUseIntegerPositions(false);
+        return font;
     }
 
     /**
