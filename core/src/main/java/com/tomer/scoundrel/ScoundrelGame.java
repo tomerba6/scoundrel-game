@@ -1,6 +1,9 @@
 package com.tomer.scoundrel;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.tomer.scoundrel.achievements.AchievementStore;
 import com.tomer.scoundrel.rules.GameMode;
@@ -25,10 +28,14 @@ import java.nio.file.Path;
  */
 public class ScoundrelGame extends Game {
 
+    private static final int WINDOWED_WIDTH = 1280;
+    private static final int WINDOWED_HEIGHT = 720;
+
     private Theme theme;
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
+    private boolean fullscreen = true; // launched borderless-fullscreen by the launcher
 
     @Override
     public void create() {
@@ -39,6 +46,32 @@ public class ScoundrelGame extends Game {
         tutorialFlag = new TutorialFlag(home.resolve("tutorial.seen"));
         // First ever launch offers the tutorial; afterward it lives under "How to play".
         switchTo(new TitleScreen(this, theme, !tutorialFlag.isSeen()));
+    }
+
+    @Override
+    public void render() {
+        // F11 or Alt+Enter toggles between borderless-fullscreen and windowed. Polled
+        // here (not via an input processor) so it works on every screen regardless of
+        // which one owns Scene2D input; the resize is handled by each screen's viewport.
+        boolean altEnter = Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+                && (Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT)
+                    || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT));
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F11) || altEnter) {
+            toggleFullscreen();
+        }
+        super.render(); // draws the current screen
+    }
+
+    private void toggleFullscreen() {
+        if (fullscreen) {
+            Gdx.graphics.setUndecorated(false);
+            Gdx.graphics.setWindowedMode(WINDOWED_WIDTH, WINDOWED_HEIGHT);
+        } else {
+            Graphics.DisplayMode desktop = Gdx.graphics.getDisplayMode();
+            Gdx.graphics.setUndecorated(true);
+            Gdx.graphics.setWindowedMode(desktop.width, desktop.height);
+        }
+        fullscreen = !fullscreen;
     }
 
     public void showTitle() {
