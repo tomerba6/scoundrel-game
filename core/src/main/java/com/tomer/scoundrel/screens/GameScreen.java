@@ -843,7 +843,7 @@ public final class GameScreen extends ScreenAdapter {
         popup.pad(0);
         popup.defaults().growX().space(0);
         for (Move move : moves) {
-            TextButton button = torchButton(theme, moveLabel(move));
+            TextButton button = torchButton(theme, Labels.move(move));
             // Press, like the cards: the chooser sits on the hot path for every
             // armed monster, so it must not drop a fast click either.
             button.addListener(Widgets.pressListener(() -> {
@@ -859,16 +859,6 @@ public final class GameScreen extends ScreenAdapter {
         popup.setPosition(center.x - popup.getWidth() / 2f, center.y - popup.getHeight() / 2f);
         overlay.addActor(popup);
         stage.addActor(overlay);
-    }
-
-    private static String moveLabel(Move move) {
-        return switch (move) {
-            case Move.FightWithWeapon ignored -> "Use weapon";
-            case Move.FightBarehanded ignored -> "Barehanded";
-            case Move.TakeWeapon ignored -> "Equip";
-            case Move.TakePotion ignored -> "Drink";
-            case Move.AvoidRoom ignored -> "Avoid";
-        };
     }
 
     /** Fresh run. The tutorial plays its scripted deck and records nothing. */
@@ -1094,17 +1084,9 @@ public final class GameScreen extends ScreenAdapter {
         }
         Table plate = new Table();
         plate.setBackground(theme.solid(Theme.TORCHLIGHT));
-        plate.add(label(thresholdText(weapon), theme.bodyBold, Theme.SOOT)).pad(2, 10, 2, 10);
+        plate.add(label(Labels.weaponThreshold(weapon), theme.bodyBold, Theme.SOOT)).pad(2, 10, 2, 10);
         rail.add(plate).padLeft(8);
         return rail;
-    }
-
-    private static String thresholdText(EquippedWeapon weapon) {
-        if (weapon.threshold().isEmpty()) {
-            return "slays anything";
-        }
-        int threshold = weapon.threshold().getAsInt();
-        return threshold <= 2 ? "spent" : "slays < " + threshold;
     }
 
     private Actor potionMarker() {
