@@ -81,6 +81,22 @@ class RunRecorderTest {
     }
 
     @Test
+    void elapsedSecondsIsZeroAtTheStart() {
+        RunRecorder recorder = new RunRecorder(1L, "standard", FIXED);
+        assertEquals(0, recorder.elapsedSeconds());
+    }
+
+    @Test
+    void elapsedSecondsTracksTheClockFromTheStart() {
+        Instant start = Instant.parse("2026-07-06T10:00:00Z");
+        Instant t1 = Instant.parse("2026-07-06T10:00:42Z");
+        Instant t2 = Instant.parse("2026-07-06T10:03:07Z");
+        RunRecorder recorder = new RunRecorder(1L, "standard", sequenceClock(start, t1, t2));
+        assertEquals(42, recorder.elapsedSeconds());
+        assertEquals(187, recorder.elapsedSeconds());
+    }
+
+    @Test
     void seedAndRulesetIdPassThrough() {
         RunRecorder withSeed = new RunRecorder(42L, "standard", FIXED);
         withSeed.observe(result(new GameEvent.GameWon(20)));

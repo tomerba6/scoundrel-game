@@ -88,10 +88,12 @@ public final class GameScreen extends ScreenAdapter {
     private Image hpFill;
     private Cell<Image> hpFillCell;
     private Label hpNumber;
+    private Label timerLabel;
     private TextButton avoidButton;
     private Table weaponMini;
     private GameState state;
     private RunRecorder recorder;
+    private long finalRunSeconds;
     private AchievementTracker tracker;
     private String endBestLine;
     private List<Achievement> newlyUnlocked = List.of();
@@ -155,6 +157,11 @@ public final class GameScreen extends ScreenAdapter {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(Theme.SOOT);
+        // The live run timer ticks up while a (non-tutorial) run is in progress;
+        // it freezes at the final time once the run ends.
+        if (timerLabel != null && recorder != null && state.status() == Status.IN_PROGRESS) {
+            timerLabel.setText("TIME " + ClockText.format(recorder.elapsedSeconds()));
+        }
         stage.act(delta);
         stage.draw();
     }
@@ -241,7 +248,10 @@ public final class GameScreen extends ScreenAdapter {
      */
     private Table buildEndPanel() {
         Table panel = new Table();
-        panel.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(8);
+        panel.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(4);
+        panel.row();
+        panel.add(label("time " + ClockText.format(finalRunSeconds), theme.body, dim(Theme.BONE, 0.7f)))
+                .padBottom(8);
         panel.row();
         if (endBestLine != null) {
             Color bestColor = endBestLine.equals("New best!")
@@ -707,7 +717,24 @@ public final class GameScreen extends ScreenAdapter {
         ticker.row();
         ticker.add(label("depth: " + remaining + " cards", theme.small, dim(Theme.BONE, 0.6f)))
                 .padTop(4);
+        // The live run timer sits under the depth — a real run only; the tutorial
+        // has no recorder and is left untimed.
+        timerLabel = null;
+        if (tutorial == null) {
+            ticker.row();
+            timerLabel = label("TIME " + ClockText.format(currentRunSeconds()),
+                    theme.small, dim(Theme.BONE, 0.6f));
+            ticker.add(timerLabel).padTop(2);
+        }
         return ticker;
+    }
+
+    /** Seconds shown by the timer: live while a run is in progress, frozen after. */
+    private long currentRunSeconds() {
+        if (state.status() != Status.IN_PROGRESS) {
+            return finalRunSeconds;
+        }
+        return recorder != null ? recorder.elapsedSeconds() : 0;
     }
 
     private Actor avoidButton() {
@@ -874,6 +901,7 @@ public final class GameScreen extends ScreenAdapter {
             newlyUnlocked = List.of();
             return;
         }
+        finalRunSeconds = record.seconds(); // the timer freezes here, exactly as recorded
         try {
             OptionalInt bestBefore = HighScores.bestForRuleset(runLog.readAll(), mode.id());
             runLog.append(record);

@@ -177,8 +177,12 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - **Top strip** — `HP` label, the charring health bar (bone fill lerping to
   dried blood as health drops), health number; the **depth ticker** (one tick
   per card of the deck, torchlight = still face-down, dark = gone; avoided
-  rooms visibly return ticks) with a `depth: N cards` caption; the **Avoid**
-  button (torchlight when legal, stone when not).
+  rooms visibly return ticks) with a `depth: N cards` caption and, beneath it, a
+  live **`TIME m:ss` run timer** — `RunRecorder.elapsedSeconds` off the recorder's
+  clock, ticked each `render`, frozen at the final time on game over (so it agrees
+  with the recorded `RunRecord.seconds`), and formatted by the shared `ClockText`.
+  The tutorial has no recorder, so it shows no timer. The **Avoid** button
+  (torchlight when legal, stone when not).
 - **Backdrop** — behind every screen, drawn first and never a hit target
   (`Backdrop`): a procedural torch glow (a generated radial texture, tinted
   torchlight, its alpha modulated by `TorchFlicker` — a pure, tested sine-blend
@@ -213,7 +217,7 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - **End overlay** — dim soot over the board. A **win** reads `DUNGEON CLEARED`
   (torchlight); a **loss** instead runs the death cinematic (the YOU DIED reveal,
   above) and settles this same panel in beneath it. Either way: the score in
-  display type, a best-score line
+  display type, the run's final `time m:ss`, a best-score line
   (`New best!` in torchlight, or `best N` dimmed — from the persisted run
   history), any achievements just unlocked under a torchlight
   `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is
