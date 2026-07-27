@@ -7,6 +7,8 @@ import com.tomer.scoundrel.rules.Move.FightWithWeapon;
 import com.tomer.scoundrel.rules.Move.TakePotion;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static com.tomer.scoundrel.rules.Cards.monster;
 import static com.tomer.scoundrel.rules.Cards.monster2;
 import static com.tomer.scoundrel.rules.Cards.potion;
@@ -105,6 +107,37 @@ class ScoringTest {
         GameState lost = engine.apply(s, new FightBarehanded(monster(5))).state();
         assertEquals(Status.LOST, lost.status());
         assertEquals(-2, lost.score()); // empty dungeon adds no penalty
+    }
+
+    @Test
+    void hittingExactlyZeroHealthIsALossNotASurvival() {
+        // The boundary: 0 is death, not 1-hp survival. A 5 barehanded at 5 hp.
+        GameState s = state().health(5).room(monster(5), weapon(2), weapon(3), weapon(4)).build();
+        GameState lost = engine.apply(s, new FightBarehanded(monster(5))).state();
+        assertEquals(Status.LOST, lost.status());
+        assertEquals(0, lost.health());
+        assertEquals(0, lost.score()); // 0 health, empty dungeon
+        assertTrue(engine.legalMoves(lost).isEmpty());
+    }
+
+    @Test
+    void aFatalWeaponFightStillStacksDegradesAndScores() {
+        // Death by the weapon, not barehanded: the excess damage kills you, but
+        // the blow still lands fully — monster stacked, weapon degraded — and the
+        // loss score counts the dungeon as usual.
+        GameState s = state().health(3)
+                .room(monster(11), weapon(2), weapon(3), weapon(4))
+                .weapon(weapon(5))
+                .dungeon(monster2(9))
+                .build();
+        MoveResult r = engine.apply(s, new FightWithWeapon(monster(11)));
+        GameState lost = r.state();
+        assertEquals(Status.LOST, lost.status());
+        assertEquals(-3, lost.health()); // 11 - weapon 5 = 6 damage; 3 - 6 = -3
+        assertEquals(List.of(monster(11)), lost.weapon().slain()); // still stacked
+        assertTrue(r.events().contains(new GameEvent.MonsterDefeated(monster(11), true, 6)));
+        assertTrue(r.events().contains(new GameEvent.WeaponDegraded(weapon(5), 11)));
+        assertEquals(-3 - 9, lost.score());
     }
 
     @Test
