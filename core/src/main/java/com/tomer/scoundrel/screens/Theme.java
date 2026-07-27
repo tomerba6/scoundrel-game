@@ -84,6 +84,14 @@ public final class Theme implements Disposable {
     /** Characters beyond the freetype defaults used by the UI copy. */
     private static final String EXTRA_CHARS = "—–×•";
 
+    // Fonts are rasterised at this multiple of their design size, then scaled back
+    // down to world units — a high-res glyph atlas that stays crisp when the
+    // FitViewport upscales the 720p design to a larger screen (crisp up to ~4K).
+    private static final int FONT_SUPERSAMPLE = 3;
+    // The detail shapes (impact star, battleaxe, flask, slice halves) are rasterised
+    // at this multiple and drawn at their world size, so they stay crisp when upscaled.
+    private static final int SHAPE_SUPERSAMPLE = 2;
+
     /** IM Fell English — card values and other large set pieces. */
     public final BitmapFont display;
     /** IM Fell English — overlay titles and the wordmark. */
@@ -142,11 +150,17 @@ public final class Theme implements Disposable {
         vignette = vignetteTexture(256);
         dot = softDotTexture(32);
         shade = verticalShadeTexture(64);
-        burst = burstTexture(64);
-        axe = axeTexture(64);
-        flask = flaskTexture(64);
-        sliceUpper = sliceHalfTexture((int) CARD_WIDTH, (int) CARD_HEIGHT, true);
-        sliceLower = sliceHalfTexture((int) CARD_WIDTH, (int) CARD_HEIGHT, false);
+        // Detail shapes are rasterised at SHAPE_SUPERSAMPLE× and drawn at their world
+        // size, so they stay crisp when upscaled (like the fonts). The suit pips are
+        // already drawn tiny — downsampled and crisp — and the soft gradients (glow,
+        // vignette, embers, shade) are low-frequency, so those need no supersample.
+        burst = burstTexture(64 * SHAPE_SUPERSAMPLE);
+        axe = axeTexture(64 * SHAPE_SUPERSAMPLE);
+        flask = flaskTexture(64 * SHAPE_SUPERSAMPLE);
+        sliceUpper = sliceHalfTexture((int) (CARD_WIDTH * SHAPE_SUPERSAMPLE),
+                (int) (CARD_HEIGHT * SHAPE_SUPERSAMPLE), true);
+        sliceLower = sliceHalfTexture((int) (CARD_WIDTH * SHAPE_SUPERSAMPLE),
+                (int) (CARD_HEIGHT * SHAPE_SUPERSAMPLE), false);
         glowRegion = new TextureRegion(glow);
         vignetteRegion = new TextureRegion(vignette);
         dotRegion = new TextureRegion(dot);
@@ -329,11 +343,16 @@ public final class Theme implements Disposable {
 
     private static BitmapFont generate(FreeTypeFontGenerator generator, int size) {
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();
-        parameter.size = size;
+        parameter.size = size * FONT_SUPERSAMPLE;
         parameter.characters = FreeTypeFontGenerator.DEFAULT_CHARS + EXTRA_CHARS;
         parameter.minFilter = Texture.TextureFilter.Linear;
         parameter.magFilter = Texture.TextureFilter.Linear;
-        return generator.generateFont(parameter);
+        BitmapFont font = generator.generateFont(parameter);
+        // Scale back to the design size (so layout is unchanged) while keeping the
+        // high-res atlas; fractional positions let the downscaled glyphs stay smooth.
+        font.getData().setScale(1f / FONT_SUPERSAMPLE);
+        font.setUseIntegerPositions(false);
+        return font;
     }
 
     /**
