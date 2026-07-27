@@ -956,14 +956,8 @@ public final class GameScreen extends ScreenAdapter {
             playDeath(killerSlot);
         }
         if (state.status() == Status.IN_PROGRESS) {
-            int damage = result.events().stream()
-                    .filter(e -> e instanceof GameEvent.MonsterDefeated)
-                    .mapToInt(e -> ((GameEvent.MonsterDefeated) e).damageTaken())
-                    .sum();
-            int healed = result.events().stream()
-                    .filter(e -> e instanceof GameEvent.PotionUsed)
-                    .mapToInt(e -> ((GameEvent.PotionUsed) e).healed())
-                    .sum();
+            int damage = ResolveEffect.damageTaken(result.events());
+            int healed = ResolveEffect.healed(result.events());
             if (damage > 0) {
                 pulseDamage();
             } else if (healed > 0) {
@@ -977,42 +971,65 @@ public final class GameScreen extends ScreenAdapter {
                     pulseHeal();
                 })));
             }
-            List<Card> avoided = result.events().stream()
-                    .filter(e -> e instanceof GameEvent.RoomAvoided)
-                    .map(e -> ((GameEvent.RoomAvoided) e).room())
-                    .findFirst().orElse(null);
             boolean roomDealt = result.events().stream()
                     .anyMatch(e -> e instanceof GameEvent.RoomDealt);
-            // A monster taken bare-handed is struck in its slot; an equipped
-            // weapon flies to the rail; a drunk potion flies to the HP bar. Each
-            // resolves before any deal-in.
-            Card struck = move instanceof Move.FightBarehanded fought ? fought.targetCard() : null;
-            Vector2 struckSlot = struck != null ? previousSlots.get(struck.id()) : null;
-            Card equipped = move instanceof Move.TakeWeapon taken ? taken.targetCard() : null;
-            Vector2 equipSlot = equipped != null ? previousSlots.get(equipped.id()) : null;
-            Card drunk = move instanceof Move.TakePotion sipped ? sipped.targetCard() : null;
-            Vector2 drunkSlot = drunk != null ? previousSlots.get(drunk.id()) : null;
-            boolean potionWasted = result.events().stream()
-                    .anyMatch(e -> e instanceof GameEvent.PotionWasted);
-            Card slain = move instanceof Move.FightWithWeapon slew ? slew.targetCard() : null;
-            Vector2 slainSlot = slain != null ? previousSlots.get(slain.id()) : null;
             root.validate(); // force a fresh layout so tile destinations are real
-            if (avoided != null) {
-                choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
-            } else if (struck != null && struckSlot != null) {
-                choreographer.playBarehanded(struck, struckSlot, roomTiles, previousSlots,
-                        tickerCenter(), roomDealt);
-            } else if (equipped != null && equipSlot != null && weaponMini != null) {
-                choreographer.playEquip(equipped, equipSlot, weaponMini, roomTiles, previousSlots,
-                        tickerCenter(), roomDealt);
-            } else if (drunk != null && drunkSlot != null) {
-                choreographer.playPotion(drunk, drunkSlot, hpBar, potionWasted, roomTiles,
-                        previousSlots, tickerCenter(), roomDealt);
-            } else if (slain != null && slainSlot != null) {
-                choreographer.playSlice(slainSlot, roomTiles, previousSlots,
-                        tickerCenter(), roomDealt);
-            } else if (roomDealt) {
-                choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
+            // The effect is chosen purely by move type (see ResolveEffect); the
+            // slot fetch and the deal-in-after are the UI wiring. A missing slot
+            // (defensive — a resolved card is always in previousSlots) falls back
+            // to the plain deal-in, exactly as the old chain did.
+            switch (ResolveEffect.of(move)) {
+                case AVOID -> {
+                    List<Card> avoided = result.events().stream()
+                            .filter(e -> e instanceof GameEvent.RoomAvoided)
+                            .map(e -> ((GameEvent.RoomAvoided) e).room())
+                            .findFirst().orElse(null);
+                    if (avoided != null) {
+                        choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
+                    }
+                }
+                case STRIKE -> {
+                    Card struck = ((Move.FightBarehanded) move).targetCard();
+                    Vector2 slot = previousSlots.get(struck.id());
+                    if (slot != null) {
+                        choreographer.playBarehanded(struck, slot, roomTiles, previousSlots,
+                                tickerCenter(), roomDealt);
+                    } else if (roomDealt) {
+                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
+                    }
+                }
+                case EQUIP -> {
+                    Card equipped = ((Move.TakeWeapon) move).targetCard();
+                    Vector2 slot = previousSlots.get(equipped.id());
+                    if (slot != null && weaponMini != null) {
+                        choreographer.playEquip(equipped, slot, weaponMini, roomTiles,
+                                previousSlots, tickerCenter(), roomDealt);
+                    } else if (roomDealt) {
+                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
+                    }
+                }
+                case POTION -> {
+                    Card drunk = ((Move.TakePotion) move).targetCard();
+                    Vector2 slot = previousSlots.get(drunk.id());
+                    boolean wasted = result.events().stream()
+                            .anyMatch(e -> e instanceof GameEvent.PotionWasted);
+                    if (slot != null) {
+                        choreographer.playPotion(drunk, slot, hpBar, wasted, roomTiles,
+                                previousSlots, tickerCenter(), roomDealt);
+                    } else if (roomDealt) {
+                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
+                    }
+                }
+                case SLICE -> {
+                    Card slain = ((Move.FightWithWeapon) move).targetCard();
+                    Vector2 slot = previousSlots.get(slain.id());
+                    if (slot != null) {
+                        choreographer.playSlice(slot, roomTiles, previousSlots,
+                                tickerCenter(), roomDealt);
+                    } else if (roomDealt) {
+                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
+                    }
+                }
             }
         }
     }
