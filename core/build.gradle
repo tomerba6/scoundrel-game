@@ -1,9 +1,42 @@
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 eclipse.project.name = appName + '-core'
 
+apply plugin: 'jacoco'
+
 test {
   useJUnitPlatform()
+  finalizedBy jacocoTestReport // always refresh the coverage report after tests
 }
+
+jacocoTestReport {
+  dependsOn test
+  reports {
+    html.required = true
+    xml.required = true // for any CI/coverage service later
+  }
+}
+
+jacocoTestCoverageVerification {
+  dependsOn test
+  violationRules {
+    // Gate only the pure, unit-testable packages. The GL-bound screens layer and
+    // ScoundrelGame are screenshot-verified, not unit tested, so they are not
+    // gated here — including them would just enforce a meaningless low number.
+    rule {
+      element = 'PACKAGE'
+      includes = [
+        'com.tomer.scoundrel.rules',
+        'com.tomer.scoundrel.model',
+        'com.tomer.scoundrel.runs',
+        'com.tomer.scoundrel.achievements',
+        'com.tomer.scoundrel.tutorial',
+      ]
+      limit { counter = 'LINE';   value = 'COVEREDRATIO'; minimum = 0.90 }
+      limit { counter = 'BRANCH'; value = 'COVEREDRATIO'; minimum = 0.75 }
+    }
+  }
+}
+check.dependsOn jacocoTestCoverageVerification
 
 dependencies {
   api "com.badlogicgames.gdx:gdx:$gdxVersion"

@@ -2,13 +2,29 @@ package com.tomer.scoundrel.lwjgl3;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+import com.tomer.scoundrel.CrashLog;
 import com.tomer.scoundrel.ScoundrelGame;
+
+import java.nio.file.Path;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return; // This handles macOS support and helps on Windows.
+        installCrashLog();
         createApplication();
+    }
+
+    /**
+     * Record any uncaught crash to {@code ~/.scoundrel/crash.log} (then let it
+     * surface as usual), so a tester can just send that file. Same data dir as
+     * the run log and achievements.
+     */
+    private static void installCrashLog() {
+        CrashLog crashLog = new CrashLog(
+                Path.of(System.getProperty("user.home"), ".scoundrel", "crash.log"));
+        Thread.setDefaultUncaughtExceptionHandler(
+                crashLog.asHandler(Thread.getDefaultUncaughtExceptionHandler()));
     }
 
     private static Lwjgl3Application createApplication() {
