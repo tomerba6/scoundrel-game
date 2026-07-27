@@ -28,11 +28,17 @@ The deck is 44 cards: the 26 clubs and spades are **monsters**, the diamonds 2â€
 # Play the game (desktop launcher)
 ./gradlew lwjgl3:run
 
-# Run the rules-engine tests
+# Run the tests
 ./gradlew core:test
+
+# Tests + the JaCoCo coverage gate (report at core/build/reports/jacoco/test/html/)
+./gradlew core:check
 ```
 
 On Windows, use `gradlew.bat` instead of `./gradlew`.
+
+If the game ever crashes, the uncaught error is appended to `~/.scoundrel/crash.log`
+(Windows: `%USERPROFILE%\.scoundrel\crash.log`) â€” handy to attach to a bug report.
 
 ## Project structure
 

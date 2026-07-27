@@ -99,9 +99,11 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   game state. Durations, stagger, and card size are `Theme` tokens, kept short
   on purpose — the gate covers the whole deal, so a long animation reads as
   dropped clicks (`Motion.dealWindow` pins that span: 0.30s deal, 0.50s after
-  an avoid). The pure parts — the window arithmetic and the "which card is
-  under this point" lookup — live in `Motion` and `CardHitRegions` so they are
-  unit tested headlessly. Shipped motion set:
+  an avoid). Pure logic is kept out of the GL classes and unit tested headlessly:
+  the window arithmetic (`Motion`), the "which card is under this point" lookup
+  (`CardHitRegions`), the animation-routing decision (`ResolveEffect`), and the
+  feed and label text (`FeedText`, `Labels`) — the same characterize-then-move
+  extraction the rest of the screen follows. Shipped motion set:
   traveling cards (deal-in + avoid sweep); feedback pulses (damage
   shudders the HP bar and flashes the number dried blood; healing glows the
   fill back in, herbal); and **resolve effects** — a bare-handed kill shudders
@@ -303,9 +305,11 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - `core/src/main/java/com/tomer/scoundrel/screens/Backdrop.java` — the ambient
   layer added first to each stage: torch glow, vignette, and embers.
 - `core/src/main/java/com/tomer/scoundrel/screens/Motion.java` /
-  `CardHitRegions.java` / `TorchFlicker.java` / `Embers.java` — the pure,
-  headlessly-tested parts: motion and skip-and-act geometry, the glow's flicker
-  curve, and the ember particle simulation.
+  `CardHitRegions.java` / `TorchFlicker.java` / `Embers.java` / `ClockText.java` /
+  `FeedText.java` / `Labels.java` / `ResolveEffect.java` — the pure, headlessly
+  unit-tested logic extracted out of the screens: motion and skip-and-act
+  geometry, the flicker curve, the ember sim, the run-timer/duration formatting,
+  the event-feed and label text, and the animation-routing decision.
 - `core/src/main/java/com/tomer/scoundrel/ScoundrelGame.java` — the navigator:
   creates the Theme, RunLog and AchievementStore, boots into `TitleScreen`,
   owns disposal.

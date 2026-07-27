@@ -10,6 +10,12 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 ## Commands
 - Run the game: `./gradlew lwjgl3:run` (Windows: `gradlew.bat lwjgl3:run`).
 - Run tests: `./gradlew core:test`. Tests use JUnit 5 and live in `core/src/test/java`.
+- Tests + coverage gate: `./gradlew core:check`. JaCoCo enforces a minimum
+  coverage on each **pure** package (`model`/`rules`/`runs`/`achievements`/
+  `tutorial`); the GL-bound `screens` layer is excluded (screenshot-verified,
+  not gated). HTML report at `core/build/reports/jacoco/test/html/`.
+- Drive/screenshot the real game (the only way to verify UI): the
+  `run-scoundrel` skill (`.claude/skills/run-scoundrel/`).
 
 ## Architecture — these are hard rules
 - **All game logic lives in the `core` module.** `lwjgl3` is a thin launcher only; do not
@@ -24,7 +30,15 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 - Suggested package split inside `core`:
   - `...scoundrel.model` — cards, deck, game state (pure).
   - `...scoundrel.rules` — actions and rule resolution (pure).
-  - `...scoundrel.screens` — Scene2D screens (LibGDX-dependent).
+  - `...scoundrel.screens` — Scene2D screens (LibGDX-dependent). Pure logic is
+    kept **out** of the GL classes: leaf helpers are extracted into small,
+    headlessly-unit-tested classes (`Motion`, `CardHitRegions`, `ClockText`,
+    `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`), leaving the
+    screens as thin views verified by screenshot. When touching a screen, prefer
+    extracting any new pure formatter/decision/geometry the same way — write a
+    characterization test first, then move the method verbatim.
+  - `...scoundrel.CrashLog` — appends uncaught crashes to `~/.scoundrel/crash.log`
+    (installed by the launcher); pure and tested, robust (never throws itself).
   - `...scoundrel.runs` — run recording + local high-score persistence (pure Java;
     observes the engine from outside — `model`/`rules` never import it).
   - `...scoundrel.achievements` — achievement definitions, evaluation, and the
