@@ -81,6 +81,14 @@ class AchievementStoreTest {
     }
 
     @Test
+    void readingAnUnreadablePathThrowsUncheckedIOException() throws Exception {
+        // The store path is actually a directory, so readAllLines cannot read it.
+        Path asDir = dir.resolve("achievements.log");
+        Files.createDirectory(asDir);
+        assertThrows(UncheckedIOException.class, () -> new AchievementStore(asDir).readAll());
+    }
+
+    @Test
     void clearMovesTheLogAsideToARecoverableBackupAndEmptiesIt() {
         Path file = dir.resolve("achievements.log");
         AchievementStore store = new AchievementStore(file);

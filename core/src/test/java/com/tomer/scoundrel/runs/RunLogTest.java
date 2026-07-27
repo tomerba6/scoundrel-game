@@ -71,6 +71,23 @@ class RunLogTest {
     }
 
     @Test
+    void blankAndWhitespaceOnlyLinesAreSkipped() throws Exception {
+        Path file = dir.resolve("runs.log");
+        RunRecord a = run(5, "2026-07-06T10:00:00Z");
+        RunRecord b = run(9, "2026-07-06T11:00:00Z");
+        Files.writeString(file, a.toLine() + "\n\n   \n\t\n" + b.toLine() + "\n");
+        assertEquals(List.of(a, b), new RunLog(file).readAll());
+    }
+
+    @Test
+    void readingAnUnreadablePathThrowsUncheckedIOException() throws Exception {
+        // The "log" path is actually a directory, so readAllLines cannot read it.
+        Path asDir = dir.resolve("runs.log");
+        Files.createDirectory(asDir);
+        assertThrows(UncheckedIOException.class, () -> new RunLog(asDir).readAll());
+    }
+
+    @Test
     void mixedLineEndingsFromAnotherOsReadFine() throws Exception {
         Path file = dir.resolve("runs.log");
         RunRecord unixWritten = run(5, "2026-07-06T10:00:00Z");
