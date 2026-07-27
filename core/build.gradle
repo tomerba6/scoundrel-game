@@ -1,8 +1,19 @@
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 eclipse.project.name = appName + '-core'
 
+apply plugin: 'jacoco'
+
 test {
   useJUnitPlatform()
+  finalizedBy jacocoTestReport // always refresh the coverage report after tests
+}
+
+jacocoTestReport {
+  dependsOn test
+  reports {
+    html.required = true
+    xml.required = true // for any CI/coverage service later
+  }
 }
 
 dependencies {
