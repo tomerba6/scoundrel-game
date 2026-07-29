@@ -219,7 +219,11 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - **End overlay** — dim soot over the board. A **win** reads `DUNGEON CLEARED`
   (torchlight); a **loss** instead runs the death cinematic (the YOU DIED reveal,
   above) and settles this same panel in beneath it. Either way: the score in
-  display type, the run's final `time m:ss`, a best-score line
+  display type, a dim **breakdown line** naming where that number came from
+  (`Labels.scoreBreakdown` — `-9 health, minus 175 still in the dungeon` on a
+  loss, since a death score charges you for monsters you never saw; the health
+  you kept, or cap-plus-final-potion, on a win), the run's final `time m:ss`,
+  a best-score line
   (`New best!` in torchlight, or `best N` dimmed — from the persisted run
   history), any achievements just unlocked under a torchlight
   `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is
@@ -242,10 +246,16 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   outlined card responds (no chooser), and Avoid is live only on the step that
   teaches it. Explanation beats carry a **Next**; a persistent **Skip tutorial**
   corner button leaves to the title. Clearing the deck shows a **Tutorial
-  complete** screen (Play for real / Main menu). The whole thing teaches every
-  rule in sequence — combat, degradation both ways, potions and the one-per-turn
-  cap, avoiding and never-twice — and is proven end-to-end by a headless test
-  that plays the script through the engine to a win.
+  complete** screen that prints the run's actual score and reads it back as the
+  rule that produced it (`Labels.tutorialScore`), then Play for real / Main menu.
+  The whole thing teaches every rule in sequence — combat, degradation both ways,
+  potions and the one-per-turn cap, avoiding and never-twice, and **scoring** in
+  two centred beats where it bites: the negative losing score right after the
+  bare-handed 9 halves your health, and what a cleared dungeon is worth (plus the
+  20-plus-potion flourish) with the last monster still standing. It is proven
+  end-to-end by a headless test that plays the script through the engine to a
+  win, and that pins the winning beat's promise — `score == health left` — against
+  the real scoring strategy.
 - **NEW GAME (mode picker)** — headed `NEW GAME` over `Choose your descent.`,
   one hairline-ruled row per mode from `GameModes.all()`: the mode's name as the
   torchlight button that starts the run, what it changes, and a right-aligned

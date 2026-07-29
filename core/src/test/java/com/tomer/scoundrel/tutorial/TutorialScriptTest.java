@@ -8,6 +8,8 @@ import com.tomer.scoundrel.rules.Rulesets;
 import com.tomer.scoundrel.rules.ScoundrelEngine;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,6 +47,48 @@ class TutorialScriptTest {
         assertTrue(guide.isComplete(), "every step should be consumed");
         assertEquals(Status.WON, state.status(), "the tutorial must end in a win");
         assertTrue(state.health() > 0, "should finish with health to spare, was " + state.health());
+        // The scoring beat promises a cleared dungeon scores the health you kept.
+        // If the deck ever ends on a potion at the cap, that beat and the
+        // Tutorial-complete line would both be telling a different story.
+        assertEquals(state.health(), state.score(),
+                "the script's win-scoring beat promises score == health left");
+    }
+
+    /**
+     * The generated font covers ASCII plus {@code Theme.EXTRA_CHARS} and nothing
+     * else, so any other glyph renders as a blank gap on the board — silently,
+     * since nothing throws. A real minus sign (U+2212) had already slipped into
+     * the combat-arithmetic beat this way.
+     */
+    @Test
+    void everyNarrationUsesCharactersTheFontCanRender() {
+        String extras = "—–×•"; // must track Theme.EXTRA_CHARS
+        for (TutorialStep step : TutorialScript.steps()) {
+            for (char c : step.narration().toCharArray()) {
+                boolean renderable = (c >= 0x20 && c <= 0x7E) || extras.indexOf(c) >= 0;
+                assertTrue(renderable, "unrenderable U+"
+                        + Integer.toHexString(c).toUpperCase() + " ('" + c + "') in: "
+                        + step.narration());
+            }
+        }
+    }
+
+    /**
+     * Scoring is the rule players find most confusing, so the script must name
+     * both halves of it — the negative losing score and what a cleared dungeon
+     * is worth. Keyword checks, deliberately loose about the exact prose.
+     */
+    @Test
+    void theScriptTeachesBothHalvesOfScoring() {
+        List<String> explanations = TutorialScript.steps().stream()
+                .filter(step -> !step.isAction())
+                .map(TutorialStep::narration)
+                .toList();
+
+        assertTrue(explanations.stream().anyMatch(n -> n.contains("negative") && n.contains("monster")),
+                "no beat explains that dying scores negative, minus the monsters left");
+        assertTrue(explanations.stream().anyMatch(n -> n.contains("score") && n.contains("20")),
+                "no beat explains the cleared-dungeon score and the 20-plus-potion case");
     }
 
     @Test
