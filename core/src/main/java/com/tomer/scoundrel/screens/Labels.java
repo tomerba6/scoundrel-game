@@ -5,8 +5,9 @@ import com.tomer.scoundrel.rules.Move;
 
 /**
  * Short UI labels — pure, so they are unit tested (moved verbatim out of
- * GameScreen): the chooser button text for a move, and the trophy-rail plate
- * describing how much bite the equipped weapon has left.
+ * GameScreen): the chooser button text for a move, the trophy-rail plate
+ * describing how much bite the equipped weapon has left, and the
+ * Tutorial-complete line that reads a winning score back as its scoring rule.
  */
 final class Labels {
 
@@ -31,5 +32,21 @@ final class Labels {
         }
         int threshold = weapon.threshold().getAsInt();
         return threshold <= 2 ? "spent" : "slays < " + threshold;
+    }
+
+    /**
+     * The Tutorial-complete line: a winning score read back as the rule that
+     * produced it, then the losing rule as a parting recap. Covers both of
+     * {@code StandardScoring}'s win branches — the health you kept, or the cap
+     * plus the potion you finished on when the score runs over the cap.
+     */
+    static String tutorialScore(int score, int healthCap) {
+        String win = score > healthCap
+                ? "You ended at a full " + healthCap + " on a potion, so it scores "
+                        + healthCap + " + " + (score - healthCap) + " — the only way past "
+                        + healthCap + "."
+                : "A cleared dungeon scores the health you kept — your " + score + ".";
+        return win + " Die instead and the score goes negative: your health, minus every "
+                + "monster still left in the dungeon.";
     }
 }

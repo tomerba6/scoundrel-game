@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Characterization of the short UI labels lifted out of GameScreen — the chooser
@@ -48,5 +49,21 @@ class LabelsTest {
     void aWeaponThatSlewATwoIsSpent() {
         EquippedWeapon slewTwo = new EquippedWeapon(WEAPON, List.of(monster("2S", 2)));
         assertEquals("spent", Labels.weaponThreshold(slewTwo));
+    }
+
+    @Test
+    void anOrdinaryWinReadsAsTheHealthYouKept() {
+        String blurb = Labels.tutorialScore(10, 20);
+        assertTrue(blurb.contains("10"), blurb);
+        assertTrue(blurb.contains("negative"), "it should recap the losing score too: " + blurb);
+    }
+
+    @Test
+    void aScoreAboveTheCapReadsAsCapPlusTheFinalPotion() {
+        // StandardScoring's other win branch: finish at the cap on a potion and
+        // the score is cap + that potion — 20 + 4 here.
+        String blurb = Labels.tutorialScore(24, 20);
+        assertTrue(blurb.contains("20 + 4"), blurb);
+        assertTrue(blurb.contains("negative"), "it should recap the losing score too: " + blurb);
     }
 }

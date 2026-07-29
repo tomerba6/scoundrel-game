@@ -12,7 +12,9 @@ import java.util.List;
  * every rule surfaces in turn — bare-handed and armed combat, weapon
  * degradation both ways, a weapon upgrade, potion healing and the one-per-turn
  * cap, avoiding (and not twice in a row) — and the run ends in a win with
- * health to spare.
+ * health to spare. Scoring is taught in two beats where it bites: the negative
+ * losing score after the run's heaviest blow, and what a cleared dungeon is
+ * worth with the last monster still standing.
  */
 public final class TutorialScript {
 
@@ -70,6 +72,10 @@ public final class TutorialScript {
                     + "higher."),
             TutorialStep.act("This 9 is beyond the weapon's reach — you must fight it bare-handed.",
                     new Move.FightBarehanded(M9S)),
+            TutorialStep.say("Half your health, gone in one blow. Had it killed you, your score "
+                    + "would go negative: your health, minus every monster still waiting in the "
+                    + "dungeon. Falling early with the deck still fat is the worst score there "
+                    + "is — dying on the last room barely stings."),
             TutorialStep.act("A new weapon replaces the old one and everything stacked on it. "
                     + "Equip this 10.", new Move.TakeWeapon(W10D)),
             TutorialStep.act("Fresh and sharp, the 10 cuts the 3 down for free.",
@@ -85,6 +91,11 @@ public final class TutorialScript {
             TutorialStep.act("The 4 is out of the weapon's reach again — bare-handed.",
                     new Move.FightBarehanded(M4S)),
             TutorialStep.act("Nearly clear. Drink the 5.", new Move.TakePotion(P5H)),
+            TutorialStep.say("One monster left, so the other half of scoring matters now. Clear "
+                    + "the dungeon and your score is simply the health you keep — every point you "
+                    + "don't spend is a point scored. One flourish: end at a full 20 with a potion "
+                    + "as your very last card and it scores 20 plus that potion, the only way "
+                    + "past 20."),
             TutorialStep.act("Finish the last monster to clear the dungeon.",
                     new Move.FightBarehanded(M3S)));
 

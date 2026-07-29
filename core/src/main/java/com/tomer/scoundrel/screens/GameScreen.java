@@ -598,7 +598,11 @@ public final class GameScreen extends ScreenAdapter {
         return Math.max(lo, Math.min(hi, value));
     }
 
-    /** The tutorial's end: no score-keeping, just the way onward. */
+    /**
+     * The tutorial's end: nothing is recorded, but the run's real score is shown
+     * and read back as the rule that produced it — scoring is the rule players
+     * find most confusing, so the last thing they see is a worked example.
+     */
     private Actor buildTutorialComplete() {
         Table overlay = new Table();
         overlay.setFillParent(true);
@@ -606,8 +610,12 @@ public final class GameScreen extends ScreenAdapter {
         overlay.setBackground(theme.solid(dim(Theme.SOOT, 0.85f)));
         overlay.add(label("TUTORIAL COMPLETE", theme.title, Theme.TORCHLIGHT)).padBottom(10);
         overlay.row();
-        Label blurb = label("You cleared it. A cleared dungeon scores your remaining health — "
-                + "that is everything you need to know. Good luck down there.", theme.body, Theme.BONE);
+        overlay.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(6);
+        overlay.row();
+        Label blurb = label(
+                Labels.tutorialScore(state.score(), rules.healthCap())
+                        + " Good luck down there.",
+                theme.body, Theme.BONE);
         blurb.setWrap(true);
         blurb.setAlignment(com.badlogic.gdx.utils.Align.center);
         overlay.add(blurb).width(560).padBottom(26);
