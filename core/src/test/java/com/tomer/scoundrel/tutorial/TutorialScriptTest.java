@@ -55,6 +55,25 @@ class TutorialScriptTest {
     }
 
     /**
+     * The generated font covers ASCII plus {@code Theme.EXTRA_CHARS} and nothing
+     * else, so any other glyph renders as a blank gap on the board — silently,
+     * since nothing throws. A real minus sign (U+2212) had already slipped into
+     * the combat-arithmetic beat this way.
+     */
+    @Test
+    void everyNarrationUsesCharactersTheFontCanRender() {
+        String extras = "—–×•"; // must track Theme.EXTRA_CHARS
+        for (TutorialStep step : TutorialScript.steps()) {
+            for (char c : step.narration().toCharArray()) {
+                boolean renderable = (c >= 0x20 && c <= 0x7E) || extras.indexOf(c) >= 0;
+                assertTrue(renderable, "unrenderable U+"
+                        + Integer.toHexString(c).toUpperCase() + " ('" + c + "') in: "
+                        + step.narration());
+            }
+        }
+    }
+
+    /**
      * Scoring is the rule players find most confusing, so the script must name
      * both halves of it — the negative losing score and what a cleared dungeon
      * is worth. Keyword checks, deliberately loose about the exact prose.

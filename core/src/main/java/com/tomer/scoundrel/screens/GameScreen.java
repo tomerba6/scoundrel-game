@@ -248,7 +248,13 @@ public final class GameScreen extends ScreenAdapter {
      */
     private Table buildEndPanel() {
         Table panel = new Table();
-        panel.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(4);
+        panel.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(2);
+        panel.row();
+        // Where that number came from — a death score charges you for monsters
+        // still face-down, which is otherwise unexplained on screen.
+        panel.add(label(Labels.scoreBreakdown(state.score(), state.health(),
+                        rules.healthCap(), state.status() == Status.WON),
+                theme.body, dim(Theme.BONE, 0.55f))).padBottom(6);
         panel.row();
         panel.add(label("time " + ClockText.format(finalRunSeconds), theme.body, dim(Theme.BONE, 0.7f)))
                 .padBottom(8);

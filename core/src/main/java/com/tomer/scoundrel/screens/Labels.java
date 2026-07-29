@@ -35,6 +35,25 @@ final class Labels {
     }
 
     /**
+     * The line under the end-screen score, naming where that number came from —
+     * the death score especially, which charges you for monsters still in the
+     * face-down dungeon that the player never saw. The penalty needs no extra
+     * state: {@code StandardScoring} makes it exactly {@code health - score}.
+     */
+    static String scoreBreakdown(int score, int health, int healthCap, boolean won) {
+        if (!won) {
+            int monstersLeft = health - score;
+            return monstersLeft == 0
+                    ? health + " health, an empty dungeon"
+                    : health + " health, minus " + monstersLeft + " still in the dungeon";
+        }
+        if (score > healthCap) {
+            return healthCap + " at the cap + the " + (score - healthCap) + " you finished on";
+        }
+        return "the health you kept";
+    }
+
+    /**
      * The Tutorial-complete line: a winning score read back as the rule that
      * produced it, then the losing rule as a parting recap. Covers both of
      * {@code StandardScoring}'s win branches — the health you kept, or the cap

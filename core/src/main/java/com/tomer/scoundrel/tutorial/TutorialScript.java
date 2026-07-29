@@ -59,7 +59,7 @@ public final class TutorialScript {
                     + "monster's full value as damage. Fight this 2.", new Move.FightBarehanded(M2C)),
             TutorialStep.act("Diamonds are weapons. Equip this 5 — now monsters cost you their "
                     + "value minus the weapon's.", new Move.TakeWeapon(W5D)),
-            TutorialStep.act("Fight the 7 with the weapon. You take only 7 − 5 = 2.",
+            TutorialStep.act("Fight the 7 with the weapon. You take only 7 - 5 = 2.",
                     new Move.FightWithWeapon(M7S)),
             TutorialStep.say("A weapon dulls as it kills: afterward it can only strike monsters "
                     + "weaker than its last kill. Yours just slew a 7."),

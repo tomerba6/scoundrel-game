@@ -219,7 +219,11 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - **End overlay** — dim soot over the board. A **win** reads `DUNGEON CLEARED`
   (torchlight); a **loss** instead runs the death cinematic (the YOU DIED reveal,
   above) and settles this same panel in beneath it. Either way: the score in
-  display type, the run's final `time m:ss`, a best-score line
+  display type, a dim **breakdown line** naming where that number came from
+  (`Labels.scoreBreakdown` — `-9 health, minus 175 still in the dungeon` on a
+  loss, since a death score charges you for monsters you never saw; the health
+  you kept, or cap-plus-final-potion, on a win), the run's final `time m:ss`,
+  a best-score line
   (`New best!` in torchlight, or `best N` dimmed — from the persisted run
   history), any achievements just unlocked under a torchlight
   `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is
