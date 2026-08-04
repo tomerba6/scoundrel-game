@@ -21,6 +21,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write   # only used to refresh the coverage badge on main
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -37,11 +40,34 @@ jobs:
       # One Gradle invocation on purpose: org.gradle.daemon=false in
       # gradle.properties means every call pays full JVM startup.
       #
-      # core:check also drags in :packAtlas through processResources, so this
-      # doubles as proof that the sprite atlas packs from a clean checkout --
-      # the atlas is generated and gitignored, so nothing else ever checks it.
+      # Once the sprite branch lands, core:check will also drag in :packAtlas
+      # through processResources, making this a clean-checkout proof that the
+      # texture atlas packs -- it is generated and gitignored, so nothing else
+      # would ever check it.
       - name: Check
         run: ./gradlew core:check lwjgl3:compileJava
+
+      # Regenerate the README badge from the report this run just produced. Only
+      # on main, and only committed when the number actually moved, so PR runs
+      # stay read-only and green pushes don't each add a commit. [skip ci] stops
+      # the badge commit from triggering another run of this workflow.
+      - name: Refresh coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          python3 .github/scripts/coverage_badge.py \
+            core/build/reports/jacoco/test/jacocoTestReport.xml \
+            .github/badges/coverage.svg
+          if [ -n "$(git status --porcelain .github/badges/coverage.svg)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .github/badges/coverage.svg
+            git commit -m "chore: update coverage badge [skip ci]"
+            # A cosmetic badge must never fail the build -- branch protection
+            # can legitimately reject this push. Warn instead.
+            git push || echo "::warning::coverage badge push rejected; badge left stale"
+          else
+            echo "coverage unchanged; nothing to commit"
+          fi
 
       - name: Upload reports on failure
         if: failure()
