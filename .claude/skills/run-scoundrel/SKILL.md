@@ -64,8 +64,12 @@ Then **look at the PNG** with the Read tool. A blank frame means it never came u
 
 ### 3. Click and screenshot
 
-Actions are comma-separated and run in order: `click:<x>:<y>`, `wait:<ms>`,
-`shot:<path>`.
+Actions are comma-separated and run in order: `click:<x>:<y>`, `key:<name>`,
+`wait:<ms>`, `shot:<path>`.
+
+`key:` takes `ESC`, `ENTER`, `SPACE` or `F1`-`F12` — the bindings the game polls
+per frame rather than through Scene2D: **F11** toggles fullscreen, **F9** opens
+the developer sprite inspector (`SpriteLab`), **Esc** leaves it.
 
 ```powershell
 & powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 `
@@ -114,6 +118,17 @@ These all cost real time in this container.
   the caller forces foreground properly. `drive.ps1` does the
   `AttachThreadInput` dance for this; a naive `SetForegroundWindow` is refused
   and costs you a click.
+- **The same swallowing hits `key:`, and worse right after launch.** A single
+  `key:F9` in the first invocation after `lwjgl3:run` was dropped twice during
+  this skill's own verification — the window exists well before the game loop is
+  reading input. Send it twice (`key:F9,wait:600,key:F9`); the toggles that
+  matter are guarded against re-entry, so a second press is a no-op rather than
+  an undo. **Always confirm the screen actually changed** before measuring
+  anything in the shot — a dropped key leaves you screenshotting the title screen
+  and measuring the wrong pixels.
+- **`Shot` uses the client size read at invocation start.** If an action resizes
+  the window mid-run (any `key:F11`), the following `shot:` captures a stale
+  rectangle. Take the screenshot in a *separate* `drive.ps1` call after a resize.
 - **`SetProcessDPIAware()` is mandatory** before any coordinate work, or Windows
   reports scaled sizes and every click lands off-target.
 - **`FindWindow` races window creation** during startup; the driver falls back to

@@ -41,6 +41,8 @@ public class W {
   [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
+  [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint f, IntPtr e);
+  [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint code, uint mapType);
   public struct RECT { public int Left, Top, Right, Bottom; }
   public struct POINT { public int X, Y; }
 }
@@ -126,6 +128,31 @@ function Click([int]$x, [int]$y) {
   Write-Output ("CLICK {0},{1}" -f $x, $y)
 }
 
+# Debug and view-toggle bindings are polled per frame by the game (F11 fullscreen,
+# F9 the sprite inspector, Esc to leave a screen), so they need real key events
+# rather than clicks. Named rather than numeric so actions stay readable.
+$VK = @{
+  "ESC" = 0x1B; "ENTER" = 0x0D; "SPACE" = 0x20;
+  "F1" = 0x70; "F2" = 0x71; "F3" = 0x72; "F4" = 0x73; "F5" = 0x74; "F6" = 0x75;
+  "F7" = 0x76; "F8" = 0x77; "F9" = 0x78; "F10" = 0x79; "F11" = 0x7A; "F12" = 0x7B
+}
+
+function Key([string]$name) {
+  $n = $name.ToUpper()
+  if (-not $VK.ContainsKey($n)) { Write-Output ("UNKNOWN KEY {0}" -f $name); return }
+  $code = [byte]$VK[$n]
+  # Send the real scan code rather than 0. GLFW does map a zero scancode back
+  # via MapVirtualKey, but it calls that path a HACK for synthetic messages, so
+  # supplying the true one keeps us on its normal route. Note this is NOT what
+  # makes a press land -- see the swallowed-first-key note in SKILL.md.
+  $scan = [byte]([W]::MapVirtualKey([uint32]$code, 0))   # MAPVK_VK_TO_VSC
+  [W]::keybd_event($code, $scan, 0, [IntPtr]::Zero)      # down
+  Start-Sleep -Milliseconds 90
+  [W]::keybd_event($code, $scan, 2, [IntPtr]::Zero)      # KEYEVENTF_KEYUP
+  Start-Sleep -Milliseconds 150
+  Write-Output ("KEY {0} (vk 0x{1:X2} scan 0x{2:X2})" -f $n, $code, $scan)
+}
+
 foreach ($a in $Actions.Split(",")) {
   if ($a -eq "") { continue }
   # Split on the FIRST colon only -- screenshot paths contain "C:\".
@@ -134,6 +161,8 @@ foreach ($a in $Actions.Split(",")) {
   } elseif ($a.StartsWith("click:")) {
     $c = $a.Substring(6).Split(":")
     Click ([int]$c[0]) ([int]$c[1])
+  } elseif ($a.StartsWith("key:")) {
+    Key $a.Substring(4)
   } elseif ($a.StartsWith("wait:")) {
     Start-Sleep -Milliseconds ([int]$a.Substring(5))
     Write-Output ("WAIT {0}" -f $a.Substring(5))

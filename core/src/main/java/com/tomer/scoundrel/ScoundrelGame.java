@@ -15,6 +15,8 @@ import com.tomer.scoundrel.tutorial.TutorialScript;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.ModeSelectScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
+import com.tomer.scoundrel.screens.SpriteLab;
+import com.tomer.scoundrel.screens.Sprites;
 import com.tomer.scoundrel.screens.Theme;
 import com.tomer.scoundrel.screens.TitleScreen;
 import com.tomer.scoundrel.screens.TrophiesScreen;
@@ -32,6 +34,7 @@ public class ScoundrelGame extends Game {
     private static final int WINDOWED_HEIGHT = 720;
 
     private Theme theme;
+    private Sprites sprites;
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
@@ -40,6 +43,7 @@ public class ScoundrelGame extends Game {
     @Override
     public void create() {
         theme = new Theme();
+        sprites = new Sprites();
         Path home = Path.of(System.getProperty("user.home"), ".scoundrel");
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
@@ -58,6 +62,11 @@ public class ScoundrelGame extends Game {
                     || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT));
         if (Gdx.input.isKeyJustPressed(Input.Keys.F11) || altEnter) {
             toggleFullscreen();
+        }
+        // F9 opens the developer sprite inspector. Polled here for the same
+        // reason as F11, and guarded so it can't stack on top of itself.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F9) && !(getScreen() instanceof SpriteLab)) {
+            switchTo(new SpriteLab(this, theme, sprites));
         }
         super.render(); // draws the current screen
     }
@@ -136,6 +145,7 @@ public class ScoundrelGame extends Game {
         if (getScreen() != null) {
             getScreen().dispose();
         }
+        sprites.dispose();
         theme.dispose();
     }
 }
