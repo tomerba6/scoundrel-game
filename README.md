@@ -16,6 +16,22 @@ risk with the hand the shuffle deals you.
 
 ![The board](docs/images/board.png)
 
+## Features
+
+- **The complete ruleset** — room dealing, avoiding, armed and bare-handed combat, weapon
+  degradation, the one-potion-per-turn cap, and both scoring branches including the
+  cap-plus-final-potion edge case.
+- **Three difficulty modes** — Standard, Relentless and Frail, built as alternate rulesets rather
+  than branches in the engine.
+- **Guided tutorial** — a scripted first run that teaches every rule, offered once on first
+  launch and replayable afterwards.
+- **Persistent progression** — high scores and lifetime statistics across every finished run,
+  ranked per difficulty, with ten achievements derived from the engine's event stream.
+- **Animated presentation** — cards deal in and sweep away, per-card resolve effects, HP pulses,
+  a death cinematic, and a procedural torchlit backdrop with live flicker and drifting embers.
+- **Ships as a real application** — self-contained Windows and macOS builds that need no Java
+  installed, borderless fullscreen with an F11 toggle, and crash reports written to disk.
+
 ## Play it
 
 Download a self-contained build from the [latest release](https://github.com/tomerba6/scoundrel-game/releases/latest)
@@ -80,7 +96,28 @@ Three difficulty modes ship: **Standard**, **Relentless** (avoiding is forbidden
   </tr>
 </table>
 
+## Tech stack
+
+| | |
+|---|---|
+| **Language** | Java 21 (records, sealed types, pattern matching for `switch`) |
+| **Framework** | [libGDX](https://libgdx.com/) 1.14 with the LWJGL3 desktop backend |
+| **UI** | Scene2D, with a backdrop built from `Pixmap`-generated textures at load — no image assets |
+| **Build** | Gradle 9 multi-module, wrapper committed |
+| **Testing** | JUnit 5, JaCoCo coverage gate |
+| **CI/CD** | GitHub Actions — checks on every PR, tag-triggered release builds |
+| **Packaging** | [construo](https://github.com/fourlastor-alexandria/construo) — self-contained archives with a trimmed JDK per platform |
+| **Fonts** | IM Fell English and Alegreya Sans, rasterised at runtime via FreeType |
+
+No third-party dependency does any game logic; the rules are entirely first-party code.
+
 ## Architecture
+
+The problem worth solving here was keeping a *game* testable. Games tend to grow rules inside
+render loops, where verifying them needs a GPU and a human watching — so the rules stop being
+tested, and edge cases like weapon degradation quietly rot. The whole structure below exists to
+avoid that: push every rule into code that a headless test can drive, and leave the graphics layer
+with nothing to get wrong except drawing.
 
 The organising constraint is a hard boundary: **the rules engine is pure Java with no libGDX
 imports at all.** Not "mostly pure" — `model` and `rules` contain zero `com.badlogic.gdx.*`
@@ -151,6 +188,31 @@ by playing every one of its moves through the real engine in a test and assertin
 promises against the actual scoring strategy — so the tutorial cannot silently start lying about
 the rules.
 
+## Development
+
+```sh
+./gradlew core:test        # 260 tests, headless, ~1s of execution
+./gradlew core:check       # tests + the JaCoCo gate; HTML report at
+                           #   core/build/reports/jacoco/test/html/
+./gradlew lwjgl3:run       # play the current working tree
+./gradlew lwjgl3:packageWinX64   # build a self-contained archive
+```
+
+Two conventions matter if you touch this code:
+
+**Pure logic is written test-first.** The failing test comes before the implementation for
+anything in `model`, `rules`, `runs`, `achievements` or `tutorial`. Those packages are headless by
+construction, so there is never a reason not to.
+
+**UI is verified by screenshot, not by test.** Rendering cannot be asserted meaningfully in JUnit,
+so changes to `screens` are checked by launching the real game, driving it with synthesised input
+and reading the pixels back. When a screen accumulates logic that *could* be tested — a formatter,
+a hit region, an easing curve — that logic gets extracted into a pure class with a characterization
+test written before the move, rather than left where it cannot be reached.
+
+Design notes live in [`docs/design.md`](docs/design.md) and [`docs/ui.md`](docs/ui.md), and are
+kept in sync with the code rather than written once.
+
 ## Roadmap
 
 - [x] Pure model and rules engine — dealing, avoiding, combat, degradation, scoring
@@ -161,6 +223,10 @@ the rules.
 - [x] Guided tutorial that teaches every rule, including scoring
 - [x] CI, coverage gate, self-contained desktop builds
 - [ ] Pixel-art creature sprites, weapons and potions *(in progress)*
+
+## Author
+
+Built by **Tomer Ben Ari** — [github.com/tomerba6](https://github.com/tomerba6).
 
 ## Credits
 
