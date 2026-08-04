@@ -1,0 +1,54 @@
+# What this gates, and what it cannot.
+#
+# core:check is the pure half of the project -- the rules engine, run log,
+# achievements and tutorial script -- plus the JaCoCo coverage gate on those
+# packages. It runs headless, so it belongs here.
+#
+# The Scene2D screens are deliberately NOT covered. They need a window, a GPU
+# and screenshot pixels to verify (see .claude/skills/run-scoundrel), which no
+# runner has. A green check here says the build is sound and the engine is
+# correct; it says nothing about whether anything renders. Do not treat it as a
+# substitute for the screenshot pass on UI work.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same ref makes the in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: gradle
+
+      # One Gradle invocation on purpose: org.gradle.daemon=false in
+      # gradle.properties means every call pays full JVM startup.
+      #
+      # core:check also drags in :packAtlas through processResources, so this
+      # doubles as proof that the sprite atlas packs from a clean checkout --
+      # the atlas is generated and gitignored, so nothing else ever checks it.
+      - name: Check
+        run: ./gradlew core:check lwjgl3:compileJava
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-and-coverage-reports
+          path: |
+            core/build/reports/
+            core/build/test-results/
+          retention-days: 7
