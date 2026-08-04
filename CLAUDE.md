@@ -56,10 +56,47 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
   architecture, and every on-screen component — is documented in
   [`docs/ui.md`](docs/ui.md). The board is a torchlit dungeon — a procedural
   backdrop (glow, live flicker, drifting embers) and framed cards in the muted
-  *Ashen* palette. What remains is *illustration* only: drawn card art and
-  creature sprites. Motion (deal-in, avoid-sweep, HP pulses via the
+  *Ashen* palette. Motion (deal-in, avoid-sweep, HP pulses via the
   `Choreographer`) and the atmosphere already ship. Consult it when working on
   screens, and keep it in sync when the UI changes.
+- **Sprite art reference:** the pixel art is **finished and delivered** — see
+  [`HANDOFF.md`](HANDOFF.md), which is the contract, and the section below for the
+  hard rules. The *Ashen* palette is superseded by the 80-colour ramp system it
+  defines.
+
+## Sprite art — these are hard rules
+
+The art is **done**: 31 objects (13 creatures × 2 suits, 9 weapons, 9 potions) and 130 idle
+frames, all 64×64. [`HANDOFF.md`](HANDOFF.md) is the full contract — region names, palette,
+geometry, effect timings, and an 11-step order of work with a verify line per step. Read it
+before touching anything visual.
+
+- **Never regenerate, recolour, or "improve" a sprite.** Every pixel sits on a locked 80-colour
+  ramp system that took ~30 generations to settle. A helpful palette tweak is a regression.
+  If a sprite genuinely needs changing, say so and stop — it is an art task, not a code task.
+- **Build the atlas from `assets/atlas/` only.** `art-reference/sprites/` holds the same PNGs
+  under dot-separated names for the HTML mock; it is not the delivery set.
+- **Region names are the contract:** `creature_<value>_<name>_<suit>`, frames add
+  `_idle_1`…`_idle_5`. Lowercase `[a-z0-9_]`, index last, so
+  `atlas.findRegions(stem + "_idle")` returns the five in order. Value is zero-padded
+  (`02`–`10`, `11`=J, `12`=Q, `13`=K, `14`=A).
+- **`TextureFilter.Nearest`, integer scales only (1, 2, 3, 4), whole-pixel positions.** These are
+  hand-placed pixels; a fractional scale or a sub-pixel offset invents colours outside the
+  palette and makes the art shimmer. `Math.round` every computed position before drawing.
+- **`FitViewport(1280, 720)`.** Every number in `HANDOFF.md` is in that space; sprites draw at
+  ×2 = 128px inside a 176×256 card. Do not re-derive the layout per window size.
+- **Idles run at 6 fps, effects at 12 fps**, and nothing tweens or rotates — every segment holds
+  on a frame. A rotated pixel is a blurred pixel.
+- **Hurt and rim frames are generated in Java at load** from each base sprite (§8), not shipped.
+  There are no death frames — the card dissolve covers it.
+- **Silkscreen replaces IM Fell English and Alegreya Sans entirely**, at pixel-aligned sizes with
+  no anti-aliasing. Both old faces come out once the board is converted.
+- The nine 16×16 rail icons are **not drawn yet**; the rail shows the card sprite at ×1 until
+  they are. Don't generate them — models are unreliable below 32px.
+
+The mock (`art-reference/Scoundrel - Sprite Directions.dc.html`) is the visual target: the board
+at 1280×720, every effect in isolation, all 26 idle cycles. It opens in a browser — ask the user
+to compare against it; you can't render it yourself.
 
 ## Working preferences
 - For any non-trivial change, propose a plan first and wait for review before coding.

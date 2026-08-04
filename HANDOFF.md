@@ -1,0 +1,436 @@
+# Scoundrel — sprite art handoff
+
+Everything needed to put the finished pixel art into the LibGDX build.
+Art is done: **31 objects drawn, 26 creature cards, 130 idle frames.** Nothing here asks you to draw.
+
+Companion file: `Scoundrel - Sprite Directions.dc.html` — the interactive reference. Open it to see
+the board, the effects, the bestiary and the palette. This document is the contract; that file is the picture.
+
+---
+
+## 1. What ships
+
+```
+atlas/                       174 PNGs, all 64×64 RGBA, ready for TexturePacker
+```
+
+| group | count | region names |
+|---|---|---|
+| creature base sprites | 26 | `creature_<value>_<name>_<suit>` |
+| creature idle frames | 130 | `creature_<value>_<name>_<suit>_idle_<1-5>` |
+| weapons | 9 | `weapon_<value>_<name>` |
+| potions | 9 | `potion_<value>_<name>` |
+
+`<value>` is the card's rank as a zero-padded number: **02–10, 11=J, 12=Q, 13=K, 14=A**.
+`<suit>` is `clubs` or `spades`. `<name>` is lowercase with underscores.
+
+Every region name is lowercase `[a-z0-9_]` only — no dots, no spaces, index last, so
+`TextureAtlas.findRegions("creature_10_deep_ogre_clubs_idle")` returns the five frames in order.
+
+**Full region list**
+
+```
+creature_02_cellar_rat      creature_09_gaunt_knight     weapon_02_rusted_shiv    potion_02_dram
+creature_03_carrion_bat     creature_10_deep_ogre        weapon_03_iron_nail      potion_03_vial
+creature_04_grave_slime     creature_11_flayed_priest    weapon_04_hatchet        potion_04_phial
+creature_05_bone_crawler    creature_12_widow_queen      weapon_05_short_sword    potion_05_draught
+creature_06_goblin_cutter   creature_13_warden           weapon_06_mace           potion_06_flask
+creature_07_ghoul           creature_14_the_debt         weapon_07_broadsword     potion_07_carafe
+creature_08_tomb_spider                                  weapon_08_war_pick       potion_08_decanter
+                                                         weapon_09_broadaxe       potion_09_amphora
+                                                         weapon_10_greatsword     potion_10_flagon
+```
+
+Creature names map to ranks: 2 Cellar Rat · 3 Carrion Bat · 4 Grave Slime · 5 Bone Crawler ·
+6 Goblin Cutter · 7 Ghoul · 8 Tomb Spider · 9 Gaunt Knight · 10 Deep Ogre · J Flayed Priest ·
+Q Widow Queen · K Warden · A The Debt.
+
+**Not in the atlas, generated at load (§8):** hurt frames and rim frames.
+**Not in scope:** death frames. The card dissolve covers it.
+
+---
+
+## 2. Where the files go, and what this covers
+
+Copy `atlas/` into the LibGDX assets root and pack from there. The 64×64 source PNGs also live in
+`sprites/` with dot-separated names (`creature_10_deep_ogre.clubs.png`) — that is the working set the
+mock loads, **not** the delivery set. Build only from `atlas/`; the two are byte-identical, only the
+names differ.
+
+**Scope:** this covers the game board, its cards, and the effects listed in §8. The title screen,
+mode select, records, trophies and tutorial keep their current appearance — nothing here changes
+them. Their fonts change with everything else (§3).
+
+---
+
+## 3. Type
+
+Silkscreen replaces IM Fell English and Alegreya Sans **entirely**. One face, one weight, for every
+label, numeral and heading. It is a pixel face, so the same rule as the sprites applies: use it only
+at sizes that land on whole pixels — 8, 11, 13, 16, 26, 38 px are the sizes the mock uses.
+
+Silkscreen is SIL Open Font License, free to redistribute:
+<https://fonts.google.com/specimen/Silkscreen>. Load the TTF through `FreeTypeFontGenerator` with
+`hinting = None` and no gamma, or pre-bake a bitmap font — either way, **no anti-aliasing**.
+
+Existing `IMFellEnglish-Regular.ttf` and the two `AlegreyaSans` files can come out of the project
+once the board is converted.
+
+---
+
+## 4. Two facts that constrain everything
+
+**Every sprite is 64×64 and must be drawn at an integer multiple.** These are hand-placed
+pixels on an 8-step ramp. Draw at ×1.5 or ×2.3 and the filter invents colours that aren't in the
+palette — the art stops looking like pixel art. Use `TextureFilter.Nearest` on the atlas and only
+ever scale by 1, 2, 3, 4.
+
+**Every offset is a whole pixel.** The idle cycles move things by exactly 1px. Sub-pixel motion
+shimmers at this resolution. Round every computed position with `Math.round` before drawing.
+
+---
+
+## 5. Card size — the decision you asked about
+
+The mock draws each sprite at **×2 = 128px, inside a 176×256 card, on a 1280×720 stage.**
+
+Two ways to carry that into the Java, and they differ in what breaks when the window resizes.
+
+**A. Fixed virtual resolution (recommended).**
+Use a `FitViewport(1280, 720)`. Cards are always 176×256, sprites always ×2 = 128px, and the
+viewport letterboxes to whatever the real window is. The whole 1280×720 layout — every number in
+this document — transfers unchanged. On a 4K monitor the image is scaled up by the GPU, which for
+pixel art is exactly right: an integer-ish upscale of a crisp source.
+
+*Cost:* black bars on non-16:9 windows. For a card game that is not a real cost.
+
+**B. Layout computes card width, sprite scale follows.**
+Keep your current pixel math, then pick the sprite scale as
+`scale = max(1, floor(cardWidth / 88))` — 88 because 64px of art wants roughly 73% of the card's
+width, matching the mock. The sprite fills more of a big card and less of a small one, always at an
+integer scale.
+
+*Cost:* the sprite jumps size discretely as the window grows (×2 → ×3 with nothing between), and
+every other number here — bevel widths, tick sizes, HUD positions — has to be re-derived per size.
+That is the work the mock exists to avoid.
+
+**Take A.** One viewport, one set of numbers, and the art is guaranteed to land on whole pixels.
+If you later need it sharper on high-DPI, raise the virtual resolution to 2560×1440 and double
+every constant once — not per frame.
+
+---
+
+## 6. The palette
+
+Nine ramps of eight steps — seven materials plus the two corruption ramps — and eight accents.
+**80 colours. Nothing outside this list appears in any sprite**, so these are also the only colours
+the UI should use.
+
+| ramp | use | hexes (dark → light) |
+|---|---|---|
+| FUR | pelts, mange | `0a080d 17111a 261a22 3a2a26 52402c 6f5738 8f7248 b09263` |
+| FLESH | skin, meat, the Ace's coat | `12060f 230d16 37131c 4f1d1e 6b2b23 8a3d2b a85338 c47049` |
+| BONE | bone, dead skin, cloth | `12101c 221f2c 383341 524a4c 6f6558 8f8368 b3a683 e6dcc0` |
+| CHITIN | carapace, membrane | `08070f 14101e 221a30 332643 453356 5b4569 74597e 91738f` |
+| SALLOW | green-grey hide | `0f0f14 1b1e1e 282f26 37422c 485834 5c6f3c 748845 93a457` |
+| IRON | steel, plate | `090c14 141a24 212b36 333f4c 4a5a66 667a86 8a9ea8 b2c6cd` |
+| WOOD | hafts, planks, clay | `100a07 1e140d 2f2014 422e1b 573c23 6e4f2e 8a6539 a67f4a` |
+| **ROT** | ♣ corruption | `0e1a12 17281a 234026 325a31 43783c 58964a 71b45c 8fcf72` |
+| **COLD** | ♠ corruption | `101a20 1a2b33 263f49 35555f 487078 618c92 80a8ac a3c4c6` |
+| ACCENT | torch, blood, cream | `d9a441 f2cf7a ffe9b0 b5651f 8c2f22 c2503a e8ddc7 f7f0dc` |
+
+ROT and COLD are **step-for-step equivalents**: `ROT[n]` ↔ `COLD[n]`. That is what makes the two
+suits the same drawing with its corruption swapped. Both suits are already drawn and in the atlas —
+you never do this swap at runtime. It matters only if you add a creature later.
+
+### Card plates
+
+```java
+// MONSTER  plate 230d16  light 4f1d1e  dark 12060f  well 0e050c  label a85338
+// WEAPON   plate 141a24  light 333f4c  dark 090c14  well 070a10  label 8a9ea8
+// POTION   plate 17281a  light 325a31  dark 0e1a12  well 0a1310  label 71b45c
+```
+
+`light` is the top/left bevel, `dark` the bottom/right, `well` the recess the sprite sits in.
+Bevels are **2px** at ×2. Stage background `100c09`.
+
+### The one exception
+
+**The Ace is drawn twice.** `creature_14_the_debt_clubs` and `_spades` are separate drawings, not a
+recolour — different coat, different pose, different chain. Do not derive one from the other.
+
+---
+
+## 7. Idle animation
+
+Five frames, **6 fps, 167 ms per frame, looping.** Same for all 26 cards.
+
+```java
+Animation<TextureRegion> idle = new Animation<>(
+    1f / 6f, atlas.findRegions(stem + "_idle"), Animation.PlayMode.LOOP);
+```
+
+Stagger each card's start time by a random 0–833 ms so four cards in a room don't breathe in
+lockstep. Store the offset on the card when it is dealt, not per frame.
+
+Frame 1 of every cycle **is** the base sprite, pixel-identical. Draw the base sprite when a card is
+static (a bestiary entry, the discard pile) and the cycle when it is in play; they match.
+
+---
+
+## 8. Hurt and rim frames — generate at load
+
+Both are rules over the base sprite, so 52 files stay out of the atlas.
+
+**Rim** — the cream outline. Any opaque pixel with at least one transparent 4-neighbour becomes
+`f7f0dc`; every other pixel transparent.
+
+**Hurt** — every colour moved two steps up its own ramp (clamped at 7), plus the rim on top.
+This keeps the flash inside the palette instead of washing to white.
+
+```java
+// Build both once at load from each base region's Pixmap.
+// rim:  edge pixels -> 0xf7f0dcff, everything else 0x00000000
+// hurt: for each pixel, find its ramp and index, take ramp[min(7, i+2)], then overlay rim
+```
+
+You need the 80-colour table in Java to do the hurt lookup — hardcode the ramps from §6 as
+`int[][]`, match by exact RGB. Every sprite pixel is guaranteed to be in the table.
+
+If the ramp lookup is more work than you want on day one, ship rim only. Rim alone carries the
+weapon-kill flash, which is the effect that needs it.
+
+**Reference copies exist.** `art-reference/sprites/anim/` holds all 52 as PNGs
+(`creature_07_ghoul.clubs.hurt.png`, `…clubs.rim.png`) — the mock loads them to play the effects.
+Use them to check your generated output matches pixel for pixel. If you would rather not write the
+generator at all, rename them to the atlas scheme (`creature_07_ghoul_clubs_hurt`) and pack them;
+226 regions instead of 174. Generating is still preferable — it stays correct if a sprite ever
+changes.
+
+---
+
+## 9. Board geometry (1280×720)
+
+```java
+CARD_W = 176; CARD_H = 256;          // 2px bevel + 2px outer frame
+SLOT_Y = 220;                        // top of the card row
+SLOT_X(i) = 252 + i * 200;           // four slots, 24px gap
+SPRITE = 128;                        // 64 × 2, centred in the well
+WELL_Y = SLOT_Y + 26;                // below the rank/type header
+CARD_CX(i) = SLOT_X(i) + 88;         // card centre, for effect targets
+CARD_CY = SLOT_Y + 128;
+```
+
+Effects fly to and from three fixed anchors, all centres:
+
+```java
+TICKER = (640,  60);                 // the depth ticker, top centre
+RAIL   = ( 96, 646);                 // equipped weapon, bottom-left
+HPBAR  = (140,  44);                 // health bar, top-left
+```
+
+Rank and type sit in a 26px header. The value numeral is 38px, cream `e8ddc7`, with a
+`0 4px 0 rgba(10,8,6,.7)` drop shadow — at ×2 that is a 4px hard offset, not a blur.
+
+### Rail and held-item icons — read this before copying the mock
+
+The mock draws the rail weapon at **72px** and the held potion at **26px**. Both are wrong by §4:
+72/64 = ×1.125 and 26/64 = ×0.41, so some source pixels get one screen pixel and their neighbours
+get two. The browser hides it; `Nearest` filtering will not.
+
+Use these instead:
+
+```java
+RAIL_ICON = 64;                      // the card sprite at ×1, in a 68px well (2px frame)
+HELD_ICON = 32;                      // the card sprite at ÷2 — even, so it stays clean
+```
+
+÷2 is a clean halving: every 2×2 source block becomes one pixel. It loses detail but never produces
+an uneven grid. The long-term answer is the 16×16 hand-drawn icons the brief calls for, drawn at ×4 —
+see §13.
+
+---
+
+## 10. Effects
+
+All effects run at **12 fps (83 ms per frame)**; idles run at 6. Twelve was chosen so that the
+existing tuned durations land on frame boundaries — 0.36 s is exactly 4 frames, 0.18 s is 2.
+
+Quantise every effect to `floor(elapsed / (1/12f))`. An effect that moves smoothly reads as a
+different game than one that steps.
+
+| effect | total | timing | what happens |
+|---|---|---|---|
+| Deal in | 700 ms | 0.18 s, stagger 0.04 | Cards leave `TICKER` in two whole-pixel hops. |
+| Avoid sweep | 800 ms | 0.20 s | Four cards hop into `TICKER` together; returned ticks flash 1 frame. |
+| Barehanded | 900 ms | 2 hits × 0.16 s, stagger 0.10 | Creature holds its **hurt frame** for the whole exchange. Two 8-point stars built from four bars — no AA spikes. Card shakes on a 4px grid; 2-frame bone flash under each hit. |
+| Weapon kill | 1400 ms | **rim 0.36 s, then slice 0.36 s** | Rim flashes cream with the sprite still on the card. Only then: card lifts 10px, slash bar crosses TR→BL, halves part and rise as they fade. **They never rotate** — a turned pixel is a blurred pixel. |
+| Equip | 800 ms | 0.24 s | Three hops to `RAIL`, scale 100 → 55 → 18%. Lands as the rail icon (§9 — 64px, not the mock's 72). |
+| Potion | 1600 ms | 0.30 s | Card collapses into the bottle over 2 frames, bottle hops to `HPBAR` in 4, then tips and pours; 3 drops fall as the bar fills. |
+| Death | 3200 ms | 0.4 / 0.8 / 1.2 / 0.5 | Red flare over the killer, board shakes 5 frames, screen dies by ordered 4×4 dither over 10 frames — **pattern, never alpha** — then YOU DIED grows in four scale steps. |
+
+**Weapon kill ordering is load-bearing.** The rim flash must complete before anything occludes the
+card. In the mock this broke twice because the slice halves were present-but-transparent during the
+delay and covered the sprite. In Java: do not draw the halves at all until `elapsed >= 0.36f`.
+
+HP pulses: damage jumps the bar ±4px for 2 frames and flips the number to dried blood `8c2f22` for
+3. Heal redraws the fill one segment per frame, `71b45c`.
+
+---
+
+## 11. Order of work
+
+Each step is verifiable on its own. Do not start the next until the current one looks right.
+
+**1 — Atlas.** Add TexturePacker (`gdx-tools`) as a build step over `atlas/`. Settings:
+`filterMin/filterMag = Nearest`, `paddingX/Y = 2`, `duplicatePadding = true`, `stripWhitespaceX/Y =
+false`. Whitespace stripping would break the 64×64 alignment the idle frames depend on.
+*Verify:* the atlas has 174 regions and `findRegions("creature_02_cellar_rat_clubs_idle").size == 5`.
+
+**2 — One sprite on screen.** Load the atlas, draw `creature_02_cellar_rat_clubs` at ×2 anywhere.
+*Verify:* crisp edges, no blur, no colour fringing. If it's soft, the filter is wrong.
+
+**3 — Viewport.** `FitViewport(1280, 720)`. Move the existing screens onto it.
+*Verify:* the layout is identical at three window sizes, letterboxed.
+
+**4 — Card frame.** Draw the plate, 2px bevels and well from §6/§9 with the palette hexes.
+*Verify:* side by side with the mock's BOARD tab at 1280×720. The bevel should be 2px, not 4.
+
+**5 — Static sprites on cards.** Map card → region name from §1. Weapons and potions are done here.
+*Verify:* all 31 objects appear on their correct ranks; nothing is missing or doubled.
+
+**6 — Idle cycles.** `Animation` per creature card, 6 fps, random start offset.
+*Verify:* four cards in a room are visibly out of phase; nothing shimmers or drifts sub-pixel.
+
+**7 — Rim generation.** §8, rim only. Add a debug key that flashes the rim on a card.
+*Verify:* a clean 2px cream outline (1px source × 2), no gaps at the silhouette's diagonals.
+
+**8 — Weapon kill.** Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
+*Verify:* you can see the outline flash with the creature still visible, *then* the cut.
+
+**9 — Hurt generation and barehanded.** §8 in full, then the two-hit exchange.
+*Verify:* the hurt frame is brighter but still on-palette — no white, no new colours.
+
+**10 — Remaining effects.** Deal, avoid, equip, potion, death, HP pulses, from the §10 table.
+*Verify:* each against the mock's EFFECTS tab, which plays them in isolation.
+
+**11 — Quantise.** One place that floors time to 1/12 s for effects, 1/6 s for idles.
+*Verify:* pause on any frame and every element is on a whole pixel.
+
+---
+
+## 12. Where the reference lives
+
+`Scoundrel - Sprite Directions.dc.html`, five tabs:
+
+- **BOARD** — the target layout at 1280×720, real sprites, live idles
+- **EFFECTS** — every effect in isolation, one button each
+- **BESTIARY** — all 13 creatures, materials and per-creature hexes
+- **ARMOURY & APOTHECARY** — all 18 objects
+- **ANIMATION** — all 26 cycles side by side
+
+How the art was generated is in the appendix below, not in the document.
+
+---
+
+## 13. Open questions for whoever picks this up
+
+- **Does the discard pile show sprites?** Not specified. The mock shows slain values as small
+  22×30 chips with the number only. If you want sprites there, they need a ×1 (64px) draw and the
+  card frame simplifying — ask before building it.
+- **What happens to the idle when a card is not the player's focus?** Everything breathes in the
+  mock. If four cycles at once is too busy in motion, the cheapest fix is to run only the
+  hovered/targeted card and freeze the rest on frame 1.
+- **The nine 16×16 rail icons do not exist yet.** The brief calls for them; nothing in `atlas/` is
+  one. Until they are drawn, the rail shows the 64×64 card sprite at ×1 (§9), which works but is
+  detailed for its size. They are hand-drawing work, not generation — models are unreliable below
+  32px. Nine icons, an hour or two in any pixel editor.
+
+---
+
+## Appendix — how the art was made
+
+Provenance, not instructions. The 31 objects are finished; this exists for whoever draws a
+**fourteenth creature**, a boss, or a new mode, so they do not relearn it. Recorded because it cost
+roughly thirty generations to find out.
+
+### The pipeline
+
+Sprites were generated in **PixelLab** at 64×64, then remapped onto the palette in code. Force
+colors never held — a typical generation came back with 30–55 tones, most of them the model's own
+near-blacks and olive-browns. Treat every generation as a greyscale study and put the palette on
+afterwards.
+
+Four steps, once per sprite:
+
+1. **Separate** — split into body, corruption and accents by hue. Three masks, not one.
+2. **Rank by value** — sort every body pixel by brightness and map onto its ramp by percentile, so
+   the sprite uses all eight steps rather than the middle three.
+3. **Rebuild** — corruption goes in the mid-upper band so it glows against a dark body; accents keep
+   their own small ramps.
+4. **Check the count** — a finished sprite lands near 15 tones with zero pure black. If black
+   survives, the mask missed the outline.
+
+Always measure before remapping. The Cellar Rat came off the generator already on-palette and any
+pass would have made it worse. The goblin and the knight needed only one part touched — the cleaver,
+the plate. **Remap what is wrong, nothing else.**
+
+### What the generations taught
+
+**Order beats length.** The single biggest lever. Whatever leads the description wins: lead with
+anatomy and you get a healthy, beautifully observed animal no matter what follows. The working order
+is **monster noun → disease → placed rot → anatomy last**. Chasing a word cap was the wrong lesson —
+trimming posture cues to hit a number turned the rat into a wolf, and a 74-word description shades
+fine. Creature descriptions landed at 42–75 words.
+
+**The model draws the noun.** Ask for "a cellar rat" and you get the platonic rat it already knows,
+and every adjective after that is a rounding error. The noun itself has to be the monster: *a
+plague-bloated dungeon vermin, ratlike but wrong.* The animal survives as a shape reference further
+down.
+
+**Place the rot.** Naming the body part took corruption from 4 px to 190 px. "Two blooms, not
+speckles" describes texture; the model needs a location.
+
+**Ramp steps, not hex count.** Flatness was never a palette-size problem. Six steps banded; eight
+steps with hue rotation shade properly, and pure black dropped from 199 px to 1.
+
+**Beasts go in profile.** A quadruped seen head-on is two ears and a lump. East-facing for
+four-legged creatures, South only for things that stand upright. Say *not cute, not chibi* outright —
+the model's default for any animal is a mascot.
+
+**The model fills with your lightest supplied hex and outlines with your darkest.** Given the gold
+accent, the rat came back gold; given the bone rim highlight, it came back bone. So the supplied list
+is shifted down: the lightest colour you hand over must *be* the body colour you want, and rim lights
+and accents are never supplied at all — they are a few pixels each, added by hand.
+
+**Resolution is a budget.** A 23-pixel-tall animal holding four colours has nowhere to put a shadow.
+32×32 failed four times before the move to 64×64 drawn ×2 — same physical size on the card, four
+times the pixels.
+
+**Reference beats prompt.** Eleven runs to the first good sprite; one or two for most of the twelve
+after it. Passing approved sprites as style reference did that, not any wording change. If you draw a
+fourteenth creature, pass the existing thirteen as reference before writing a single word of prompt.
+
+### Tooling
+
+- **PixelLab** — the pick. Dedicated pixel-art model with real grid alignment. Weak below 32px,
+  which is why the set is 64×64. Idle cycles were drawn in its Animate panel, five frames per
+  creature, clubs only.
+- **Scenario** — worth it once ~6 sprites are approved: train a LoRA and the rest come out on-model.
+  Outputs high-res, so it needs a downscale-and-quantise pass.
+- **General image models** — unusable as assets. The grid drifts and colours bleed. Fine for a mood
+  board.
+
+The **16×16 rail icons were drawn by hand**, not prompted; models are unreliable below 32px and nine
+icons are faster drawn than described.
+
+### Frame handoff, if you animate a new creature
+
+One PNG per frame, clubs only, five frames. **Frame 1 must be the approved sprite unchanged** — it is
+the authority the others are measured against. Frames 2–5 drift 2–300 px off-palette from the
+generator's interpolation and get snapped back onto frame 1's own tone list; unsnapped drift reads as
+flicker. The spades set is then derived by reading the clubs→cold substitution pixel-by-pixel off the
+approved pair.
+
+The Ace is the exception on every count: its two suits are separate drawings, each animated
+separately, and its frames are installed verbatim at 51–64 tones.
