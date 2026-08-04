@@ -74,8 +74,14 @@ before touching anything visual.
 - **Never regenerate, recolour, or "improve" a sprite.** Every pixel sits on a locked 80-colour
   ramp system that took ~30 generations to settle. A helpful palette tweak is a regression.
   If a sprite genuinely needs changing, say so and stop — it is an art task, not a code task.
-- **Build the atlas from `assets/atlas/` only.** `art-reference/sprites/` holds the same PNGs
-  under dot-separated names for the HTML mock; it is not the delivery set.
+- **Build the atlas from `art-source/atlas/` only.** `art-reference/sprites/` holds the same
+  PNGs under dot-separated names for the HTML mock; it is not the delivery set.
+- **Load sprites through the atlas, never as loose files.** The 174 source PNGs sit outside
+  `assets/` deliberately, so the only thing on the asset path is the packed
+  `assets/sprites/sprites.atlas` (built by the root `packAtlas` task, gitignored). A stray
+  `Gdx.files.internal(...)` on a sprite PNG would otherwise succeed and return a
+  `Linear`-filtered texture — blurry art, silently. This deviates from `HANDOFF.md` §2, which
+  is noted there.
 - **Region names are the contract:** `creature_<value>_<name>_<suit>`, frames add
   `_idle_1`…`_idle_5`. Lowercase `[a-z0-9_]`, index last, so
   `atlas.findRegions(stem + "_idle")` returns the five in order. Value is zero-padded

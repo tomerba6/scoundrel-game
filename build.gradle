@@ -18,9 +18,12 @@ import com.badlogic.gdx.graphics.Texture.TextureFilter
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.tools.texturepacker.TexturePacker
 
-// The finished pixel art (HANDOFF.md) ships as 174 loose 64x64 PNGs in
-// assets/atlas/. Pack them into one atlas at build time. These settings are the
-// art's contract, not preferences:
+// The finished pixel art (HANDOFF.md) is delivered as 174 loose 64x64 PNGs.
+// They live outside assets/ on purpose: if they were on the asset path, a stray
+// Gdx.files.internal("atlas/<sprite>.png") would silently succeed and hand back
+// a Linear-filtered texture -- blurry pixel art, no error. From here that same
+// mistake fails loudly. Pack them into one atlas at build time; these settings
+// are the art's contract, not preferences:
 //   Nearest       - hand-placed pixels on a locked 80-colour ramp; any smoothing
 //                   invents colours that aren't in the palette.
 //   padding 2 +   - keeps neighbouring sprites from bleeding into each other
@@ -28,11 +31,11 @@ import com.badlogic.gdx.tools.texturepacker.TexturePacker
 //   no whitespace - a creature's five idle frames are aligned to the full 64x64
 //   stripping       box. Trimming each frame to its own content would shift them
 //                   independently and the cycle would jitter.
-def spriteSrc = file("$rootDir/assets/atlas")
+def spriteSrc = file("$rootDir/art-source/atlas")
 def spriteOut = file("$rootDir/assets/sprites")
 
 tasks.register('packAtlas') {
-  description = 'Packs assets/atlas/ into assets/sprites/sprites.atlas.'
+  description = 'Packs art-source/atlas/ into assets/sprites/sprites.atlas.'
   inputs.dir(spriteSrc)
   outputs.dir(spriteOut)
 
