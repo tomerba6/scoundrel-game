@@ -53,11 +53,25 @@ class PotionDrinkTest {
             stages.add(PotionDrink.tiltStage(t));
         }
         // Upright, then each lean stage, and nothing in between.
-        assertEquals(TiltMask.STAGES + 1, stages.size(),
-                "expected upright plus each stage, got " + stages);
+        assertEquals(PotionDrink.TIP_STEPS + 1, stages.size(),
+                "expected upright plus each step, got " + stages);
         assertEquals(0, PotionDrink.tiltStage(0f), "upright while it is still a card");
-        assertEquals(TiltMask.STAGES, PotionDrink.tiltStage(PotionDrink.TOTAL - FRAME),
-                "fully tipped by the end");
+        assertEquals(PotionDrink.TIP_STEPS, PotionDrink.tiltStage(PotionDrink.TOTAL - FRAME),
+                "fully turned by the end");
+    }
+
+    /** The angle holds discrete values; it never sweeps between them. */
+    @Test
+    void theAngleIsHeldNotSwept() {
+        Set<Float> angles = new LinkedHashSet<>();
+        for (float t = 0f; t < PotionDrink.TOTAL; t += 0.004f) {
+            angles.add(PotionDrink.tiltDegrees(t));
+        }
+        assertEquals(PotionDrink.TIP_STEPS + 1, angles.size(),
+                "expected one angle per step, got " + angles);
+        assertEquals(0f, PotionDrink.tiltDegrees(0f), 1e-4f);
+        assertTrue(PotionDrink.tiltDegrees(PotionDrink.TOTAL - FRAME) < -50f,
+                "should end well over");
     }
 
     @Test

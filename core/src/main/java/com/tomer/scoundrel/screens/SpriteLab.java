@@ -81,7 +81,8 @@ public final class SpriteLab extends ScreenAdapter {
     /** A potion being drunk, and the bottle's tilt stages built for it. */
     private Card drinking;
     private float drinkElapsed;
-    private Texture[] tilts;
+    /** Set once the pour starts, so the bar fills once and not again. */
+    private boolean poured;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -129,29 +130,16 @@ public final class SpriteLab extends ScreenAdapter {
         endDrink();
         drinking = card;
         drinkElapsed = 0f;
+        poured = false;
         // The bar waits for the pour. Starting it here would fill it while the
         // bottle was still in the air, which is the whole thing PotionDrink's
         // phase order exists to prevent.
         healElapsed = -1f;
-        // The card collapses into a drawn bottle, not into its own sprite --
-        // a 64px illustration is unreadable at the size this ends up.
-        int n = EffectArt.BOTTLE_SIZE;
-        int[] base = effectArt.bottlePixels();
-        tilts = new Texture[TiltMask.STAGES + 1];
-        for (int stage = 0; stage <= TiltMask.STAGES; stage++) {
-            tilts[stage] = Sprites.textureFrom(
-                    TiltMask.tilt(base, n, n, stage), n, n);
-        }
+
     }
 
     private void endDrink() {
         drinking = null;
-        if (tilts != null) {
-            for (Texture t : tilts) {
-                t.dispose();
-            }
-            tilts = null;
-        }
     }
 
     /**
@@ -168,13 +156,21 @@ public final class SpriteLab extends ScreenAdapter {
         int y = Math.round(fromY + (HudArt.BAR_Y - 24 - fromY) * progress);
         int drawn = size;   // already the right size; it does not shrink
 
-        batch.draw(new TextureRegion(tilts[PotionDrink.tiltStage(drinkElapsed)]),
-                x, CardArt.toWorldY(y, drawn), drawn, drawn);
+        // Rotated about its own centre. Safe because the texture is nearest
+        // filtered: each pixel point-samples one texel, so the turn cannot
+        // blend two ramp steps into a colour that is not in the palette.
+        batch.draw(effectArt.bottle(), x, CardArt.toWorldY(y, drawn),
+                drawn / 2f, drawn / 2f, drawn, drawn, 1f, 1f,
+                PotionDrink.tiltDegrees(drinkElapsed));
 
         // Drops fall from the lip once it is pouring.
         for (int drop = 0; drop < PotionDrink.dropsFallen(drinkElapsed); drop++) {
             int dy = y + drawn - 4 + drop * 6;
-            batch.setColor(0.44f, 0.71f, 0.36f, 1f);
+            // From the palette constant, not hand-typed floats -- eyeballing the
+            // components put the drops on #70b55b, one off the ramp in every channel.
+            batch.setColor(((HudArt.FILL_HEAL >>> 16) & 0xff) / 255f,
+                    ((HudArt.FILL_HEAL >>> 8) & 0xff) / 255f,
+                    (HudArt.FILL_HEAL & 0xff) / 255f, 1f);
             batch.draw(theme.whiteRegion(), x + drawn / 2, CardArt.toWorldY(dy, 4), 4, 4);
             batch.setColor(1f, 1f, 1f, 1f);
         }
@@ -205,7 +201,8 @@ public final class SpriteLab extends ScreenAdapter {
         }
         if (drinking != null) {
             drinkElapsed += slowMotion ? delta / 8f : delta;
-            if (PotionDrink.pouring(drinkElapsed) && healElapsed < 0f) {
+            if (PotionDrink.pouring(drinkElapsed) && !poured) {
+                poured = true;
                 healElapsed = 0f;
             }
             if (PotionDrink.finished(drinkElapsed)) {

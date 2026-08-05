@@ -7,7 +7,13 @@ package com.tomer.scoundrel.screens;
  * <p>The phases must not overlap wrongly. If the bar started filling while the
  * bottle was still in the air, the drink would read as two unrelated things
  * happening at once rather than one action with a cause — so nothing reaches
- * the bar until the bottle has arrived and tipped.
+ * the bar until the bottle has arrived and turned.
+ *
+ * <p>The bottle <b>rotates</b>, in a few discrete steps held a frame each. That
+ * is safe here where it would not be in a browser: the texture is nearest
+ * filtered, so a rotated draw point-samples one texel per pixel and cannot
+ * blend two ramp steps into a colour that is not in the palette. The edges
+ * step rather than smooth, which is the correct look.
  */
 final class PotionDrink {
 
@@ -17,8 +23,11 @@ final class PotionDrink {
     static final int COLLAPSE_FRAMES = 2;
     /** The bottle's hops to the bar. */
     private static final int FLIGHT_FRAMES = 4;
-    /** Tipping over, one lean stage a frame. */
-    private static final int TIP_FRAMES = TiltMask.STAGES;
+    /** Turning over, one step a frame. */
+    static final int TIP_STEPS = 3;
+    private static final int TIP_FRAMES = TIP_STEPS;
+    /** How far the bottle ends up turned, matching the reference. */
+    private static final float POURED_DEGREES = -62f;
     /** And pouring, long enough for the bar to fill under it. */
     private static final int POUR_FRAMES = 10;
 
@@ -69,15 +78,21 @@ final class PotionDrink {
     }
 
     /**
-     * The bottle's lean, upright until it has arrived and then one stage a
-     * frame. Discrete: it holds each stage rather than turning through them.
+     * Which turn step the bottle is on: upright until it has arrived, then one
+     * step a frame. Discrete, so it holds each angle rather than sweeping
+     * through them — nothing in this art tweens.
      */
     static int tiltStage(float elapsed) {
         int frame = frameOf(elapsed) - (COLLAPSE_FRAMES + FLIGHT_FRAMES);
         if (frame < 0) {
             return 0;
         }
-        return Math.min(TiltMask.STAGES, frame + 1);
+        return Math.min(TIP_STEPS, frame + 1);
+    }
+
+    /** The bottle's angle in degrees, one of a handful of held values. */
+    static float tiltDegrees(float elapsed) {
+        return POURED_DEGREES * tiltStage(elapsed) / TIP_STEPS;
     }
 
     static boolean pouring(float elapsed) {
