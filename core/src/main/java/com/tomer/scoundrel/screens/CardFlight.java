@@ -22,12 +22,13 @@ final class CardFlight {
     static final int RAIL_Y = 646;
 
     /**
-     * @param toX      where the card lands
-     * @param toY      where the card lands
-     * @param hopTime  how long each hop holds
-     * @param scales   the card's size at each hop, as a percentage
+     * @param toX         where the card lands
+     * @param toY         where the card lands
+     * @param hopTime     how long each hop holds
+     * @param staggerTime how long after the card to its left a card sets off
+     * @param scales      the card's size at each hop, as a percentage
      */
-    record Flight(int toX, int toY, float hopTime, int[] scales) {
+    record Flight(int toX, int toY, float hopTime, float staggerTime, int[] scales) {
 
         int hops() {
             return scales.length;
@@ -35,6 +36,11 @@ final class CardFlight {
 
         float total() {
             return hops() * hopTime;
+        }
+
+        /** How long until the last of {@code cards} has landed. */
+        float totalFor(int cards) {
+            return total() + Math.max(0, cards - 1) * staggerTime;
         }
 
         boolean finished(float elapsed) {
@@ -48,14 +54,29 @@ final class CardFlight {
      * frames it was tuned for and the sweep finishes at 667ms rather than the
      * quoted 800. A hop ending mid-frame would slide instead of stepping.
      */
-    static final Flight AVOID = new Flight(TICKER_X, TICKER_Y, 2 * FRAME,
+    static final Flight AVOID = new Flight(TICKER_X, TICKER_Y, 2 * FRAME, FRAME,
             new int[] {100, 72, 44, 16});
 
     /** Three hops to the rail, shrinking to the icon it becomes. */
-    static final Flight EQUIP = new Flight(RAIL_X, RAIL_Y, 3 * FRAME,
+    /** One card, so nothing to stagger against. */
+    static final Flight EQUIP = new Flight(RAIL_X, RAIL_Y, 3 * FRAME, 0f,
             new int[] {100, 55, 18});
 
     private CardFlight() {
+    }
+
+    /**
+     * A card's own clock. The room empties left to right rather than all at
+     * once, so each card sets off a stagger after the one before it and sits in
+     * its slot until then.
+     */
+    static float localTime(Flight flight, int index, float elapsed) {
+        return elapsed - index * flight.staggerTime();
+    }
+
+    /** Whether this card has set off yet. */
+    static boolean started(Flight flight, int index, float elapsed) {
+        return localTime(flight, index, elapsed) >= 0f;
     }
 
     /** Which hop is showing, clamped to the last one once the flight is over. */

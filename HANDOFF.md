@@ -331,6 +331,11 @@ different game than one that steps.
 |---|---|---|---|
 | Deal in | 700 ms | 0.18 s, stagger 0.04 | Cards leave `TICKER` in two whole-pixel hops. |
 | Avoid sweep | 800 ms | 0.20 s | Four cards hop into `TICKER` together; returned ticks flash 1 frame. |
+
+> **As built — the room empties left to right.** The table has all four cards hop together. They
+> now set off one frame apart, leftmost first, so the sweep reads as a sweep rather than the room
+> vanishing at once. Note this is *not* a restoration of release 1, whose avoid moved every card
+> simultaneously — the left-to-right stagger there belongs to the deal-in that follows it.
 | Barehanded | 900 ms | 2 hits × 0.16 s, stagger 0.10 | Creature holds its **hurt frame** for the whole exchange. Two 8-point stars built from four bars — no AA spikes. Card shakes on a 4px grid; 2-frame bone flash under each hit. |
 | Weapon kill | 1400 ms | **rim 0.36 s, then slice 0.36 s** | Rim flashes cream with the sprite still on the card. Only then: card lifts 10px, slash bar crosses TR→BL, halves part and rise as they fade. **They never rotate** — a turned pixel is a blurred pixel. |
 | Equip | 800 ms | 0.24 s | Three hops to `RAIL`, scale 100 → 55 → 18%. Lands as the rail icon (§9 — 64px, not the mock's 72). |

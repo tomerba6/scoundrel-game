@@ -94,6 +94,31 @@ class CardFlightTest {
                 "equip hop drifted from 0.24s: " + CardFlight.EQUIP.hopTime());
     }
 
+    /**
+     * The room empties left to right, not all at once: each card waits for the
+     * one before it, so the sweep reads as a sweep.
+     */
+    @Test
+    void theSweepLeavesOneCardAfterAnother() {
+        assertTrue(CardFlight.started(CardFlight.AVOID, 0, 0f), "the leftmost card goes first");
+        assertFalse(CardFlight.started(CardFlight.AVOID, 1, 0f), "its neighbour should still wait");
+        assertFalse(CardFlight.started(CardFlight.AVOID, 3, 2 * CardFlight.AVOID.staggerTime()));
+        assertTrue(CardFlight.started(CardFlight.AVOID, 3, 3 * CardFlight.AVOID.staggerTime()));
+    }
+
+    @Test
+    void theStaggerIsAWholeFrameSoNoCardStartsMidFrame() {
+        float frames = CardFlight.AVOID.staggerTime() / (1f / 12f);
+        assertEquals(Math.round(frames), frames, 1e-3f);
+    }
+
+    @Test
+    void theSweepIsOverOnlyWhenTheLastCardHasLanded() {
+        float four = CardFlight.AVOID.totalFor(4);
+        assertTrue(four > CardFlight.AVOID.total(), "four staggered cards take longer than one");
+        assertEquals(CardFlight.AVOID.total() + 3 * CardFlight.AVOID.staggerTime(), four, 1e-5f);
+    }
+
     @Test
     void aFlightFinishes() {
         assertFalse(CardFlight.AVOID.finished(CardFlight.AVOID.total() - 0.01f));

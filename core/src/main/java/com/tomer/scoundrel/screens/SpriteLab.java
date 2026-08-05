@@ -129,7 +129,7 @@ public final class SpriteLab extends ScreenAdapter {
         }
         if (avoidElapsed >= 0f) {
             avoidElapsed += slowMotion ? delta / 8f : delta;
-            if (CardFlight.AVOID.finished(avoidElapsed)) {
+            if (avoidElapsed >= CardFlight.AVOID.totalFor(4)) {
                 avoidElapsed = -1f;
             }
         }
@@ -204,8 +204,10 @@ public final class SpriteLab extends ScreenAdapter {
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
-            if (avoidElapsed >= 0f || card.equals(equipping)) {
-                drawFlight(card, slotX);
+            boolean sweeping = avoidElapsed >= 0f
+                    && CardFlight.started(CardFlight.AVOID, i, avoidElapsed);
+            if (sweeping || card.equals(equipping)) {
+                drawFlight(card, slotX, i);
                 continue;
             }
             boolean struck = card.equals(killing);
@@ -303,10 +305,12 @@ public final class SpriteLab extends ScreenAdapter {
      * to the rail. The whole card shrinks and hops; nothing tweens between one
      * hop and the next.
      */
-    private void drawFlight(Card card, int slotX) {
-        boolean sweeping = avoidElapsed >= 0f;
+    private void drawFlight(Card card, int slotX, int index) {
+        boolean sweeping = avoidElapsed >= 0f && !card.equals(equipping);
         CardFlight.Flight flight = sweeping ? CardFlight.AVOID : CardFlight.EQUIP;
-        float t = sweeping ? avoidElapsed : equipElapsed;
+        float t = sweeping
+                ? CardFlight.localTime(flight, index, avoidElapsed)
+                : equipElapsed;
 
         int scale = CardFlight.scale(flight, t);
         int w = CardArt.CARD_W * scale / 100;
