@@ -37,6 +37,10 @@ public final class SpriteLab extends ScreenAdapter {
     /** The stage background — dark enough to show colour fringing. */
     private static final Color BACKDROP = Color.valueOf("100c09");
 
+    /** 14 of 20 healing up to 19, so a drink has several segments to grow through. */
+    private static final int HEAL_FROM = 148;
+    private static final int HEAL_TO = 201;
+
     /** ROOM shows four framed cards; SHEET shows every object by rank. */
     private enum View { ROOM, SHEET }
 
@@ -67,6 +71,9 @@ public final class SpriteLab extends ScreenAdapter {
     private float avoidElapsed = -1f;
     private Card equipping;
     private float equipElapsed;
+    /** A hit or a drink landing on the bar. */
+    private float damageElapsed = -1f;
+    private float healElapsed = -1f;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -123,6 +130,24 @@ public final class SpriteLab extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             game.showTitle();
             return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+            damageElapsed = 0f;
+        }
+        if (damageElapsed >= 0f) {
+            damageElapsed += slowMotion ? delta / 8f : delta;
+            if (HpPulse.damageFinished(damageElapsed)) {
+                damageElapsed = -1f;
+            }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+            healElapsed = 0f;
+        }
+        if (healElapsed >= 0f) {
+            healElapsed += slowMotion ? delta / 8f : delta;
+            if (HpPulse.healFinished(HEAL_FROM, HEAL_TO, healElapsed)) {
+                healElapsed = -1f;
+            }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
             avoidElapsed = 0f;
@@ -184,7 +209,7 @@ public final class SpriteLab extends ScreenAdapter {
         } else {
             drawSheet();
         }
-        theme.body.draw(batch, "Tab R:rim K:kill B:bare A:avoid E:equip S:slow Esc:leave", 40, 48);
+        theme.body.draw(batch, "R:rim K:kill B:bare A:avoid E:equip D:hit H:heal S:slow Esc", 40, 48);
 
         batch.end();
     }
@@ -198,7 +223,12 @@ public final class SpriteLab extends ScreenAdapter {
                 cardWithId("QC"));
         hovered = hoveredIn(room);
         // The reference board: 14 of 20 health, depth 27 of the 44-card deck.
-        hud.drawHealth(batch, 14, 20, false);
+        boolean healing = healElapsed >= 0f;
+        int fill = healing
+                ? HpPulse.healWidth(HEAL_FROM, HEAL_TO, healElapsed)
+                : HudArt.barFillWidth(14, 20);
+        hud.drawHealth(batch, 14, 20, healing,
+                damageElapsed >= 0f ? HpPulse.barOffset(damageElapsed) : 0, fill);
         hud.drawTicker(batch, 27, 44);
         hud.drawAvoid(batch, true);
         for (int i = 0; i < room.size(); i++) {

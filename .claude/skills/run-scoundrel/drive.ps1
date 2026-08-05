@@ -147,7 +147,7 @@ function Click([int]$x, [int]$y) {
 # F9 the sprite inspector, Esc to leave a screen), so they need real key events
 # rather than clicks. Named rather than numeric so actions stay readable.
 $VK = @{
-  "ESC" = 0x1B; "ENTER" = 0x0D; "SPACE" = 0x20; "TAB" = 0x09; "R" = 0x52; "K" = 0x4B; "S" = 0x53; "B" = 0x42; "A" = 0x41; "E" = 0x45;
+  "ESC" = 0x1B; "ENTER" = 0x0D; "SPACE" = 0x20; "TAB" = 0x09; "R" = 0x52; "K" = 0x4B; "S" = 0x53; "B" = 0x42; "A" = 0x41; "E" = 0x45; "D" = 0x44; "H" = 0x48;
   "F1" = 0x70; "F2" = 0x71; "F3" = 0x72; "F4" = 0x73; "F5" = 0x74; "F6" = 0x75;
   "F7" = 0x76; "F8" = 0x77; "F9" = 0x78; "F10" = 0x79; "F11" = 0x7A; "F12" = 0x7B
 }

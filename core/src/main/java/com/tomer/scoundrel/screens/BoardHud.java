@@ -27,7 +27,16 @@ final class BoardHud {
      * @param healing   paints the fill in the heal colour for the pulse
      */
     void drawHealth(Batch batch, int health, int maxHealth, boolean healing) {
-        int x = HudArt.BAR_X;
+        drawHealth(batch, health, maxHealth, healing, 0, HudArt.barFillWidth(health, maxHealth));
+    }
+
+    /**
+     * @param offsetX  the jolt a hit gives the whole bar
+     * @param fillWidth how much is filled, so a heal can grow it a segment at a time
+     */
+    void drawHealth(Batch batch, int health, int maxHealth, boolean healing,
+                    int offsetX, int fillWidth) {
+        int x = HudArt.BAR_X + offsetX;
         int y = HudArt.BAR_Y;
         fill(batch, x, y, HudArt.BAR_W, HudArt.BAR_H, HudArt.FRAME);
 
@@ -38,7 +47,7 @@ final class BoardHud {
         fill(batch, inX, inY, inW, HudArt.BAR_LIP_H, HudArt.BAR_EMPTY_LIP);
 
         // Three bands rather than one flat colour, so the bar reads as lit.
-        int filled = HudArt.barFillWidth(health, maxHealth);
+        int filled = Math.min(fillWidth, inW);
         if (filled > 0) {
             int top = healing ? HudArt.FILL_HEAL : HudArt.FILL_TOP;
             int mid = healing ? HudArt.FILL_HEAL : HudArt.FILL_MID;
