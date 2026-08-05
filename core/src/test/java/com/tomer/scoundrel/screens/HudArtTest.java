@@ -1,0 +1,124 @@
+package com.tomer.scoundrel.screens;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * The board HUD's measurements, read off the reference render rather than
+ * invented. Pinned here because they are hand-set constants that a screenshot
+ * would only catch if someone looked at exactly the right pixel.
+ */
+class HudArtTest {
+
+    @Test
+    void theHealthBarMatchesTheReference() {
+        assertEquals(24, HudArt.BAR_X);
+        assertEquals(34, HudArt.BAR_Y);
+        assertEquals(216, HudArt.BAR_W);
+        assertEquals(24, HudArt.BAR_H);
+        // 2px frame all round leaves the interior the fill runs in.
+        assertEquals(212, HudArt.barInteriorWidth());
+        assertEquals(20, HudArt.barInteriorHeight());
+    }
+
+    /**
+     * The fill is proportional, not one segment per point of health — the
+     * separators are an overlay on top of a continuous bar. At 14 of 20 the
+     * reference fills to x=174, which is 148px of the 212 available.
+     */
+    @Test
+    void theFillIsProportionalAndMatchesTheReferenceAtFourteenOfTwenty() {
+        assertEquals(148, HudArt.barFillWidth(14, 20));
+        assertEquals(0, HudArt.barFillWidth(0, 20));
+        assertEquals(212, HudArt.barFillWidth(20, 20));
+    }
+
+    @Test
+    void theFillNeverOverrunsOrGoesNegative() {
+        assertEquals(212, HudArt.barFillWidth(25, 20), "over-full health should clamp");
+        assertEquals(0, HudArt.barFillWidth(-7, 20), "a negative score should not draw backwards");
+    }
+
+    @Test
+    void theBarIsBandedInThreeStripes() {
+        // 6 / 8 / 6 of the 20px interior, lightest at the top.
+        assertEquals(6, HudArt.BAND_TOP);
+        assertEquals(8, HudArt.BAND_MID);
+        assertEquals(6, HudArt.BAND_LOW);
+        assertEquals(HudArt.barInteriorHeight(), HudArt.BAND_TOP + HudArt.BAND_MID + HudArt.BAND_LOW);
+    }
+
+    /** The spent track is a lipped recess, not an unlit copy of the fill. */
+    @Test
+    void theEmptyTrackIsFlatUnderALip() {
+        assertEquals(2, HudArt.BAR_LIP_H);
+        assertEquals(0x3b4334, HudArt.BAR_EMPTY_LIP);
+        assertEquals(0x1e2a1c, HudArt.BAR_EMPTY);
+    }
+
+    @Test
+    void separatorsSitOnATenPixelPitch() {
+        assertEquals(10, HudArt.SEGMENT_PITCH);
+        assertEquals(2, HudArt.SEGMENT_GAP);
+        // Translucent, so one line reads correctly over both the lit fill
+        // and the spent track rather than needing a colour for each.
+        assertEquals(0x2d3029, HudArt.SEGMENT_LINE);
+        assertTrue(HudArt.SEGMENT_ALPHA > 0.79f && HudArt.SEGMENT_ALPHA < 0.81f);
+    }
+
+    /** One tick per card left in the dungeon, so the ticker is a real gauge. */
+    @Test
+    void theDepthTickerIsOneTickPerCard() {
+        assertEquals(656, HudArt.TICKER_X);
+        assertEquals(4, HudArt.TICK_PITCH);
+        assertEquals(2, HudArt.TICK_W);
+        assertEquals(27, HudArt.ticksLit(27));
+        assertEquals(0, HudArt.ticksLit(0));
+    }
+
+    @Test
+    void theTickerFitsTheWholeDungeonInsideTheStage() {
+        int width = HudArt.tickerWidth(44);
+        assertEquals(44 * 4 - 2, width);
+        assertTrue(HudArt.TICKER_X + width < 1280, "ticker should not run off the stage");
+    }
+
+    @Test
+    void theAvoidButtonMatchesTheReference() {
+        assertEquals(1143, HudArt.AVOID_X);
+        assertEquals(26, HudArt.AVOID_Y);
+        assertEquals(111, HudArt.AVOID_W);
+        assertEquals(41, HudArt.AVOID_H);
+    }
+
+    /**
+     * The accents are shared with the sprites and must stay on the ramps, or a
+     * gold button would not match the gold on a card.
+     */
+    @Test
+    void theAccentsAreSharedWithTheSprites() {
+        int[] accents = {HudArt.GOLD, HudArt.GOLD_LIGHT, HudArt.GOLD_DARK,
+                         HudArt.FILL_TOP, HudArt.LABEL_DARK, HudArt.FILL_HEAL};
+        for (int rgb : accents) {
+            assertTrue(Ramps.contains(rgb),
+                    "accent #" + Integer.toHexString(rgb) + " is off the palette");
+        }
+    }
+
+    /**
+     * The furniture is not. The frame and the bar's mid and low bands sit
+     * between ramp steps in the reference, and are matched exactly rather than
+     * snapped to the nearest step -- that is what keeps a render diffable
+     * against the reference. Pinned so the choice is deliberate, not drift.
+     */
+    @Test
+    void theChromeIsMatchedToTheReferenceEvenWhereItIsOffTheRamps() {
+        assertEquals(0x0f1410, HudArt.FRAME);
+        assertEquals(0x9a8b70, HudArt.FILL_MID);
+        assertEquals(0x6b5f4c, HudArt.FILL_LOW);
+        assertFalse(Ramps.contains(HudArt.FRAME), "if this ever lands on a ramp, revisit");
+    }
+}

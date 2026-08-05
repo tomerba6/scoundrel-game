@@ -1,0 +1,99 @@
+package com.tomer.scoundrel.screens;
+
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
+/**
+ * Draws the board's chrome — the health bar, the depth ticker and the Avoid
+ * button — from the measurements in {@link HudArt}.
+ *
+ * <p>Like the card frame, everything is a tinted rectangle on a single white
+ * pixel, so the whole HUD is one texture and never breaks the batch. No
+ * arithmetic lives here; it is all in {@code HudArt} where it can be tested.
+ */
+final class BoardHud {
+
+    private final TextureRegion pixel;
+    private final Color tint = new Color();
+
+    BoardHud(Theme theme) {
+        this.pixel = theme.whiteRegion();
+    }
+
+    /**
+     * @param health    current health, which may be zero or negative
+     * @param maxHealth the ruleset's cap, which the bar is scaled against
+     * @param healing   paints the fill in the heal colour for the pulse
+     */
+    void drawHealth(Batch batch, int health, int maxHealth, boolean healing) {
+        int x = HudArt.BAR_X;
+        int y = HudArt.BAR_Y;
+        fill(batch, x, y, HudArt.BAR_W, HudArt.BAR_H, HudArt.FRAME);
+
+        int inX = x + 2;
+        int inY = y + 2;
+        int inW = HudArt.barInteriorWidth();
+        fill(batch, inX, inY, inW, HudArt.barInteriorHeight(), HudArt.BAR_EMPTY);
+        fill(batch, inX, inY, inW, HudArt.BAR_LIP_H, HudArt.BAR_EMPTY_LIP);
+
+        // Three bands rather than one flat colour, so the bar reads as lit.
+        int filled = HudArt.barFillWidth(health, maxHealth);
+        if (filled > 0) {
+            int top = healing ? HudArt.FILL_HEAL : HudArt.FILL_TOP;
+            int mid = healing ? HudArt.FILL_HEAL : HudArt.FILL_MID;
+            int low = healing ? HudArt.FILL_HEAL : HudArt.FILL_LOW;
+            fill(batch, inX, inY, filled, HudArt.BAND_TOP, top);
+            fill(batch, inX, inY + HudArt.BAND_TOP, filled, HudArt.BAND_MID, mid);
+            fill(batch, inX, inY + HudArt.BAND_TOP + HudArt.BAND_MID, filled, HudArt.BAND_LOW, low);
+        }
+
+        // Separators go on top of the fill, not between cells of it — the bar
+        // underneath is continuous, which is why partial health lands mid-cell.
+        for (int sx = inX + HudArt.SEGMENT_PITCH - HudArt.SEGMENT_GAP;
+                sx < inX + inW; sx += HudArt.SEGMENT_PITCH) {
+            fill(batch, sx, inY, HudArt.SEGMENT_GAP, HudArt.barInteriorHeight(),
+                    HudArt.SEGMENT_LINE, HudArt.SEGMENT_ALPHA);
+        }
+    }
+
+    /** One tick per card still face-down; the rest of the dungeon sits dim. */
+    void drawTicker(Batch batch, int depth, int deckSize) {
+        for (int i = 0; i < deckSize; i++) {
+            int x = HudArt.TICKER_X + i * HudArt.TICK_PITCH;
+            fill(batch, x, HudArt.TICKER_Y, HudArt.TICK_W, HudArt.TICKER_H,
+                    i < HudArt.ticksLit(depth) ? HudArt.GOLD : HudArt.TICK_DIM);
+        }
+    }
+
+    /** The gold plate, bevelled light on top and dark below like every button. */
+    void drawAvoid(Batch batch, boolean enabled) {
+        int x = HudArt.AVOID_X;
+        int y = HudArt.AVOID_Y;
+        int w = HudArt.AVOID_W;
+        int h = HudArt.AVOID_H;
+        int plate = enabled ? HudArt.GOLD : HudArt.TICK_DIM;
+        int light = enabled ? HudArt.GOLD_LIGHT : HudArt.FRAME;
+        int dark = enabled ? HudArt.GOLD_DARK : HudArt.FRAME;
+        fill(batch, x, y, w, h, plate);
+        // Each pair stops short of the other's corner, so the bottom-left and
+        // top-right stay plate — the same mitre the card bevels use.
+        fill(batch, x, y, w - 2, 2, light);
+        fill(batch, x, y, 2, h - 2, light);
+        fill(batch, x + 2, y + h - 2, w - 2, 2, dark);
+        fill(batch, x + w - 2, y, 2, h, dark);
+    }
+
+    private void fill(Batch batch, int x, int y, int w, int h, int rgb) {
+        fill(batch, x, y, w, h, rgb, 1f);
+    }
+
+    /** {@code y} arrives in design space and is flipped once, here. */
+    private void fill(Batch batch, int x, int y, int w, int h, int rgb, float alpha) {
+        tint.set((rgb >>> 16 & 0xff) / 255f, (rgb >>> 8 & 0xff) / 255f, (rgb & 0xff) / 255f, alpha);
+        Color previous = batch.getColor().cpy();
+        batch.setColor(tint);
+        batch.draw(pixel, x, CardArt.toWorldY(y, h), w, h);
+        batch.setColor(previous);
+    }
+}

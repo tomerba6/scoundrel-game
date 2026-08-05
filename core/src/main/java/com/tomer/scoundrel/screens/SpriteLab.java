@@ -45,6 +45,7 @@ public final class SpriteLab extends ScreenAdapter {
     private final Sprites sprites;
     private final CardFrame cardFrame;
     private final SliceArt sliceArt;
+    private final BoardHud hud;
     private final PixelViewport viewport;
     private final SpriteBatch batch;
 
@@ -72,6 +73,7 @@ public final class SpriteLab extends ScreenAdapter {
         this.sprites = sprites;
         this.cardFrame = new CardFrame(theme);
         this.sliceArt = new SliceArt(CardArt.CARD_W, CardArt.CARD_H);
+        this.hud = new BoardHud(theme);
         // One fixed virtual resolution, so the layout numbers are literal and
         // the art is guaranteed to land on whole pixels.
         this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
@@ -172,6 +174,10 @@ public final class SpriteLab extends ScreenAdapter {
                 cardWithId("10C"),  // should be on different frames
                 cardWithId("QC"));
         hovered = hoveredIn(room);
+        // The reference board: 14 of 20 health, depth 27 of the 44-card deck.
+        hud.drawHealth(batch, 14, 20, false);
+        hud.drawTicker(batch, 27, 44);
+        hud.drawAvoid(batch, true);
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
