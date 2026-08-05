@@ -234,4 +234,4 @@ Scoundrel was designed by **Zach Gage and Kurt Bieg**. This repository is an ind
 non-commercial fan implementation built as a learning project, and is **not affiliated with,
 endorsed by, or sponsored by** them. All credit for the game's design is theirs.
 
-Licensed under the [MIT License](LICENSE).
+Licensed under the [MIT License](LICENSE); see [NOTICE.md](NOTICE.md) for the attribution terms.
