@@ -9,7 +9,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.rules.GameModes;
@@ -29,7 +28,7 @@ public final class ModeSelectScreen extends ScreenAdapter {
     private final Stage stage;
 
     public ModeSelectScreen(ScoundrelGame game, Theme theme) {
-        stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage = new Stage(new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
         stage.addActor(new Backdrop(theme));
 
         Table root = new Table();

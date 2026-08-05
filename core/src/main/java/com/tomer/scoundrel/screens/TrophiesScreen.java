@@ -10,7 +10,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.Achievement;
 import com.tomer.scoundrel.achievements.AchievementStore;
@@ -43,7 +42,7 @@ public final class TrophiesScreen extends ScreenAdapter {
     private final Stage stage;
 
     public TrophiesScreen(ScoundrelGame game, Theme theme, AchievementStore store) {
-        stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage = new Stage(new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
         stage.addActor(new Backdrop(theme));
         Map<String, Instant> earned = readSafely(store);
         List<Achievement> all = Achievements.all();

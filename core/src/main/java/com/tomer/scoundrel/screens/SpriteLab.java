@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.tomer.scoundrel.ScoundrelGame;
 
 /**
@@ -30,7 +29,7 @@ public final class SpriteLab extends ScreenAdapter {
     private final ScoundrelGame game;
     private final Theme theme;
     private final Sprites sprites;
-    private final FitViewport viewport;
+    private final PixelViewport viewport;
     private final SpriteBatch batch;
 
     public SpriteLab(ScoundrelGame game, Theme theme, Sprites sprites) {
@@ -39,7 +38,7 @@ public final class SpriteLab extends ScreenAdapter {
         this.sprites = sprites;
         // §5: one fixed virtual resolution, so every number in HANDOFF.md is
         // literal and the art is guaranteed to land on whole pixels.
-        this.viewport = new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         this.batch = new SpriteBatch();
     }
 

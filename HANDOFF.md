@@ -119,6 +119,33 @@ pixel art is exactly right: an integer-ish upscale of a crisp source.
 
 *Cost:* black bars on non-16:9 windows. For a card game that is not a real cost.
 
+> **As built — `PixelViewport`, not `FitViewport`.** Option A is right, but a plain `FitViewport`
+> scales by whatever fraction fills the window, and that breaks §4 on common displays. At
+> 1600×900 it fits at ×1.25, putting a 64px sprite drawn at ×2 onto 160 screen pixels — 2.5
+> screen pixels per source pixel, so some source pixels get two and their neighbours three, and
+> the art crawls as it moves.
+>
+> `PixelViewport` snaps the fit scale **down to a multiple of 0.5** and letterboxes the
+> remainder. Half-steps, not whole ones: sprites draw at ×2, so a half-step of viewport scale is
+> still a whole screen pixel per source pixel — and 1920×1080 fits at exactly ×1.5, which is
+> already clean at ×3. Snapping to integers would drop 1080p to ×1.0 and letterbox away a third
+> of the most common display for nothing.
+>
+> | display | fits at | snaps to | source pixel | bars |
+> |---|---|---|---|---|
+> | 1280×720 | 1.0 | 1.0 | 2px | none |
+> | 1366×768 | 1.067 | 1.0 | 2px | 86×48 |
+> | 1600×900 | 1.25 | 1.0 | 2px | 320×180 |
+> | 1920×1080 | 1.5 | 1.5 | 3px | none |
+> | 2560×1440 | 2.0 | 2.0 | 4px | none |
+> | 3840×2160 | 3.0 | 3.0 | 6px | none |
+>
+> The arithmetic is `PixelScale`, kept pure and unit tested; `PixelViewport` only turns its
+> result into screen bounds.
+>
+> One consequence for §3: at ×1.5 a **font size must be even** to land on whole pixels. When
+> Silkscreen goes in, prefer even sizes — 8, 12, 16, 26, 38 — over the odd 11 and 13.
+
 **B. Layout computes card width, sprite scale follows.**
 Keep your current pixel math, then pick the sprite scale as
 `scale = max(1, floor(cardWidth / 88))` — 88 because 64px of art wants roughly 73% of the card's
@@ -306,7 +333,9 @@ false`. Whitespace stripping would break the 64×64 alignment the idle frames de
 **2 — One sprite on screen.** Load the atlas, draw `creature_02_cellar_rat_clubs` at ×2 anywhere.
 *Verify:* crisp edges, no blur, no colour fringing. If it's soft, the filter is wrong.
 
-**3 — Viewport.** `FitViewport(1280, 720)`. Move the existing screens onto it.
+**3 — Viewport.** *(done — `PixelViewport`, on all six screens. See the note in §5: it snaps the
+scale rather than fitting exactly.)*
+`FitViewport(1280, 720)`. Move the existing screens onto it.
 *Verify:* the layout is identical at three window sizes, letterboxed.
 
 **4 — Card frame.** Draw the plate, 2px bevels and well from §6/§9 with the palette hexes.

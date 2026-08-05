@@ -19,7 +19,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.VerticalGroup;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.Achievement;
 import com.tomer.scoundrel.achievements.AchievementContext;
@@ -126,7 +125,7 @@ public final class GameScreen extends ScreenAdapter {
         this.tutorial = tutorial;
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
-        this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        this.stage = new Stage(new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
         backdrop = new Backdrop(theme);
         stage.addActor(backdrop);
         this.choreographer = new Choreographer(stage, theme, this::resolveCardAt);

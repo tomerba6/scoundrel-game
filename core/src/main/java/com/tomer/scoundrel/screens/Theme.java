@@ -86,7 +86,7 @@ public final class Theme implements Disposable {
 
     // Fonts are rasterised at this multiple of their design size, then scaled back
     // down to world units — a high-res glyph atlas that stays crisp when the
-    // FitViewport upscales the 720p design to a larger screen (crisp up to ~4K).
+    // PixelViewport upscales the 720p design to a larger screen (crisp up to ~4K).
     private static final int FONT_SUPERSAMPLE = 3;
     // The detail shapes (impact star, battleaxe, flask, slice halves) are rasterised
     // at this multiple and drawn at their world size, so they stay crisp when upscaled.

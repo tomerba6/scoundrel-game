@@ -89,8 +89,13 @@ before touching anything visual.
 - **`TextureFilter.Nearest`, integer scales only (1, 2, 3, 4), whole-pixel positions.** These are
   hand-placed pixels; a fractional scale or a sub-pixel offset invents colours outside the
   palette and makes the art shimmer. `Math.round` every computed position before drawing.
-- **`FitViewport(1280, 720)`.** Every number in `HANDOFF.md` is in that space; sprites draw at
-  ×2 = 128px inside a 176×256 card. Do not re-derive the layout per window size.
+- **`PixelViewport(1280, 720)`** on every screen. Every number in `HANDOFF.md` is in that space;
+  sprites draw at ×2 = 128px inside a 176×256 card. Do not re-derive the layout per window size.
+  It is a `FitViewport` that snaps the scale **down to a multiple of 0.5** and letterboxes the
+  rest — a plain fit gives ×1.25 at 1600×900, which puts 2.5 screen pixels on each source pixel
+  and makes the art crawl. Half-steps, not whole: 1920×1080 fits at exactly ×1.5, already clean
+  at ×2 sprites, and integer snapping would letterbox away a third of it. The maths is the pure,
+  unit-tested `PixelScale`; keep it there rather than in the GL class.
 - **Idles run at 6 fps, effects at 12 fps**, and nothing tweens or rotates — every segment holds
   on a frame. A rotated pixel is a blurred pixel.
 - **Hurt and rim frames are generated in Java at load** from each base sprite (§8), not shipped.

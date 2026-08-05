@@ -11,7 +11,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.tomer.scoundrel.ScoundrelGame;
 
 import static com.tomer.scoundrel.screens.Widgets.dim;
@@ -33,7 +32,7 @@ public final class TitleScreen extends ScreenAdapter {
 
     /** {@code offerTutorial} pops the one-time first-run prompt over the menu. */
     public TitleScreen(ScoundrelGame game, Theme theme, boolean offerTutorial) {
-        stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage = new Stage(new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
         stage.addActor(new Backdrop(theme));
         Table root = new Table();
         root.setFillParent(true);

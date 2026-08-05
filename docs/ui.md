@@ -150,9 +150,13 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   (The unused liftoff `assets/ui/` skin remains and should be removed or
   replaced in the art pass.) An atlas-backed Skin becomes worthwhile when
   real textures arrive.
-- **`FitViewport` at a fixed 1280×720 virtual resolution** — all layout math
+- **`PixelViewport` at a fixed 1280×720 virtual resolution** — all layout math
   in one coordinate system, any window size letterboxes. Fonts are generated
-  once at design sizes.
+  once at design sizes. It is a `FitViewport` that snaps the scale down to a
+  multiple of 0.5 rather than fitting exactly, so a 64×64 sprite drawn at ×2
+  always lands on a whole number of screen pixels; a plain fit gives ×1.25 at
+  1600×900 and the pixel art crawls. The scale arithmetic is the pure,
+  headlessly tested `PixelScale`, leaving the viewport itself a thin shell.
 - **Three stage layers with distinct lifetimes:** the root board table
   (cleared per rebuild), the feed anchor (persistent, `Touchable.disabled` so
   it never steals clicks), and transient overlays (chooser, end screen) on

@@ -10,7 +10,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.AchievementStore;
 import com.tomer.scoundrel.model.Status;
@@ -51,7 +50,7 @@ public final class RecordsScreen extends ScreenAdapter {
     public RecordsScreen(ScoundrelGame game, Theme theme, RunLog runLog, AchievementStore achievements) {
         this.game = game;
         this.theme = theme;
-        stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
+        stage = new Stage(new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
         stage.addActor(new Backdrop(theme));
         List<RunRecord> records = readSafely(runLog);
         int trophies = trophyCount(achievements);

@@ -43,6 +43,8 @@ public class W {
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
   [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint f, IntPtr e);
   [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint code, uint mapType);
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int hh, bool repaint);
   public struct RECT { public int Left, Top, Right, Bottom; }
   public struct POINT { public int X, Y; }
 }
@@ -150,6 +152,27 @@ $VK = @{
   "F7" = 0x76; "F8" = 0x77; "F9" = 0x78; "F10" = 0x79; "F11" = 0x7A; "F12" = 0x7B
 }
 
+# Resize to a target CLIENT size, for checking layout across window sizes.
+# MoveWindow sizes the whole window including any border, so measure the
+# difference and compensate -- asking for 1600x900 and silently getting a
+# 1584x861 client would quietly invalidate whatever the shot is meant to prove.
+function Resize([int]$targetW, [int]$targetH) {
+  $wr = New-Object W+RECT; [void][W]::GetWindowRect($h, [ref]$wr)
+  $cr = New-Object W+RECT; [void][W]::GetClientRect($h, [ref]$cr)
+  $chromeW = ($wr.Right - $wr.Left) - ($cr.Right - $cr.Left)
+  $chromeH = ($wr.Bottom - $wr.Top) - ($cr.Bottom - $cr.Top)
+  [void][W]::MoveWindow($h, $wr.Left, $wr.Top, $targetW + $chromeW, $targetH + $chromeH, $true)
+  Start-Sleep -Milliseconds 700
+  $after = New-Object W+RECT; [void][W]::GetClientRect($h, [ref]$after)
+  $aw = $after.Right - $after.Left; $ah = $after.Bottom - $after.Top
+  # Later Shot calls must use the new size, not the one read at startup.
+  $script:cw = $aw; $script:ch = $ah
+  $o = New-Object W+POINT; $o.X = 0; $o.Y = 0
+  [void][W]::ClientToScreen($h, [ref]$o)
+  $script:origin = $o
+  Write-Output ("RESIZE client {0}x{1} at screen {2},{3}" -f $aw, $ah, $o.X, $o.Y)
+}
+
 function Key([string]$name) {
   $n = $name.ToUpper()
   if (-not $VK.ContainsKey($n)) { Write-Output ("UNKNOWN KEY {0}" -f $name); return }
@@ -174,6 +197,9 @@ foreach ($a in $Actions.Split(",")) {
   } elseif ($a.StartsWith("click:")) {
     $c = $a.Substring(6).Split(":")
     Click ([int]$c[0]) ([int]$c[1])
+  } elseif ($a.StartsWith("resize:")) {
+    $r = $a.Substring(7).Split(":")
+    Resize ([int]$r[0]) ([int]$r[1])
   } elseif ($a.StartsWith("key:")) {
     Key $a.Substring(4)
   } elseif ($a.StartsWith("wait:")) {
