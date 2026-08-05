@@ -1,10 +1,16 @@
 package com.tomer.scoundrel.screens;
 
 /**
- * The weapon kill's timeline: the creature's outline flashes cream with the
- * sprite still on the card, then the blade lands — the card is picked up 10px, a
- * bone slash bar crosses top-right to bottom-left, and the two halves part and
- * keep rising as they fade.
+ * The weapon kill's timeline: the creature holds its struck frame — brightened
+ * up its ramp with the cream outline over it — and then the blade lands: the
+ * card is picked up 10px, a bone slash bar crosses top-right to bottom-left,
+ * and the two halves part and keep rising as they fade.
+ *
+ * <p>The struck frame is shared with the bare-handed exchange on purpose, so a
+ * creature reads the same however it is being killed and only the outcome
+ * differs. The art direction specifies an outline alone here, with the sprite
+ * otherwise untouched; holding the full struck frame reads as one blow rather
+ * than two unrelated effects.
  *
  * <p>The ordering is the effect. The flash has to finish before anything is
  * drawn over the card, and the trap is subtle: an element that exists early and
@@ -54,7 +60,7 @@ final class WeaponKill {
         return (float) Math.floor(elapsed / FRAME + 1e-4) * FRAME;
     }
 
-    /** The outline is up, and the creature is still whole beneath it. */
+    /** The creature is holding its struck frame, still whole. */
     static boolean rimShowing(float elapsed) {
         return elapsed < RIM_TIME;
     }

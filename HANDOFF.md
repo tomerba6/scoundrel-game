@@ -337,6 +337,13 @@ different game than one that steps.
 | Potion | 1600 ms | 0.30 s | Card collapses into the bottle over 2 frames, bottle hops to `HPBAR` in 4, then tips and pours; 3 drops fall as the bar fills. |
 | Death | 3200 ms | 0.4 / 0.8 / 1.2 / 0.5 | Red flare over the killer, board shakes 5 frames, screen dies by ordered 4×4 dither over 10 frames — **pattern, never alpha** — then YOU DIED grows in four scale steps. |
 
+> **As built — the struck frame, not the outline alone.** The table above has the weapon kill
+> flash only the cream outline with the sprite otherwise untouched, while the bare-handed
+> exchange holds the full hurt frame. Playing them side by side, the two read as unrelated
+> effects. The weapon kill now holds the same struck frame the bare-handed exchange does, so a
+> creature looks the same however it is being killed and only what follows differs — cleaved
+> versus shrugged off. The ordering below is unchanged and still enforced.
+
 **Weapon kill ordering is load-bearing.** The rim flash must complete before anything occludes the
 card. In the mock this broke twice because the slice halves were present-but-transparent during the
 delay and covered the sprite. In Java: do not draw the halves at all until `elapsed >= 0.36f`.

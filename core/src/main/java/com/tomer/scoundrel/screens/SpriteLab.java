@@ -187,7 +187,12 @@ public final class SpriteLab extends ScreenAdapter {
             slotX += shakeX;
             lift -= shakeY;
             cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y - lift);
-            TextureRegion body = bare && Barehanded.hurtShowing(bareElapsed)
+            // A creature reads the same however it is being killed: it holds
+            // its struck frame, and only what happens next differs. The hurt
+            // frame already carries the outline, so this is one draw.
+            boolean beingStruck = (bare && Barehanded.hurtShowing(bareElapsed))
+                    || (struck && WeaponKill.rimShowing(killElapsed));
+            TextureRegion body = beingStruck
                     ? sprites.hurt(CardSprites.regionName(card))
                     : current(card, card.equals(hovered));
             batch.draw(body, CardArt.spriteLeft(slotX),
@@ -201,9 +206,8 @@ public final class SpriteLab extends ScreenAdapter {
                         CardArt.wellWidth(), CardArt.WELL_H);
                 batch.setColor(1f, 1f, 1f, 1f);
             }
-            // R flashes the generated outline over the sprite, the way the
-            // weapon kill will before the card is cut.
-            if (showRim || (struck && WeaponKill.rimShowing(killElapsed))) {
+            // R flashes the bare outline on its own, for inspecting it.
+            if (showRim && !beingStruck) {
                 TextureRegion rim = sprites.rim(CardSprites.regionName(card));
                 if (rim != null) {
                     batch.draw(rim, CardArt.spriteLeft(slotX),
