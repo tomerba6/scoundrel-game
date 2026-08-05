@@ -59,15 +59,9 @@ final class Barehanded {
         return false;
     }
 
-    /** The bone flash under a blow, two frames long. */
+    /** Whether the board is washed gold right now. */
     static boolean flashShowing(float elapsed) {
-        int frame = frameOf(elapsed);
-        for (int start : HIT_FRAMES) {
-            if (frame >= start && frame < start + HIT_LENGTH) {
-                return true;
-            }
-        }
-        return false;
+        return flashAlpha(elapsed) > 0f;
     }
 
     static int shakeX(float elapsed) {
@@ -122,16 +116,17 @@ final class Barehanded {
         return offset >= 0 && offset < STAR_SCALE.length ? offset : -1;
     }
 
-    /** The gold wash under a blow: 80% alpha decaying over two frames. */
+    /**
+     * The gold wash over the board: 80% alpha decaying over two frames, and
+     * only on the first blow. Flashing again a quarter of a second later reads
+     * as a strobe rather than a hit, so the second blow carries its star alone.
+     */
     static float flashAlpha(float elapsed) {
-        int frame = frameOf(elapsed);
-        for (int start : HIT_FRAMES) {
-            int offset = frame - start;
-            if (offset >= 0 && offset < HIT_LENGTH) {
-                return 0.8f * (1f - offset / (float) HIT_LENGTH);
-            }
+        int offset = frameOf(elapsed) - HIT_FRAMES[0];
+        if (offset < 0 || offset >= HIT_LENGTH) {
+            return 0f;
         }
-        return 0f;
+        return 0.8f * (1f - offset / (float) HIT_LENGTH);
     }
 
     static boolean finished(float elapsed) {

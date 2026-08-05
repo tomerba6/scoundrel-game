@@ -73,10 +73,20 @@ class BarehandedTest {
         assertEquals(0f, Barehanded.starAlpha(0, Barehanded.TOTAL), 1e-6f);
     }
 
+    /**
+     * One flash for the exchange, not one per blow. Two washes a quarter of a
+     * second apart read as a strobe rather than a hit.
+     */
     @Test
-    void theBoneFlashRunsUnderEachHit() {
-        assertTrue(Barehanded.flashShowing(0f), "no flash on the first hit");
-        // Two frames each, and gone well before the exchange ends.
+    void theScreenFlashesOnceOnTheFirstBlow() {
+        assertTrue(Barehanded.flashShowing(0f), "no flash on the first blow");
+        assertTrue(Barehanded.flashShowing(Barehanded.FRAME), "flash should last two frames");
+        assertFalse(Barehanded.flashShowing(2 * Barehanded.FRAME), "and no longer");
+        // The second blow still lands and still throws its star -- it just
+        // does not flash the screen again.
+        assertTrue(Barehanded.hitLanding(3 * Barehanded.FRAME));
+        assertFalse(Barehanded.flashShowing(3 * Barehanded.FRAME), "second blow must not re-flash");
+        assertEquals(0f, Barehanded.flashAlpha(3 * Barehanded.FRAME), 1e-6f);
         assertFalse(Barehanded.flashShowing(Barehanded.TOTAL - Barehanded.FRAME));
     }
 

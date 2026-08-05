@@ -172,17 +172,6 @@ public final class SpriteLab extends ScreenAdapter {
                 cardWithId("10C"),  // should be on different frames
                 cardWithId("QC"));
         hovered = hoveredIn(room);
-        // The gold wash sits under the cards, so a blow lights the room
-        // rather than washing out the creature taking it.
-        if (struckBare != null) {
-            float wash = Barehanded.flashAlpha(bareElapsed);
-            if (wash > 0f) {
-                batch.setColor(0.95f, 0.81f, 0.48f, wash);
-                batch.draw(theme.whiteRegion(), 0, 0,
-                        Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-                batch.setColor(1f, 1f, 1f, 1f);
-            }
-        }
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
@@ -222,6 +211,17 @@ public final class SpriteLab extends ScreenAdapter {
                 drawStars(slotX, lift);
             }
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
+        }
+        // One wash, over the whole board rather than under it, so the blow
+        // lands on everything at once instead of lighting the gaps.
+        if (struckBare != null) {
+            float wash = Barehanded.flashAlpha(bareElapsed);
+            if (wash > 0f) {
+                batch.setColor(0.95f, 0.81f, 0.48f, wash);
+                batch.draw(theme.whiteRegion(), 0, 0,
+                        Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+                batch.setColor(1f, 1f, 1f, 1f);
+            }
         }
         theme.body.draw(batch, "ROOM — hover to animate, K to cleave, B to strike"
                 + (slowMotion ? "   [SLOW 1/8]" : ""), 40, 700);

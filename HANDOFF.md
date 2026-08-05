@@ -376,6 +376,12 @@ scaled box to whole pixels each step.
 Under each star, a full-screen `f2cf7a` flash at 80% alpha decaying to 0 over 2 frames. The
 creature holds its **struck frame** for the whole 900 ms exchange, and the card shakes on a 4px grid.
 
+> **As built — one flash, over the board.** The line above puts a wash under *each* star, so it
+> fires twice a quarter-second apart, which reads as a strobe rather than a blow. It fires once,
+> on the first blow; the second carries its star alone. It is also drawn **over** the cards
+> rather than under them, so the whole board takes the hit instead of the gaps between cards
+> lighting up around it.
+
 **Weapon kill ordering is load-bearing.** The rim flash must complete before anything occludes the
 card. In the mock this broke twice because the slice halves were present-but-transparent during the
 delay and covered the sprite. In Java: do not draw the halves at all until `elapsed >= 0.36f`.
