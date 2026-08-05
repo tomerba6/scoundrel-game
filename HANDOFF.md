@@ -397,8 +397,9 @@ HP pulses: damage jumps the bar ±4px for 2 frames and flips the number to dried
 > **As built — damage drains the bar too.** The line above jolts the bar and reddens the number
 > but never shortens it, so a hit landed without the bar visibly losing anything. Damage now
 > recedes the fill one segment per frame in `8c2f22`, the mirror of the heal growing in
-> `71b45c` — a bleed rather than a jump. The jolt is unchanged and runs independently, so it is
-> over long before a large hit has finished draining.
+> `71b45c` — a bleed rather than a jump. The shake lasts **as long as the drain**, not the
+> quoted 2 frames: a fixed jolt settles while a big hit is still bleeding, leaving the bar
+> calmly draining. Two frames remains the floor, so a hit that takes nothing still registers.
 
 ---
 

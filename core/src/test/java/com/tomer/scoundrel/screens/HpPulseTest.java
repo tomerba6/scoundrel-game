@@ -19,16 +19,34 @@ class HpPulseTest {
     private static final float FRAME = 1f / 12f;
 
     @Test
-    void damageJoltsTheBarAndSettles() {
-        assertEquals(-4, HpPulse.barOffset(0f));
-        assertEquals(4, HpPulse.barOffset(FRAME));
-        assertEquals(0, HpPulse.barOffset(2 * FRAME), "the jolt is two frames and no more");
+    void damageShakesTheBarAndSettles() {
+        // Nothing lost, so only the two-frame floor.
+        assertEquals(-4, HpPulse.barOffset(120, 120, 0f));
+        assertEquals(4, HpPulse.barOffset(120, 120, FRAME));
+        assertEquals(0, HpPulse.barOffset(120, 120, 2 * FRAME));
+    }
+
+    /**
+     * A fixed-length jolt would settle while a large hit was still bleeding,
+     * leaving the bar calmly draining. The shake lasts the whole drain.
+     */
+    @Test
+    void theShakeLastsAsLongAsTheBarIsDraining() {
+        // 140 to 40 is ten segments, so ten frames of drain.
+        for (int frame = 0; frame < 10; frame++) {
+            assertEquals(frame % 2 == 0 ? -4 : 4, HpPulse.barOffset(140, 40, frame * FRAME),
+                    "bar stopped shaking at frame " + frame + " while still draining");
+            assertTrue(HpPulse.bleeding(140, 40, frame * FRAME),
+                    "expected still bleeding at frame " + frame);
+        }
+        assertEquals(0, HpPulse.barOffset(140, 40, 10 * FRAME), "settles once the drain ends");
+        assertFalse(HpPulse.bleeding(140, 40, 10 * FRAME));
     }
 
     @Test
-    void theJoltIsAlwaysAWholePixel() {
+    void theShakeIsAlwaysAWholePixel() {
         for (float t = 0f; t < 1f; t += 0.004f) {
-            assertEquals(0, Math.abs(HpPulse.barOffset(t)) % 4,
+            assertEquals(0, Math.abs(HpPulse.barOffset(140, 40, t)) % 4,
                     "offset off the 4px grid at t=" + t);
         }
     }
@@ -39,8 +57,8 @@ class HpPulseTest {
         assertTrue(HpPulse.numberBloodied(0f));
         assertTrue(HpPulse.numberBloodied(2 * FRAME));
         assertFalse(HpPulse.numberBloodied(3 * FRAME));
-        assertTrue(HpPulse.numberBloodied(2 * FRAME) && HpPulse.barOffset(2 * FRAME) == 0,
-                "the number should outlast the jolt");
+        assertTrue(HpPulse.numberBloodied(2 * FRAME) && HpPulse.barOffset(120, 120, 2 * FRAME) == 0,
+                "on a hit that takes nothing, the number outlasts the shake");
     }
 
     @Test
@@ -101,7 +119,7 @@ class HpPulseTest {
         // Being struck for zero -- a weapon that outclasses the monster -- should
         // still shake the bar, just not drain it.
         assertEquals(120, HpPulse.damageWidth(120, 120, 0f));
-        assertEquals(-4, HpPulse.barOffset(0f));
+        assertEquals(-4, HpPulse.barOffset(120, 120, 0f));
     }
 
     @Test

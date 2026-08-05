@@ -236,7 +236,7 @@ public final class SpriteLab extends ScreenAdapter {
         }
         hud.drawHealth(batch, 14, 20, healing,
                 hit && HpPulse.bleeding(HIT_FROM, HIT_TO, damageElapsed),
-                hit ? HpPulse.barOffset(damageElapsed) : 0, fill);
+                hit ? HpPulse.barOffset(HIT_FROM, HIT_TO, damageElapsed) : 0, fill);
         hud.drawTicker(batch, 27, 44);
         hud.drawAvoid(batch, true);
         for (int i = 0; i < room.size(); i++) {

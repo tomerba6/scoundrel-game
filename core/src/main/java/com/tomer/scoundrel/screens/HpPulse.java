@@ -3,11 +3,14 @@ package com.tomer.scoundrel.screens;
 /**
  * What the health bar does when it changes.
  *
- * <p>Damage jolts the bar sideways for two frames and reddens the number for
- * three, so the number outlasts the movement and the loss registers after the
- * jolt has stopped. It also <em>drains</em>: the fill recedes a segment a
- * frame in dried blood, the mirror of a heal growing in green, so a big hit
- * reads as a big hit rather than the bar simply being shorter next frame.
+ * <p>Damage <em>drains</em> the bar: the fill recedes a segment a frame in
+ * dried blood, the mirror of a heal growing in green, so a big hit reads as a
+ * big hit rather than the bar simply being shorter next frame.
+ *
+ * <p>The bar shakes for as long as it is losing ground. A fixed-length jolt
+ * would settle while a large hit was still bleeding, leaving the bar calmly
+ * draining — so the shake lasts the whole drain, with a two-frame floor so
+ * even a hit that takes nothing off still registers.
  */
 final class HpPulse {
 
@@ -18,7 +21,7 @@ final class HpPulse {
     private static final int JOLT_FRAMES = 2;
     private static final int BLOOD_FRAMES = 3;
 
-    /** How long the shake and the reddened number last, drain aside. */
+    /** The shortest a hit can register for, when nothing is actually lost. */
     static final float JOLT_TOTAL = BLOOD_FRAMES * FRAME;
 
     private HpPulse() {
@@ -28,13 +31,24 @@ final class HpPulse {
         return (int) Math.floor(elapsed / FRAME + 1e-4);
     }
 
-    /** Sideways displacement of the whole bar, alternating so it reads as a hit. */
-    static int barOffset(float elapsed) {
+    /**
+     * Sideways displacement of the whole bar, alternating each frame so it
+     * reads as a hit rather than a lean. It runs for as long as the bar is
+     * draining, so a big hit shakes throughout instead of settling early.
+     */
+    static int barOffset(int fromWidth, int toWidth, float elapsed) {
         int frame = frameOf(elapsed);
-        if (frame < 0 || frame >= JOLT_FRAMES) {
+        if (frame < 0 || frame >= shakeFrames(fromWidth, toWidth)) {
             return 0;
         }
         return frame % 2 == 0 ? -JUMP : JUMP;
+    }
+
+    /** However long the drain takes, but never fewer than the two-frame floor. */
+    private static int shakeFrames(int fromWidth, int toWidth) {
+        int lost = Math.max(0, fromWidth - Math.max(toWidth, 0));
+        int drainFrames = (lost + HudArt.SEGMENT_PITCH - 1) / HudArt.SEGMENT_PITCH;
+        return Math.max(JOLT_FRAMES, drainFrames);
     }
 
     /** Whether the health number is showing in dried blood rather than bone. */
