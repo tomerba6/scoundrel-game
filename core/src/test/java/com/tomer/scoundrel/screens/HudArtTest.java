@@ -121,4 +121,30 @@ class HudArtTest {
         assertEquals(0x6b5f4c, HudArt.FILL_LOW);
         assertFalse(Ramps.contains(HudArt.FRAME), "if this ever lands on a ramp, revisit");
     }
+
+    /**
+     * Avoid is the only button on the board, and it is hit-tested against the
+     * same numbers it is drawn from — but the pointer arrives with y upward and
+     * the plate is specified with y downward. That flip is the whole test: get
+     * it wrong and the button works 660 pixels above where it appears.
+     */
+    @Test
+    void theAvoidPlateIsHitWhereItIsDrawn() {
+        float bottom = CardArt.toWorldY(HudArt.AVOID_Y, HudArt.AVOID_H);
+        assertTrue(HudArt.avoidContains(HudArt.AVOID_X + HudArt.AVOID_W / 2f,
+                bottom + HudArt.AVOID_H / 2f), "the middle of the plate should hit");
+        // Its own corners, and a pixel outside each of them.
+        assertTrue(HudArt.avoidContains(HudArt.AVOID_X, bottom));
+        assertFalse(HudArt.avoidContains(HudArt.AVOID_X - 1, bottom));
+        assertFalse(HudArt.avoidContains(HudArt.AVOID_X, bottom - 1));
+        assertFalse(HudArt.avoidContains(HudArt.AVOID_X + HudArt.AVOID_W, bottom));
+        assertFalse(HudArt.avoidContains(HudArt.AVOID_X, bottom + HudArt.AVOID_H));
+    }
+
+    /** Mirroring the y is not the same as not mirroring it — pin that it is not. */
+    @Test
+    void theAvoidPlateIsNotHitAtItsDesignSpaceY() {
+        assertFalse(HudArt.avoidContains(HudArt.AVOID_X + 4, HudArt.AVOID_Y + 4),
+                "design-space y should not hit; the button is at the top of the screen");
+    }
 }

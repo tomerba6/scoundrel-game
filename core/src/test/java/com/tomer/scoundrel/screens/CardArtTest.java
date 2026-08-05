@@ -23,6 +23,11 @@ class CardArtTest {
     }
 
     @Test
+    void theRowSitsWhereTheReferenceRenderPutsIt() {
+        assertEquals(214, CardArt.SLOT_Y);
+    }
+
+    @Test
     void theRowOfFourIsCentredInTheWorld() {
         int left = CardArt.slotX(0);
         int right = (int) Theme.WORLD_WIDTH - (CardArt.slotX(3) + CardArt.CARD_W);
@@ -103,7 +108,8 @@ class CardArtTest {
     @Test
     void designSpaceConvertsToSceneTwoDCoordinates() {
         assertEquals(720 - 0 - 256, CardArt.toWorldY(0, 256));
-        assertEquals(720 - 220 - 256, CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H));
+        assertEquals(720 - CardArt.SLOT_Y - CardArt.CARD_H,
+                CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H));
         // A full-height element starts at the world origin.
         assertEquals(0, CardArt.toWorldY(0, 720));
     }

@@ -3,7 +3,11 @@ package com.tomer.scoundrel.screens;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.tomer.scoundrel.model.Card;
+
+import java.util.List;
 
 /**
  * Draws the board's chrome — the health bar, the depth ticker and the Avoid
@@ -17,9 +21,12 @@ final class BoardHud {
 
     private final TextureRegion pixel;
     private final BitmapFont font;
+    private final Theme theme;
+    private final GlyphLayout layout = new GlyphLayout();
     private final Color tint = new Color();
 
     BoardHud(Theme theme) {
+        this.theme = theme;
         this.pixel = theme.whiteRegion();
         this.font = theme.pixelBody;
     }
@@ -78,13 +85,21 @@ final class BoardHud {
         // holds it for as long as the bar is still changing.
         int colour = healing ? HudArt.FILL_HEAL
                 : bleeding ? HudArt.FILL_BLOOD : HudArt.NUMBER_REST;
-        tint.set((colour >>> 16 & 0xff) / 255f, (colour >>> 8 & 0xff) / 255f,
-                (colour & 0xff) / 255f, 1f);
-        font.setColor(tint);
-        font.draw(batch, String.valueOf(Math.max(0, health)),
-                HudArt.NUMBER_X + offsetX,
+        String reading = String.valueOf(Math.max(0, health));
+        font.setColor(rgb(colour, 1f));
+        font.draw(batch, reading, HudArt.NUMBER_X + offsetX,
                 CardArt.toWorldY(HudArt.NUMBER_BASELINE, 0));
         font.setColor(Color.WHITE);
+
+        // What the number is out of, dim and small behind it, so the reading
+        // says "14 of 20" without a second widget.
+        layout.setText(font, reading);
+        BitmapFont small = theme.pixelSmall;
+        small.setColor(rgb(BoardArt.HP_SUFFIX_COLOUR, 1f));
+        small.draw(batch, "/" + maxHealth + " HP",
+                HudArt.NUMBER_X + offsetX + layout.width + BoardArt.HP_SUFFIX_GAP,
+                CardArt.toWorldY(HudArt.NUMBER_BASELINE + 4, 0));
+        small.setColor(Color.WHITE);
     }
 
     /** One tick per card still face-down; the rest of the dungeon sits dim. */
@@ -112,6 +127,128 @@ final class BoardHud {
         fill(batch, x, y, 2, h - 2, light);
         fill(batch, x + 2, y + h - 2, w - 2, 2, dark);
         fill(batch, x + w - 2, y, 2, h, dark);
+
+        BitmapFont label = theme.pixelLabel;
+        layout.setText(label, "AVOID");
+        label.setColor(rgb(enabled ? HudArt.LABEL_DARK : BoardArt.NAME_COLOUR, 1f));
+        label.draw(batch, "AVOID", Math.round(x + (w - layout.width) / 2f),
+                CardArt.toWorldY(y + Math.round((h - layout.height) / 2f), 0));
+        label.setColor(Color.WHITE);
+    }
+
+    /**
+     * How deep the dungeon still is and how long the run has taken, centred
+     * under the ticks they describe.
+     */
+    void drawDepthLine(Batch batch, int depth, int deckSize, String time) {
+        BitmapFont small = theme.pixelSmall;
+        String text = time == null ? "DEPTH " + depth : "DEPTH " + depth + "  ·  " + time;
+        layout.setText(small, text);
+        int centre = HudArt.TICKER_X + HudArt.tickerWidth(deckSize) / 2;
+        small.setColor(rgb(BoardArt.DEPTH_COLOUR, 1f));
+        small.draw(batch, text, Math.round(centre - layout.width / 2f),
+                CardArt.toWorldY(BoardArt.DEPTH_TOP, 0));
+        small.setColor(Color.WHITE);
+    }
+
+    /**
+     * The trophy rail: the equipped weapon in its well, what it is, the
+     * monsters stacked on it, and how much bite it has left. Barehanded is the
+     * same well standing empty — the slot is always there, so equipping does
+     * not shift the whole strip sideways.
+     */
+    void drawRail(Batch batch, TextureRegion icon, String name,
+                  List<Card> slain, String threshold) {
+        int x = BoardArt.RAIL_X;
+        int y = BoardArt.RAIL_Y;
+        int box = BoardArt.RAIL_BOX;
+        int frame = BoardArt.FRAME;
+        fill(batch, x, y, box, box, HudArt.FRAME);
+        fill(batch, x + frame, y + frame, box - 2 * frame, box - 2 * frame, BoardArt.RAIL_WELL);
+        // The same two inset shadows the card wells carry, so it reads recessed.
+        fill(batch, x + frame, y + frame, box - 2 * frame, 2, 0x000000, 0.5f);
+        fill(batch, x + frame, y + box - frame - 2, box - 2 * frame, 2, 0xe8ddc7, 0.05f);
+        if (icon != null) {
+            batch.draw(icon, BoardArt.railIconX(),
+                    CardArt.toWorldY(BoardArt.railIconY(), BoardArt.RAIL_ICON),
+                    BoardArt.RAIL_ICON, BoardArt.RAIL_ICON);
+        }
+
+        BitmapFont small = theme.pixelSmall;
+        small.setColor(rgb(BoardArt.NAME_COLOUR, 1f));
+        small.draw(batch, name, BoardArt.COLUMN_X, CardArt.toWorldY(BoardArt.NAME_TOP, 0));
+        small.setColor(Color.WHITE);
+        if (slain == null) {
+            return; // barehanded: no chips, no plate
+        }
+
+        for (int i = 0; i < slain.size(); i++) {
+            int cx = BoardArt.chipX(i);
+            fill(batch, cx, BoardArt.CHIP_Y, BoardArt.CHIP_W, BoardArt.CHIP_H, HudArt.FRAME);
+            fill(batch, cx + frame, BoardArt.CHIP_Y + frame,
+                    BoardArt.CHIP_W - 2 * frame, BoardArt.CHIP_H - 2 * frame,
+                    BoardArt.CHIP_FACE);
+            String value = String.valueOf(slain.get(i).value());
+            layout.setText(small, value);
+            small.setColor(rgb(BoardArt.CHIP_LABEL, 1f));
+            small.draw(batch, value,
+                    Math.round(cx + (BoardArt.CHIP_W - layout.width) / 2f),
+                    CardArt.toWorldY(BoardArt.CHIP_Y
+                            + Math.round((BoardArt.CHIP_H - layout.height) / 2f), 0));
+            small.setColor(Color.WHITE);
+        }
+
+        BitmapFont plateFont = theme.pixelLabel;
+        layout.setText(plateFont, threshold);
+        int plateX = BoardArt.slaysPlateX(slain.size());
+        int plateW = Math.round(layout.width) + 2 * BoardArt.PLATE_PAD_X;
+        fill(batch, plateX, BoardArt.PLATE_Y, plateW, BoardArt.PLATE_H, HudArt.GOLD);
+        plateFont.setColor(rgb(HudArt.LABEL_DARK, 1f));
+        plateFont.draw(batch, threshold, plateX + BoardArt.PLATE_PAD_X,
+                CardArt.toWorldY(BoardArt.PLATE_Y
+                        + Math.round((BoardArt.PLATE_H - layout.height) / 2f), 0));
+        plateFont.setColor(Color.WHITE);
+    }
+
+    /**
+     * The potion marker opposite the rail: one draught a room, and whether it
+     * has been drunk. The icon is never dimmed — an alpha over a dark board
+     * makes colours that are on no ramp — so the label carries the state.
+     */
+    void drawPotionMarker(Batch batch, TextureRegion icon, boolean used) {
+        int x = BoardArt.MARKER_X;
+        int y = BoardArt.MARKER_Y;
+        int box = BoardArt.MARKER_BOX;
+        fill(batch, x, y, box, box, HudArt.FRAME);
+        if (icon != null) {
+            batch.draw(icon, BoardArt.markerIconX(),
+                    CardArt.toWorldY(BoardArt.markerIconY(), BoardArt.MARKER_ICON),
+                    BoardArt.MARKER_ICON, BoardArt.MARKER_ICON);
+        }
+        BitmapFont small = theme.pixelSmall;
+        small.setColor(rgb(used ? BoardArt.MARKER_USED : BoardArt.MARKER_READY, 1f));
+        small.draw(batch, used ? "POTION USED" : "POTION READY", BoardArt.MARKER_LABEL_X,
+                CardArt.toWorldY(BoardArt.MARKER_LABEL_TOP, 0));
+        small.setColor(Color.WHITE);
+    }
+
+    /**
+     * One line of the event feed, right-aligned down the margin. The alpha is
+     * the caller's — it comes off a stepped fade, not a smooth one.
+     */
+    void drawFeedLine(Batch batch, String text, int index, float alpha) {
+        BitmapFont line = theme.pixelLabel;
+        layout.setText(line, text);
+        line.setColor(rgb(BoardArt.FEED_COLOUR, alpha));
+        line.draw(batch, text, BoardArt.FEED_RIGHT - layout.width,
+                CardArt.toWorldY(BoardArt.feedLineY(index), 0));
+        line.setColor(Color.WHITE);
+    }
+
+    private Color rgb(int rgb, float alpha) {
+        tint.set((rgb >>> 16 & 0xff) / 255f, (rgb >>> 8 & 0xff) / 255f,
+                (rgb & 0xff) / 255f, alpha);
+        return tint;
     }
 
     private void fill(Batch batch, int x, int y, int w, int h, int rgb) {
@@ -120,9 +257,8 @@ final class BoardHud {
 
     /** {@code y} arrives in design space and is flipped once, here. */
     private void fill(Batch batch, int x, int y, int w, int h, int rgb, float alpha) {
-        tint.set((rgb >>> 16 & 0xff) / 255f, (rgb >>> 8 & 0xff) / 255f, (rgb & 0xff) / 255f, alpha);
         Color previous = batch.getColor().cpy();
-        batch.setColor(tint);
+        batch.setColor(rgb(rgb, alpha));
         batch.draw(pixel, x, CardArt.toWorldY(y, h), w, h);
         batch.setColor(previous);
     }

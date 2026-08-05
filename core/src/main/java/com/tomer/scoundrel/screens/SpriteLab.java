@@ -53,6 +53,8 @@ public final class SpriteLab extends ScreenAdapter {
     private final Theme theme;
     private final Sprites sprites;
     private final CardFrame cardFrame;
+    private final CardFace cardFace;
+    private final Pips pips;
     private final EffectArt effectArt;
     private final BoardHud hud;
     private final PixelViewport viewport;
@@ -96,6 +98,8 @@ public final class SpriteLab extends ScreenAdapter {
         this.theme = theme;
         this.sprites = sprites;
         this.cardFrame = new CardFrame(theme);
+        this.pips = new Pips();
+        this.cardFace = new CardFace(theme, pips);
         this.effectArt = new EffectArt(CardArt.CARD_W, CardArt.CARD_H);
         this.hud = new BoardHud(theme);
         // One fixed virtual resolution, so the layout numbers are literal and
@@ -336,7 +340,15 @@ public final class SpriteLab extends ScreenAdapter {
                 hit && HpPulse.numberBloodied(HIT_FROM, HIT_TO, damageElapsed),
                 hit ? HpPulse.barOffset(HIT_FROM, HIT_TO, damageElapsed) : 0, fill);
         hud.drawTicker(batch, 27, 44);
+        hud.drawDepthLine(batch, 27, 44, "01:47");
         hud.drawAvoid(batch, true);
+        // The reference's rail and marker, so a side-by-side means something:
+        // a broadaxe that has taken a 10 and an 8, and an unused draught.
+        hud.drawRail(batch, sprites.region(CardSprites.regionName(cardWithId("9D"))),
+                CardSprites.displayName(cardWithId("9D")) + " 9",
+                List.of(cardWithId("10S"), cardWithId("8C")), "SLAYS < 8");
+        hud.drawPotionMarker(batch,
+                sprites.region(CardSprites.regionName(cardWithId("5H"))), false);
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
@@ -389,10 +401,10 @@ public final class SpriteLab extends ScreenAdapter {
                             CardArt.SPRITE, CardArt.SPRITE);
                 }
             }
+            cardFace.draw(batch, card, slotX, CardArt.SLOT_Y - lift);
             if (bare) {
                 drawStars(slotX, lift);
             }
-            theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
         // One wash, over the whole board rather than under it, so the blow
         // lands on everything at once instead of lighting the gaps.
@@ -602,6 +614,7 @@ public final class SpriteLab extends ScreenAdapter {
     public void dispose() {
         endDrink();
         effectArt.dispose();
+        pips.dispose();
         batch.dispose();
     }
 }

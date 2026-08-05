@@ -1,6 +1,9 @@
 package com.tomer.scoundrel.screens;
 
 import com.tomer.scoundrel.model.Card;
+import com.tomer.scoundrel.model.CardType;
+
+import java.util.Locale;
 
 /**
  * Maps a card to the sprite region drawn for it. The delivered art names its
@@ -43,6 +46,21 @@ final class CardSprites {
             case WEAPON -> "weapon_" + pad(value) + "_" + name(WEAPONS, value);
             case POTION -> "potion_" + pad(value) + "_" + name(POTIONS, value);
         };
+    }
+
+    /**
+     * What to call this card on screen — {@code BROADAXE}, {@code DEEP OGRE}.
+     * Read back out of the region name, so the name the rail shows and the
+     * sprite beside it can never disagree.
+     */
+    static String displayName(Card card) {
+        String region = regionName(card);
+        int from = region.indexOf('_', region.indexOf('_') + 1) + 1;
+        String name = region.substring(from);
+        if (card.type() == CardType.MONSTER) {
+            name = name.substring(0, name.lastIndexOf('_')); // drop the suit
+        }
+        return name.replace('_', ' ').toUpperCase(Locale.ROOT);
     }
 
     /**

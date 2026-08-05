@@ -100,7 +100,7 @@ public class ScoundrelGame extends Game {
     }
 
     public void showGame(GameMode mode) {
-        switchTo(new GameScreen(this, theme, runLog, achievements, mode));
+        switchTo(new GameScreen(this, theme, sprites, runLog, achievements, mode));
     }
 
     /**
@@ -110,7 +110,8 @@ public class ScoundrelGame extends Game {
      */
     public void showTutorial() {
         tutorialFlag.markSeen();
-        switchTo(new GameScreen(this, theme, GameModes.STANDARD, new TutorialGuide(TutorialScript.steps())));
+        switchTo(new GameScreen(this, theme, sprites, GameModes.STANDARD,
+                new TutorialGuide(TutorialScript.steps())));
     }
 
     public void showRecords() {

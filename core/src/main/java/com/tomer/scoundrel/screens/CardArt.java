@@ -31,7 +31,12 @@ final class CardArt {
 
     static final int CARD_W = 176;
     static final int CARD_H = 256;
-    static final int SLOT_Y = 220;
+    /**
+     * The written spec quotes 220; the reference render puts the row's top
+     * bezel on 214, which is where centring the row between the HUD strip and
+     * the rail actually lands it. The render is the visual target, so it wins.
+     */
+    static final int SLOT_Y = 214;
     private static final int SLOT_X0 = 252;
     private static final int SLOT_PITCH = 200;
 

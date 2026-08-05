@@ -1,5 +1,6 @@
 package com.tomer.scoundrel.screens;
 
+import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.model.EquippedWeapon;
 import com.tomer.scoundrel.rules.Move;
 
@@ -12,6 +13,30 @@ import com.tomer.scoundrel.rules.Move;
 final class Labels {
 
     private Labels() {
+    }
+
+    /**
+     * The playing-card rank shown in a card's header. The footer carries the
+     * ordered value instead, so a Queen reads Q above 12 — the one place the
+     * game says out loud what a face card is worth.
+     */
+    static String rank(int value) {
+        return switch (value) {
+            case 11 -> "J";
+            case 12 -> "Q";
+            case 13 -> "K";
+            case 14 -> "A";
+            default -> String.valueOf(value);
+        };
+    }
+
+    /** The type stamped in the card's header, opposite its rank. */
+    static String cardType(CardType type) {
+        return switch (type) {
+            case MONSTER -> "MONSTER";
+            case WEAPON -> "WEAPON";
+            case POTION -> "POTION";
+        };
     }
 
     /** Chooser button text for a move. */

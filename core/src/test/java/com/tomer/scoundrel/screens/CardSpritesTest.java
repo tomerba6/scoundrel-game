@@ -109,6 +109,28 @@ class CardSpritesTest {
         assertEquals(CardSprites.regionName(rat) + "_idle", CardSprites.idleStem(rat));
     }
 
+    /**
+     * The rail names the weapon it is holding. The art already carries that
+     * name in its region, so it is read back from there rather than kept in a
+     * second list that could drift out of step with the sprites.
+     */
+    @Test
+    void theRailNameComesBackOutOfTheRegionName() {
+        assertEquals("BROADAXE", CardSprites.displayName(new Card("9D", CardType.WEAPON, 9)));
+        assertEquals("SHORT SWORD", CardSprites.displayName(new Card("5D", CardType.WEAPON, 5)));
+        assertEquals("DEEP OGRE", CardSprites.displayName(new Card("10C", CardType.MONSTER, 10)));
+        assertEquals("THE DEBT", CardSprites.displayName(new Card("AS", CardType.MONSTER, 14)));
+        assertEquals("DRAUGHT", CardSprites.displayName(new Card("5H", CardType.POTION, 5)));
+    }
+
+    @Test
+    void everyCardCanNameItself() {
+        for (CardDefinition def : new StandardDeck().cards()) {
+            String name = CardSprites.displayName(card(def));
+            assertTrue(name.matches("[A-Z ]+"), "bad display name: " + name);
+        }
+    }
+
     @Test
     void everyRegionNameIsLowercaseAlphanumericUnderscore() {
         // The atlas parses a trailing _<digits> as an animation index, so a

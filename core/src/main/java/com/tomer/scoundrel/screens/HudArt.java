@@ -122,4 +122,15 @@ final class HudArt {
     static int tickerWidth(int deckSize) {
         return deckSize <= 0 ? 0 : deckSize * TICK_PITCH - (TICK_PITCH - TICK_W);
     }
+
+    /**
+     * Whether a point in <b>world</b> coordinates — y upward, as the pointer
+     * arrives — is on the Avoid plate. The plate is drawn from design-space
+     * numbers, so the conversion happens here rather than at every call.
+     */
+    static boolean avoidContains(float worldX, float worldY) {
+        float bottom = CardArt.toWorldY(AVOID_Y, AVOID_H);
+        return worldX >= AVOID_X && worldX < AVOID_X + AVOID_W
+                && worldY >= bottom && worldY < bottom + AVOID_H;
+    }
 }

@@ -29,9 +29,14 @@ final class Backdrop extends Actor {
 
     @Override
     public void act(float delta) {
+        advance(delta);
+        super.act(delta);
+    }
+
+    /** For screens that drive the backdrop themselves rather than via a stage. */
+    void advance(float delta) {
         elapsed += delta;
         embers.update(delta);
-        super.act(delta);
     }
 
     @Override
@@ -39,7 +44,16 @@ final class Backdrop extends Actor {
         // The actor's own alpha dims the living fire — the glow and embers — so a
         // death can snuff the torch (fade it to near zero) while the dark vignette
         // stays. Normally it is 1, so nothing changes.
-        float light = getColor().a;
+        render(batch, getColor().a);
+    }
+
+    /**
+     * Draws straight onto a batch, outside any stage — the board is drawn in
+     * immediate mode and needs its backdrop under it, not over it.
+     *
+     * @param light how alive the fire is; 1 normally, near zero once it is snuffed
+     */
+    void render(Batch batch, float light) {
         float gx = (Theme.WORLD_WIDTH - GLOW_SIZE) / 2f;
         float gy = (Theme.WORLD_HEIGHT - GLOW_SIZE) / 2f + GLOW_Y_OFFSET;
         float glowAlpha = GLOW_ALPHA * TorchFlicker.intensityAt(elapsed) * light;
