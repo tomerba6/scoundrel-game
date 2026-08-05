@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 
 /**
- * The packed pixel art (HANDOFF.md), loaded once and shared. Owns the atlas and
+ * The packed pixel art, loaded once and shared. Owns the atlas and
  * is the only thing that should: the source PNGs live outside the asset path
  * precisely so nothing can load a sprite as a loose file and get a smoothed
  * texture.
@@ -20,7 +20,7 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
  */
 public final class Sprites implements Disposable {
 
-    /** Every sprite is 64×64; §4 allows only integer multiples of it on screen. */
+    /** Every sprite is 64×64, and only integer multiples of it may be drawn. */
     public static final int SIZE = 64;
 
     private final TextureAtlas atlas;

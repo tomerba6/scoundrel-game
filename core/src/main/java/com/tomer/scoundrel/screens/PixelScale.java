@@ -8,8 +8,7 @@ package com.tomer.scoundrel.screens;
  * <p>A plain fit-to-window scale is wrong for this art. Sprites are 64×64 drawn
  * at ×2 in world units, so one source pixel covers {@code 2 * scale} screen
  * pixels; unless that is a whole number, neighbouring source pixels are rendered
- * at different widths and the art shimmers as anything moves. HANDOFF.md §4
- * forbids exactly this.
+ * at different widths and the art shimmers as anything moves.
  *
  * <p>So the fit scale is snapped down to a multiple of {@code 0.5}. Half-steps
  * rather than whole ones is the point: 1920×1080 fits at exactly 1.5, which
@@ -19,7 +18,7 @@ package com.tomer.scoundrel.screens;
  */
 final class PixelScale {
 
-    /** Sprites draw at ×2 (HANDOFF.md §5), so half-steps of scale stay whole. */
+    /** Sprites draw at ×2, so half-steps of scale still land on whole pixels. */
     private static final float STEP = 0.5f;
 
     private PixelScale() {

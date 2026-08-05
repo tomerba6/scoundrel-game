@@ -7,10 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The card frame's measurements and palette, in the 1280×720 design space of
- * HANDOFF.md §6/§9 and the reference mock. Pinned here because every one of
- * these numbers is a hand-set constant that a screenshot would only catch if
- * someone happened to look at the right two pixels.
+ * The card frame's measurements and palette, in the 1280×720 design space the
+ * art is specified in. Pinned here because every one of these numbers is a
+ * hand-set constant that a screenshot would only catch if someone happened to
+ * look at the right two pixels.
  */
 class CardArtTest {
 
@@ -36,7 +36,7 @@ class CardArtTest {
 
     @Test
     void eachCardTypeCarriesItsOwnRamp() {
-        // HANDOFF.md §6, and the mock's PALETTES table.
+        // The mock's PALETTES table.
         CardArt.Palette monster = CardArt.paletteFor(CardType.MONSTER);
         assertEquals(0x230d16, monster.plate());
         assertEquals(0x4f1d1e, monster.light());
@@ -60,7 +60,8 @@ class CardArtTest {
     /**
      * The plate is inset 2px inside the outer frame, so the 26px header runs
      * from y=2 to y=28 and the well starts at SLOT_Y+28 — not the SLOT_Y+26 that
-     * §9 quotes, which omits the frame. The mock is the visual target, so it wins.
+     * the written spec quotes, which omits the frame. The mock is the visual
+     * target, so it wins.
      */
     @Test
     void theWellSitsBelowTheHeaderInsideTheFrame() {
@@ -85,7 +86,7 @@ class CardArtTest {
     @Test
     void theSpriteLandsOnWholePixelsAtTimesTwo() {
         // 64x64 drawn at x2. If any of these offsets were odd the art would sit
-        // half a source pixel off the grid (HANDOFF.md §4).
+        // half a source pixel off the grid.
         assertEquals(128, CardArt.SPRITE);
         for (int i = 0; i < 4; i++) {
             assertEquals(0, CardArt.spriteLeft(CardArt.slotX(i)) % 2,
@@ -95,7 +96,7 @@ class CardArtTest {
     }
 
     /**
-     * HANDOFF and the mock measure y downward from the top of the stage; Scene2D
+     * The art is specified with y downward from the top of the stage; Scene2D
      * measures upward from the bottom. Getting this backwards silently flips the
      * whole board, so it is converted in exactly one place.
      */

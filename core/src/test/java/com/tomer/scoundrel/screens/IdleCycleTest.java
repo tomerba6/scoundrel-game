@@ -10,10 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The idle animation's clock (HANDOFF.md §7): five frames at 6 fps, looping,
- * each card started at its own random offset so a room does not breathe in
- * lockstep. This is also the "one place that floors time" §11 step 11 asks for
- * on the idle side — quantising here is what stops a frame being interpolated.
+ * The idle animation's clock: five frames at 6 fps, looping, each card started
+ * at its own random offset so a room does not breathe in lockstep. Quantising
+ * here is what stops a frame ever being interpolated.
  */
 class IdleCycleTest {
 
@@ -91,7 +90,7 @@ class IdleCycleTest {
     }
 
     /**
-     * §13: four cards breathing at once reads as busy, so only the card the
+     * Four cards breathing at once reads as busy, so only the card the
      * player is looking at animates and the rest hold on frame 1 — which is the
      * base sprite, pixel-identical, so a frozen card is indistinguishable from a
      * static one.

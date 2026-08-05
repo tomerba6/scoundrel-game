@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The card → sprite-region contract of HANDOFF.md §1. The expected names below
+ * The card → sprite-region naming contract. The expected names below
  * are transcribed from the delivery manifest rather than generated, so this is
  * a real check of the mapping and not the mapping restating itself.
  */
@@ -100,7 +100,7 @@ class CardSpritesTest {
     }
 
     /**
-     * §7: the idle stem is the base name plus {@code _idle}, so
+     * The idle stem is the base name plus {@code _idle}, so
      * {@code findRegions} returns the five frames in order.
      */
     @Test

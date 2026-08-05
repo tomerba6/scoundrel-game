@@ -3,10 +3,10 @@ package com.tomer.scoundrel.screens;
 import com.tomer.scoundrel.model.Card;
 
 /**
- * Maps a card to the sprite region drawn for it, per the naming contract in
- * HANDOFF.md §1: {@code creature_<value>_<name>_<suit>},
- * {@code weapon_<value>_<name>}, {@code potion_<value>_<name>}, with the value
- * zero-padded and the creature's suit taken from the card's id.
+ * Maps a card to the sprite region drawn for it. The delivered art names its
+ * regions {@code creature_<value>_<name>_<suit>}, {@code weapon_<value>_<name>}
+ * and {@code potion_<value>_<name>}, with the value zero-padded and the
+ * creature's suit taken from the card's id.
  *
  * <p>Pure string work, so the whole 44-card mapping is provable headlessly —
  * the failure it guards against is a card quietly showing the wrong creature.
@@ -47,7 +47,7 @@ final class CardSprites {
 
     /**
      * The stem to pass to {@code atlas.findRegions}, which returns the five idle
-     * frames in index order (§7).
+     * frames in index order.
      */
     static String idleStem(Card card) {
         return regionName(card) + "_idle";
@@ -55,7 +55,7 @@ final class CardSprites {
 
     /**
      * Clubs or spades, read from the card's id rather than anything derived —
-     * the two suits are separate drawings, not a runtime recolour (§6).
+     * the two suits are separate drawings, not a runtime recolour.
      */
     private static String suit(Card card) {
         return card.id().endsWith("C") ? "clubs" : "spades";

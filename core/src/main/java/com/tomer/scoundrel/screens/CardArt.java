@@ -3,17 +3,20 @@ package com.tomer.scoundrel.screens;
 import com.tomer.scoundrel.model.CardType;
 
 /**
- * How a card is built: its measurements and the ramp its type is drawn from,
- * per HANDOFF.md §6/§9 and the reference mock. Pure, so the arithmetic is
- * testable and {@link CardFrame} is left with nothing but draw calls.
+ * How a card is built: its measurements and the ramp its type is drawn from.
+ * The one place these numbers live — they were set by hand against the art
+ * handoff and its reference mock, so check there before changing one.
  *
- * <p>All coordinates here are in the mock's space — 1280×720 with <b>y measured
- * downward</b> from the top of the stage, matching every number in HANDOFF.md.
- * Scene2D measures y upward, so {@link #toWorldY} converts, in one place.
+ * <p>Pure, so the arithmetic is testable and {@link CardFrame} is left with
+ * nothing but draw calls.
+ *
+ * <p>Coordinates are 1280×720 with <b>y measured downward</b> from the top of
+ * the stage, which is how the art is specified. Scene2D measures y upward, so
+ * {@link #toWorldY} converts, in one place.
  */
 final class CardArt {
 
-    /** The five colours a card type is drawn from (HANDOFF.md §6). */
+    /** The five colours a card type is drawn from. */
     record Palette(int plate, int light, int dark, int well, int label) {
     }
 
@@ -23,7 +26,7 @@ final class CardArt {
 
     /** The bezel around every card, whatever its type. */
     static final int OUTER = 0x0f1410;
-    /** Stage background (HANDOFF.md §6). */
+    /** Stage background. */
     static final int BACKDROP = 0x100c09;
 
     static final int CARD_W = 176;
@@ -39,7 +42,7 @@ final class CardArt {
     static final int HEADER_H = 26;
     static final int WELL_H = 140;
     private static final int WELL_MARGIN = 6;
-    /** 64×64 at ×2 (HANDOFF.md §5). */
+    /** 64×64 drawn at ×2. */
     static final int SPRITE = 128;
 
     private CardArt() {
@@ -61,8 +64,8 @@ final class CardArt {
     /**
      * Top of the well. The plate is inset by the frame, so the 26px header runs
      * from {@code SLOT_Y + FRAME} and the well starts {@code FRAME} lower than
-     * the {@code SLOT_Y + 26} quoted in §9, which omits the frame. The mock is
-     * the visual target and it insets, so it wins.
+     * the {@code SLOT_Y + 26} the written spec quotes, which omits the frame.
+     * The mock is the visual target and it insets, so it wins.
      */
     static int wellTop() {
         return SLOT_Y + FRAME + HEADER_H;

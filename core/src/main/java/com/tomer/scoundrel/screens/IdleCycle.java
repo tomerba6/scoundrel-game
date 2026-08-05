@@ -3,18 +3,17 @@ package com.tomer.scoundrel.screens;
 import java.util.Random;
 
 /**
- * The idle animation's clock (HANDOFF.md §7): five frames at 6 fps, looping,
- * with each card started at its own offset so four cards in a room do not
- * breathe in lockstep.
+ * The idle animation's clock: five frames at 6 fps, looping, each card started
+ * at its own offset so four cards in a room do not breathe in lockstep.
  *
  * <p>Time is <b>floored</b> to a frame rather than interpolated. Every segment
  * of this art holds on a frame — nothing tweens and nothing rotates — so the
- * quantising here is the rule, not an optimisation. It is also the idle half of
- * the single flooring point §11 step 11 asks for.
+ * quantising here is the rule, not an optimisation, and this is the single
+ * place idle time is floored.
  */
 final class IdleCycle {
 
-    /** §7: six frames a second, 167ms each. Effects run at 12; idles do not. */
+    /** Six frames a second, 167ms each. Effects run at 12; idles do not. */
     static final int FPS = 6;
     static final float FRAME_TIME = 1f / FPS;
     /** One full five-frame loop, 833ms — also the range of the start stagger. */
@@ -41,7 +40,7 @@ final class IdleCycle {
 
     /**
      * As {@link #frameIndex(float, float, int)}, but holds on frame 1 when the
-     * card is not the player's focus (§13). Four cards breathing at once reads
+     * card is not the player's focus. Four cards breathing at once reads
      * as busy; frame 1 is the base sprite pixel-for-pixel, so a held card is
      * indistinguishable from a static one and nothing jumps when focus moves.
      */

@@ -25,16 +25,16 @@ import java.util.Random;
 /**
  * A developer-only art inspector, opened with F9, closed with Escape and
  * switched between views with Tab. It exists to answer the verify questions in
- * HANDOFF.md §11 — is the art crisp at an integer scale, are all 31 objects on
- * their right ranks, do the idle cycles run — without needing a run of the
- * actual game to reach them.
+ * the art conversion — is the art crisp at an integer scale, are all 31
+ * objects on their right ranks, do the idle cycles run — without needing a run
+ * of the actual game to reach them.
  *
  * <p>Not reachable from any menu, and drawn with a plain batch rather than
  * Scene2D: it is a measuring instrument, not part of the game.
  */
 public final class SpriteLab extends ScreenAdapter {
 
-    /** The stage background from HANDOFF.md §6 — dark enough to show fringing. */
+    /** The stage background — dark enough to show colour fringing. */
     private static final Color BACKDROP = Color.valueOf("100c09");
 
     /** ROOM shows four framed cards; SHEET shows every object by rank. */
@@ -48,11 +48,11 @@ public final class SpriteLab extends ScreenAdapter {
     private final SpriteBatch batch;
 
     private final List<Card> deck = new ArrayList<>();
-    /** Per-card start offsets, assigned once (§7) — never recomputed per frame. */
+    /** Per-card start offsets, assigned once — never recomputed per frame. */
     private final Map<String, Float> idleOffsets = new HashMap<>();
     private View view = View.ROOM;
     private float elapsed;
-    /** The card under the pointer, or null. Only it animates (§13). */
+    /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
 
     public SpriteLab(ScoundrelGame game, Theme theme, Sprites sprites) {
@@ -60,8 +60,8 @@ public final class SpriteLab extends ScreenAdapter {
         this.theme = theme;
         this.sprites = sprites;
         this.cardFrame = new CardFrame(theme);
-        // §5: one fixed virtual resolution, so every number in HANDOFF.md is
-        // literal and the art is guaranteed to land on whole pixels.
+        // One fixed virtual resolution, so the layout numbers are literal and
+        // the art is guaranteed to land on whole pixels.
         this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         this.batch = new SpriteBatch();
         Random random = new Random();
@@ -74,8 +74,8 @@ public final class SpriteLab extends ScreenAdapter {
 
     /**
      * The region to draw for a card right now. Only creatures have idle frames
-     * (§1 ships none for weapons or potions), so everything else is its static
-     * base sprite.
+     * (none were drawn for weapons or potions), so everything else is its
+     * static base sprite.
      */
     private TextureRegion current(Card card, boolean animating) {
         if (card.type() != CardType.MONSTER) {
@@ -126,7 +126,7 @@ public final class SpriteLab extends ScreenAdapter {
         batch.end();
     }
 
-    /** Four framed cards at the §9 geometry, each with its sprite in the well. */
+    /** Four framed cards at the board geometry, each with its sprite in the well. */
     private void drawRoom() {
         List<Card> room = List.of(
                 cardWithId("2C"),   // four creatures, so the idle stagger
@@ -143,7 +143,7 @@ public final class SpriteLab extends ScreenAdapter {
                     CardArt.SPRITE, CardArt.SPRITE);
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
-        theme.body.draw(batch, "ROOM — only the hovered card breathes (§13)", 40, 700);
+        theme.body.draw(batch, "ROOM — only the hovered card breathes", 40, 700);
     }
 
     /**

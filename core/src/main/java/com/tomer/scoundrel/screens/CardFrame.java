@@ -6,8 +6,8 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.tomer.scoundrel.model.CardType;
 
 /**
- * Draws the card frame from HANDOFF.md §6/§9 — outer bezel, plate, the two 2px
- * bevels and the recessed well the sprite sits in.
+ * Draws the card frame — outer bezel, plate, the two 2px bevels and the
+ * recessed well the sprite sits in.
  *
  * <p>Everything is a tinted rectangle on a single white pixel, so the whole card
  * is one texture and never breaks the batch. All measurements come from
@@ -25,7 +25,7 @@ final class CardFrame {
 
     /**
      * Draws one card with its top-left at the design-space point
-     * {@code (slotX, slotY)} — y measured downward, as in HANDOFF.md.
+     * {@code (slotX, slotY)} — y measured downward, as the art is specified.
      */
     void draw(Batch batch, CardType type, int slotX, int slotY) {
         CardArt.Palette palette = CardArt.paletteFor(type);
