@@ -51,6 +51,8 @@ public final class SpriteLab extends ScreenAdapter {
     /** Per-card start offsets, assigned once — never recomputed per frame. */
     private final Map<String, Float> idleOffsets = new HashMap<>();
     private View view = View.ROOM;
+    /** R toggles the generated outline on, the way a weapon kill flashes it. */
+    private boolean showRim;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -106,6 +108,9 @@ public final class SpriteLab extends ScreenAdapter {
             game.showTitle();
             return;
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            showRim = !showRim;
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
             view = view == View.ROOM ? View.SHEET : View.ROOM;
         }
@@ -121,7 +126,7 @@ public final class SpriteLab extends ScreenAdapter {
         } else {
             drawSheet();
         }
-        theme.body.draw(batch, "Tab: switch view    Esc: leave", 40, 48);
+        theme.body.draw(batch, "Tab: switch view    R: toggle rim    Esc: leave", 40, 48);
 
         batch.end();
     }
@@ -141,6 +146,16 @@ public final class SpriteLab extends ScreenAdapter {
             batch.draw(current(card, card.equals(hovered)),
                     CardArt.spriteLeft(slotX), CardArt.toWorldY(CardArt.spriteTop(), CardArt.SPRITE),
                     CardArt.SPRITE, CardArt.SPRITE);
+            // R flashes the generated outline over the sprite, the way the
+            // weapon kill will before the card is cut.
+            if (showRim) {
+                TextureRegion rim = sprites.rim(CardSprites.regionName(card));
+                if (rim != null) {
+                    batch.draw(rim, CardArt.spriteLeft(slotX),
+                            CardArt.toWorldY(CardArt.spriteTop(), CardArt.SPRITE),
+                            CardArt.SPRITE, CardArt.SPRITE);
+                }
+            }
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
         theme.body.draw(batch, "ROOM — only the hovered card breathes", 40, 700);

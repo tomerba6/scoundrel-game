@@ -1,12 +1,17 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.TextureData;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The packed pixel art, loaded once and shared. Owns the atlas and
@@ -24,10 +29,85 @@ public final class Sprites implements Disposable {
     public static final int SIZE = 64;
 
     private final TextureAtlas atlas;
+    private final Texture rimPage;
+    private final Map<String, TextureRegion> rims = new HashMap<>();
 
     public Sprites() {
         atlas = new TextureAtlas(Gdx.files.internal("sprites/sprites.atlas"));
         assertNearestFiltering();
+        rimPage = buildRims();
+    }
+
+    /**
+     * Builds every creature's cream outline into one page laid out exactly like
+     * the atlas, so a rim shares its sprite's coordinates and costs one texture
+     * rather than 26. Generating beats shipping: it keeps 26 files out of the
+     * atlas and cannot fall out of step if a sprite is redrawn.
+     */
+    private Texture buildRims() {
+        TextureData data = atlas.getTextures().first().getTextureData();
+        if (!data.isPrepared()) {
+            data.prepare();
+        }
+        Pixmap page = data.consumePixmap();
+        Pixmap rimmed = new Pixmap(page.getWidth(), page.getHeight(), Pixmap.Format.RGBA8888);
+        rimmed.setBlending(Pixmap.Blending.None);
+
+        Array<TextureAtlas.AtlasRegion> creatures = new Array<>();
+        for (TextureAtlas.AtlasRegion region : atlas.getRegions()) {
+            // Only creatures flash; weapons and potions are never struck. The
+            // base sprite carries the outline, not the individual idle frames,
+            // which the atlas groups under a name ending in "_idle".
+            if (region.name.startsWith("creature_") && !region.name.endsWith("_idle")) {
+                creatures.add(region);
+            }
+        }
+
+        for (TextureAtlas.AtlasRegion region : creatures) {
+            int w = region.getRegionWidth();
+            int h = region.getRegionHeight();
+            int[] src = new int[w * h];
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    src[y * w + x] = rgbaToArgb(
+                            page.getPixel(region.getRegionX() + x, region.getRegionY() + y));
+                }
+            }
+            int[] rim = RimMask.generate(src, w, h);
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    rimmed.drawPixel(region.getRegionX() + x, region.getRegionY() + y,
+                            argbToRgba(rim[y * w + x]));
+                }
+            }
+        }
+
+        Texture texture = new Texture(rimmed);
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        for (TextureAtlas.AtlasRegion region : creatures) {
+            rims.put(region.name, new TextureRegion(texture, region.getRegionX(),
+                    region.getRegionY(), region.getRegionWidth(), region.getRegionHeight()));
+        }
+        rimmed.dispose();
+        page.dispose();
+        return texture;
+    }
+
+    /** Pixmap stores RGBA8888; RimMask works in ARGB like every other Java image. */
+    private static int rgbaToArgb(int rgba) {
+        return (rgba >>> 8) | (rgba << 24);
+    }
+
+    private static int argbToRgba(int argb) {
+        return (argb << 8) | (argb >>> 24);
+    }
+
+    /**
+     * The cream outline for a creature's base sprite, generated at load. Null
+     * for anything that has none — weapons and potions are never struck.
+     */
+    public TextureRegion rim(String regionName) {
+        return rims.get(regionName);
     }
 
     /**
@@ -72,6 +152,7 @@ public final class Sprites implements Disposable {
 
     @Override
     public void dispose() {
+        rimPage.dispose();
         atlas.dispose();
     }
 }

@@ -355,7 +355,11 @@ since §1 ships no idle frames for weapons or potions. Frame selection floors ti
 `Animation` per creature card, 6 fps, random start offset.
 *Verify:* four cards in a room are visibly out of phase; nothing shimmers or drifts sub-pixel.
 
-**7 — Rim generation.** §8, rim only. Add a debug key that flashes the rim on a card.
+**7 — Rim generation.** *(done — `RimMask` generates it, `Sprites` builds all 26 into one page at
+load laid out like the atlas, R toggles it in the lab. A test compares every generated rim to the
+delivered `.rim.png` pixel for pixel, so the reference copies are now a permanent check rather than
+a one-off.)*
+§8, rim only. Add a debug key that flashes the rim on a card.
 *Verify:* a clean 2px cream outline (1px source × 2), no gaps at the silhouette's diagonals.
 
 **8 — Weapon kill.** Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
