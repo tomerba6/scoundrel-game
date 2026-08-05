@@ -28,16 +28,28 @@ final class CardFrame {
      * {@code (slotX, slotY)} — y measured downward, as the art is specified.
      */
     void draw(Batch batch, CardType type, int slotX, int slotY) {
+        draw(batch, type, slotX, slotY, CardArt.CARD_W, CardArt.CARD_H);
+    }
+
+    /**
+     * The same card at a reduced size, for one in flight. Every measurement is
+     * scaled by the same ratio and rounded, so a shrinking card keeps its
+     * proportions and stays on whole pixels at each hop — it is only ever drawn
+     * at a handful of discrete sizes, never tweened between them.
+     */
+    void draw(Batch batch, CardType type, int slotX, int slotY, int width, int height) {
         CardArt.Palette palette = CardArt.paletteFor(type);
-        int frame = CardArt.FRAME;
-        int bevel = CardArt.BEVEL;
+        float sx = width / (float) CardArt.CARD_W;
+        float sy = height / (float) CardArt.CARD_H;
+        int frame = Math.max(1, Math.round(CardArt.FRAME * sx));
+        int bevel = Math.max(1, Math.round(CardArt.BEVEL * sx));
 
         // The bezel every card sits in, then the plate inset inside it.
-        fill(batch, slotX, slotY, CardArt.CARD_W, CardArt.CARD_H, CardArt.OUTER);
+        fill(batch, slotX, slotY, width, height, CardArt.OUTER);
         int plateX = slotX + frame;
         int plateY = slotY + frame;
-        int plateW = CardArt.CARD_W - 2 * frame;
-        int plateH = CardArt.CARD_H - 2 * frame;
+        int plateW = width - 2 * frame;
+        int plateH = height - 2 * frame;
         fill(batch, plateX, plateY, plateW, plateH, palette.plate());
 
         // Bevels: light along the top and left, dark along the bottom and right,
@@ -50,15 +62,17 @@ final class CardFrame {
 
         // The well, recessed by a hard shadow along its top edge and the faintest
         // cream lip along its bottom — the mock's two inset box-shadows.
-        int wellX = CardArt.wellLeft(slotX);
-        int wellY = slotY + (CardArt.wellTop() - CardArt.SLOT_Y);
-        int wellW = CardArt.wellWidth();
-        fill(batch, wellX, wellY, wellW, CardArt.WELL_H, palette.well());
+        int wellX = slotX + Math.round((CardArt.wellLeft(0)) * sx);
+        int wellY = slotY + Math.round((CardArt.wellTop() - CardArt.SLOT_Y) * sy);
+        int wellW = Math.round(CardArt.wellWidth() * sx);
+        int wellH = Math.round(CardArt.WELL_H * sy);
+        fill(batch, wellX, wellY, wellW, wellH, palette.well());
         fill(batch, wellX, wellY, wellW, 2, 0x000000, 0.6f);
-        fill(batch, wellX, wellY + CardArt.WELL_H - 2, wellW, 2, 0xe8ddc7, 0.05f);
+        fill(batch, wellX, wellY + wellH - 2, wellW, 2, 0xe8ddc7, 0.05f);
 
         // The hairline above the value numeral in the footer.
-        fill(batch, plateX + 6, wellY + CardArt.WELL_H, plateW - 12, 2, 0x000000, 0.55f);
+        fill(batch, plateX + Math.round(6 * sx), wellY + wellH,
+                plateW - Math.round(12 * sx), 2, 0x000000, 0.55f);
     }
 
     private void fill(Batch batch, int x, int y, int w, int h, int rgb) {

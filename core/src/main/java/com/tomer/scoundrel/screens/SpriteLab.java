@@ -63,6 +63,10 @@ public final class SpriteLab extends ScreenAdapter {
     /** The card taking a bare-handed exchange, and how far into it. */
     private Card struckBare;
     private float bareElapsed;
+    /** A room being swept to the ticker, or a card carried to the rail. */
+    private float avoidElapsed = -1f;
+    private Card equipping;
+    private float equipElapsed;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -120,6 +124,25 @@ public final class SpriteLab extends ScreenAdapter {
             game.showTitle();
             return;
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+            avoidElapsed = 0f;
+        }
+        if (avoidElapsed >= 0f) {
+            avoidElapsed += slowMotion ? delta / 8f : delta;
+            if (CardFlight.AVOID.finished(avoidElapsed)) {
+                avoidElapsed = -1f;
+            }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E) && hovered != null) {
+            equipping = hovered;
+            equipElapsed = 0f;
+        }
+        if (equipping != null) {
+            equipElapsed += slowMotion ? delta / 8f : delta;
+            if (CardFlight.EQUIP.finished(equipElapsed)) {
+                equipping = null;
+            }
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.B) && hovered != null) {
             struckBare = hovered;
             bareElapsed = 0f;
@@ -161,7 +184,7 @@ public final class SpriteLab extends ScreenAdapter {
         } else {
             drawSheet();
         }
-        theme.body.draw(batch, "Tab: view   R: rim   K: kill   B: barehanded   S: slow-mo   Esc: leave", 40, 48);
+        theme.body.draw(batch, "Tab R:rim K:kill B:bare A:avoid E:equip S:slow Esc:leave", 40, 48);
 
         batch.end();
     }
@@ -181,6 +204,10 @@ public final class SpriteLab extends ScreenAdapter {
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
+            if (avoidElapsed >= 0f || card.equals(equipping)) {
+                drawFlight(card, slotX);
+                continue;
+            }
             boolean struck = card.equals(killing);
             if (struck && WeaponKill.cardCut(killElapsed)) {
                 drawCleaved(slotX);
@@ -269,6 +296,34 @@ public final class SpriteLab extends ScreenAdapter {
             }
         }
         theme.body.draw(batch, "SHEET — all 44 cards, 31 objects, by rank", 40, 700);
+    }
+
+    /**
+     * A card on its way out of the room — swept to the ticker, or carried down
+     * to the rail. The whole card shrinks and hops; nothing tweens between one
+     * hop and the next.
+     */
+    private void drawFlight(Card card, int slotX) {
+        boolean sweeping = avoidElapsed >= 0f;
+        CardFlight.Flight flight = sweeping ? CardFlight.AVOID : CardFlight.EQUIP;
+        float t = sweeping ? avoidElapsed : equipElapsed;
+
+        int scale = CardFlight.scale(flight, t);
+        int w = CardArt.CARD_W * scale / 100;
+        int h = CardArt.CARD_H * scale / 100;
+        // The anchors are centres, so the card is placed by its own centre.
+        int cx = CardFlight.x(flight, slotX + CardArt.CARD_W / 2, t);
+        int cy = CardFlight.y(flight, CardArt.SLOT_Y + CardArt.CARD_H / 2, t);
+        int x = cx - w / 2;
+        int y = cy - h / 2;
+
+        cardFrame.draw(batch, card.type(), x, y, w, h);
+        int sprite = CardArt.SPRITE * scale / 100;
+        batch.draw(current(card, false),
+                x + (w - sprite) / 2,
+                CardArt.toWorldY(y + Math.round((CardArt.spriteTop() - CardArt.SLOT_Y)
+                        * scale / 100f), sprite),
+                sprite, sprite);
     }
 
     /**
