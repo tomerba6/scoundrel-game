@@ -30,21 +30,29 @@ public final class Sprites implements Disposable {
 
     private final TextureAtlas atlas;
     private final Texture rimPage;
+    private final Texture hurtPage;
     private final Map<String, TextureRegion> rims = new HashMap<>();
+    private final Map<String, TextureRegion> hurts = new HashMap<>();
 
     public Sprites() {
         atlas = new TextureAtlas(Gdx.files.internal("sprites/sprites.atlas"));
         assertNearestFiltering();
-        rimPage = buildRims();
+        rimPage = buildDerived(RimMask::generate, rims);
+        hurtPage = buildDerived(HurtMask::generate, hurts);
+    }
+
+    /** A per-sprite pixel rule, applied to build a derived page. */
+    private interface Rule {
+        int[] apply(int[] argb, int width, int height);
     }
 
     /**
-     * Builds every creature's cream outline into one page laid out exactly like
-     * the atlas, so a rim shares its sprite's coordinates and costs one texture
-     * rather than 26. Generating beats shipping: it keeps 26 files out of the
-     * atlas and cannot fall out of step if a sprite is redrawn.
+     * Builds a derived frame for every creature into one page laid out exactly
+     * like the atlas, so the result shares its sprite's coordinates and costs
+     * one texture rather than 26. Generating beats shipping: it keeps 52 files
+     * out of the atlas and cannot fall out of step if a sprite is redrawn.
      */
-    private Texture buildRims() {
+    private Texture buildDerived(Rule rule, Map<String, TextureRegion> into) {
         TextureData data = atlas.getTextures().first().getTextureData();
         if (!data.isPrepared()) {
             data.prepare();
@@ -73,11 +81,11 @@ public final class Sprites implements Disposable {
                             page.getPixel(region.getRegionX() + x, region.getRegionY() + y));
                 }
             }
-            int[] rim = RimMask.generate(src, w, h);
+            int[] out = rule.apply(src, w, h);
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
                     rimmed.drawPixel(region.getRegionX() + x, region.getRegionY() + y,
-                            argbToRgba(rim[y * w + x]));
+                            argbToRgba(out[y * w + x]));
                 }
             }
         }
@@ -85,7 +93,7 @@ public final class Sprites implements Disposable {
         Texture texture = new Texture(rimmed);
         texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
         for (TextureAtlas.AtlasRegion region : creatures) {
-            rims.put(region.name, new TextureRegion(texture, region.getRegionX(),
+            into.put(region.name, new TextureRegion(texture, region.getRegionX(),
                     region.getRegionY(), region.getRegionWidth(), region.getRegionHeight()));
         }
         rimmed.dispose();
@@ -108,6 +116,14 @@ public final class Sprites implements Disposable {
      */
     public TextureRegion rim(String regionName) {
         return rims.get(regionName);
+    }
+
+    /**
+     * The frame a creature holds while it is struck: brightened two steps up its
+     * own ramp with the outline over it. Null for anything never struck.
+     */
+    public TextureRegion hurt(String regionName) {
+        return hurts.get(regionName);
     }
 
     /**
@@ -153,6 +169,7 @@ public final class Sprites implements Disposable {
     @Override
     public void dispose() {
         rimPage.dispose();
+        hurtPage.dispose();
         atlas.dispose();
     }
 }

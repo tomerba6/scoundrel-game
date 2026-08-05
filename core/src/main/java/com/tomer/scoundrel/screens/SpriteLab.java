@@ -59,6 +59,9 @@ public final class SpriteLab extends ScreenAdapter {
     private float killElapsed;
     /** S slows effects 8x. Sub-second animation cannot be screenshotted at speed. */
     private boolean slowMotion;
+    /** The card taking a bare-handed exchange, and how far into it. */
+    private Card struckBare;
+    private float bareElapsed;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -115,6 +118,16 @@ public final class SpriteLab extends ScreenAdapter {
             game.showTitle();
             return;
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B) && hovered != null) {
+            struckBare = hovered;
+            bareElapsed = 0f;
+        }
+        if (struckBare != null) {
+            bareElapsed += slowMotion ? delta / 8f : delta;
+            if (Barehanded.finished(bareElapsed)) {
+                struckBare = null;
+            }
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.K) && hovered != null) {
             killing = hovered;
             killElapsed = 0f;
@@ -146,7 +159,7 @@ public final class SpriteLab extends ScreenAdapter {
         } else {
             drawSheet();
         }
-        theme.body.draw(batch, "Tab: view    R: rim    K: kill    S: slow-mo    Esc: leave", 40, 48);
+        theme.body.draw(batch, "Tab: view   R: rim   K: kill   B: barehanded   S: slow-mo   Esc: leave", 40, 48);
 
         batch.end();
     }
@@ -167,12 +180,27 @@ public final class SpriteLab extends ScreenAdapter {
                 drawCleaved(slotX);
                 continue;
             }
+            boolean bare = card.equals(struckBare);
             int lift = struck ? WeaponKill.cardLift(killElapsed) : 0;
+            int shakeX = bare ? Barehanded.shakeX(bareElapsed) : 0;
+            int shakeY = bare ? Barehanded.shakeY(bareElapsed) : 0;
+            slotX += shakeX;
+            lift -= shakeY;
             cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y - lift);
-            batch.draw(current(card, card.equals(hovered)),
-                    CardArt.spriteLeft(slotX),
+            TextureRegion body = bare && Barehanded.hurtShowing(bareElapsed)
+                    ? sprites.hurt(CardSprites.regionName(card))
+                    : current(card, card.equals(hovered));
+            batch.draw(body, CardArt.spriteLeft(slotX),
                     CardArt.toWorldY(CardArt.spriteTop() - lift, CardArt.SPRITE),
                     CardArt.SPRITE, CardArt.SPRITE);
+            if (bare && Barehanded.flashShowing(bareElapsed)) {
+                // A short bone wash under the blow, over the well only.
+                batch.setColor(0.91f, 0.87f, 0.78f, 0.35f);
+                batch.draw(theme.whiteRegion(), CardArt.wellLeft(slotX),
+                        CardArt.toWorldY(CardArt.wellTop() - lift, CardArt.WELL_H),
+                        CardArt.wellWidth(), CardArt.WELL_H);
+                batch.setColor(1f, 1f, 1f, 1f);
+            }
             // R flashes the generated outline over the sprite, the way the
             // weapon kill will before the card is cut.
             if (showRim || (struck && WeaponKill.rimShowing(killElapsed))) {
@@ -185,7 +213,7 @@ public final class SpriteLab extends ScreenAdapter {
             }
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
-        theme.body.draw(batch, "ROOM — hover to animate, K to cleave"
+        theme.body.draw(batch, "ROOM — hover to animate, K to cleave, B to strike"
                 + (slowMotion ? "   [SLOW 1/8]" : ""), 40, 700);
     }
 

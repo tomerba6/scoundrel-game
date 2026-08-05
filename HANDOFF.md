@@ -239,6 +239,32 @@ This keeps the flash inside the palette instead of washing to white.
 You need the 80-colour table in Java to do the hurt lookup — hardcode the ramps from §6 as
 `int[][]`, match by exact RGB. Every sprite pixel is guaranteed to be in the table.
 
+> **As built — two corrections, both measured.**
+>
+> **1. Not every sprite pixel is in the table.** Six of the 26 are partly off the ramps, which
+> the appendix actually explains: the Ace was installed verbatim at 51–64 tones, and the goblin
+> and the knight had only one part of each remapped.
+>
+> | sprite | off-ramp colours | share of the sprite |
+> |---|---|---|
+> | `creature_14_the_debt` clubs / spades | 50 / 49 | 92% / 87% |
+> | `creature_06_goblin_cutter` clubs / spades | 37 / 32 | 85% / 81% |
+> | `creature_09_gaunt_knight` clubs / spades | 29 / 24 | 63% / 59% |
+>
+> Matching by exact RGB and leaving misses alone would make being struck almost invisible on
+> those six — 92% of the Ace would not change. So an unmatched colour is snapped to its nearest
+> ramp entry first, then brightened. The flash stays inside the palette, which is the point of
+> the rule.
+>
+> **2. The delivered `.hurt.png` files cannot be used to check the generator.** Unlike the rims,
+> which the generator reproduces 26/26 exactly, none of the 26 hurt frames is reproducible by
+> any per-pixel ramp rule: the same source colour maps to several different outputs within one
+> sprite (up to 11 for the Ace, across 50 colours). Four of them also contain colours outside
+> the palette. They were evidently produced by a different pass than the one documented here.
+> The generator follows the documented rule and is checked by asserting the property the rule
+> exists for — every one of the 26 produces a brighter frame with no colour off the palette and
+> no white.
+
 If the ramp lookup is more work than you want on day one, ship rim only. Rim alone carries the
 weapon-kill flash, which is the effect that needs it.
 
@@ -368,7 +394,10 @@ for; held literally the phase change lands mid-frame and the effect slides.)*
 Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
 *Verify:* you can see the outline flash with the creature still visible, *then* the cut.
 
-**9 — Hurt generation and barehanded.** §8 in full, then the two-hit exchange.
+**9 — Hurt generation and barehanded.** *(done — `Ramps` holds the 80-colour table, `HurtMask`
+moves each pixel two steps up its own ramp and lays the rim over it, `Barehanded` is the
+exchange. Two corrections to §8 below.)*
+§8 in full, then the two-hit exchange.
 *Verify:* the hurt frame is brighter but still on-palette — no white, no new colours.
 
 **10 — Remaining effects.** Deal, avoid, equip, potion, death, HP pulses, from the §10 table.
