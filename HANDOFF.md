@@ -344,7 +344,9 @@ Note: the plate is inset by the 2px outer frame, so the well starts at `SLOT_Y +
 Draw the plate, 2px bevels and well from §6/§9 with the palette hexes.
 *Verify:* side by side with the mock's BOARD tab at 1280×720. The bevel should be 2px, not 4.
 
-**5 — Static sprites on cards.** Map card → region name from §1. Weapons and potions are done here.
+**5 — Static sprites on cards.** *(done — `CardSprites` maps card → region; the lab's Tab-toggled
+SHEET view lays all 44 out by rank for the verify.)*
+Map card → region name from §1. Weapons and potions are done here.
 *Verify:* all 31 objects appear on their correct ranks; nothing is missing or doubled.
 
 **6 — Idle cycles.** `Animation` per creature card, 6 fps, random start offset.

@@ -8,13 +8,20 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
+import com.tomer.scoundrel.model.Card;
 import com.tomer.scoundrel.model.CardType;
+import com.tomer.scoundrel.rules.CardDefinition;
+import com.tomer.scoundrel.rules.StandardDeck;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * A developer-only sprite inspector, opened with F9 and closed with Escape. It
- * exists to answer the verify questions in HANDOFF.md §11 — is the art crisp at
- * an integer scale, are all 31 objects on their right ranks, do the idle cycles
- * run — without needing a run of the actual game to reach them.
+ * A developer-only art inspector, opened with F9, closed with Escape and
+ * switched between views with Tab. It exists to answer the verify questions in
+ * HANDOFF.md §11 — is the art crisp at an integer scale, are all 31 objects on
+ * their right ranks, do the idle cycles run — without needing a run of the
+ * actual game to reach them.
  *
  * <p>Not reachable from any menu, and drawn with a plain batch rather than
  * Scene2D: it is a measuring instrument, not part of the game.
@@ -24,13 +31,8 @@ public final class SpriteLab extends ScreenAdapter {
     /** The stage background from HANDOFF.md §6 — dark enough to show fringing. */
     private static final Color BACKDROP = Color.valueOf("100c09");
 
-    private static final String SUBJECT = "creature_02_cellar_rat_clubs";
-    private static final int SCALE = 2;
-
-    /** One of each palette, plus a repeat, so all three ramps are on screen. */
-    private static final CardType[] ROW = {
-        CardType.MONSTER, CardType.WEAPON, CardType.POTION, CardType.MONSTER,
-    };
+    /** ROOM shows four framed cards; SHEET shows every object by rank. */
+    private enum View { ROOM, SHEET }
 
     private final ScoundrelGame game;
     private final Theme theme;
@@ -38,6 +40,9 @@ public final class SpriteLab extends ScreenAdapter {
     private final CardFrame cardFrame;
     private final PixelViewport viewport;
     private final SpriteBatch batch;
+
+    private final List<Card> deck = new ArrayList<>();
+    private View view = View.ROOM;
 
     public SpriteLab(ScoundrelGame game, Theme theme, Sprites sprites) {
         this.game = game;
@@ -48,6 +53,9 @@ public final class SpriteLab extends ScreenAdapter {
         // literal and the art is guaranteed to land on whole pixels.
         this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         this.batch = new SpriteBatch();
+        for (CardDefinition def : new StandardDeck().cards()) {
+            deck.add(new Card(def.id(), def.type(), def.value()));
+        }
     }
 
     @Override
@@ -56,31 +64,93 @@ public final class SpriteLab extends ScreenAdapter {
             game.showTitle();
             return;
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+            view = view == View.ROOM ? View.SHEET : View.ROOM;
+        }
         ScreenUtils.clear(BACKDROP);
         viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
 
-        // The four-slot room row at the §9 geometry, for comparing against the
-        // mock's BOARD tab. Wells are empty until step 5 puts sprites on cards.
-        for (int i = 0; i < ROW.length; i++) {
-            cardFrame.draw(batch, ROW[i], CardArt.slotX(i), CardArt.SLOT_Y);
-        }
-
-        // The lone sprite from step 2, kept above the row as the crispness check.
-        TextureRegion region = sprites.region(SUBJECT);
-        int drawn = Sprites.SIZE * SCALE;
-        // Whole-pixel placement (§4). These divide evenly at 1280×720, but the
-        // rounding is what makes that a guarantee rather than a coincidence.
-        int x = Math.round((Theme.WORLD_WIDTH - drawn) / 2f);
-        batch.draw(region, x, CardArt.toWorldY(48, drawn), drawn, drawn);
-
         theme.body.setColor(Theme.BONE);
-        theme.body.draw(batch, SUBJECT + "  ×" + SCALE + "  (" + drawn + "px)", 40, 700);
-        theme.body.draw(batch, "card frame: plate + 2px bevels + well", 40, 676);
-        theme.body.draw(batch, "Esc to leave", 40, 48);
+        if (view == View.ROOM) {
+            drawRoom();
+        } else {
+            drawSheet();
+        }
+        theme.body.draw(batch, "Tab: switch view    Esc: leave", 40, 48);
 
         batch.end();
+    }
+
+    /** Four framed cards at the §9 geometry, each with its sprite in the well. */
+    private void drawRoom() {
+        List<Card> room = List.of(
+                cardWithId("KS"),   // a face monster
+                cardWithId("7C"),   // a numbered monster, other suit
+                cardWithId("5D"),   // a weapon
+                cardWithId("9H"));  // a potion
+        for (int i = 0; i < room.size(); i++) {
+            Card card = room.get(i);
+            int slotX = CardArt.slotX(i);
+            cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y);
+            batch.draw(sprites.region(CardSprites.regionName(card)),
+                    CardArt.spriteLeft(slotX), CardArt.toWorldY(CardArt.spriteTop(), CardArt.SPRITE),
+                    CardArt.SPRITE, CardArt.SPRITE);
+            theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
+        }
+        theme.body.draw(batch, "ROOM — card frame + sprite in the well", 40, 700);
+    }
+
+    /**
+     * Every object the deck can deal, laid out by rank so a missing or doubled
+     * sprite is obvious at a glance: clubs and spades creatures on the top two
+     * rows, then the nine weapons and nine potions.
+     */
+    private void drawSheet() {
+        int cell = 88;
+        int left = (int) (Theme.WORLD_WIDTH - 13 * cell) / 2;
+        int top = 132;
+        String[] rowLabels = {"CLUBS", "SPADES", "WEAPON", "POTION"};
+
+        for (int value = 2; value <= 14; value++) {
+            String rank = switch (value) {
+                case 11 -> "J";
+                case 12 -> "Q";
+                case 13 -> "K";
+                case 14 -> "A";
+                default -> String.valueOf(value);
+            };
+            theme.body.draw(batch, rank, left + (value - 2) * cell + 24,
+                    CardArt.toWorldY(top - 12, 0));
+        }
+
+        for (int row = 0; row < 4; row++) {
+            int y = top + row * 96;
+            theme.body.draw(batch, rowLabels[row], 24, CardArt.toWorldY(y + 26, 0));
+            for (Card card : deck) {
+                if (rowOf(card) != row) {
+                    continue;
+                }
+                int x = left + (card.value() - 2) * cell + 12;
+                batch.draw(sprites.region(CardSprites.regionName(card)),
+                        x, CardArt.toWorldY(y, Sprites.SIZE), Sprites.SIZE, Sprites.SIZE);
+            }
+        }
+        theme.body.draw(batch, "SHEET — all 44 cards, 31 objects, by rank", 40, 700);
+    }
+
+    /** Clubs 0, spades 1, weapons 2, potions 3. */
+    private int rowOf(Card card) {
+        if (card.type() == CardType.MONSTER) {
+            return card.id().endsWith("C") ? 0 : 1;
+        }
+        return card.type() == CardType.WEAPON ? 2 : 3;
+    }
+
+    private Card cardWithId(String id) {
+        return deck.stream().filter(c -> c.id().equals(id)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("no card " + id));
     }
 
     @Override
