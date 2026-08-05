@@ -338,7 +338,10 @@ scale rather than fitting exactly.)*
 `FitViewport(1280, 720)`. Move the existing screens onto it.
 *Verify:* the layout is identical at three window sizes, letterboxed.
 
-**4 — Card frame.** Draw the plate, 2px bevels and well from §6/§9 with the palette hexes.
+**4 — Card frame.** *(done — `CardFrame` draws it, `CardArt` holds the measurements and ramps.
+Note: the plate is inset by the 2px outer frame, so the well starts at `SLOT_Y + 28`, not the
+`SLOT_Y + 26` quoted in §9 — that figure omits the frame. The mock insets, so the mock wins.)*
+Draw the plate, 2px bevels and well from §6/§9 with the palette hexes.
 *Verify:* side by side with the mock's BOARD tab at 1280×720. The bevel should be 2px, not 4.
 
 **5 — Static sprites on cards.** Map card → region name from §1. Weapons and potions are done here.

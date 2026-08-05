@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
+import com.tomer.scoundrel.model.CardType;
 
 /**
  * A developer-only sprite inspector, opened with F9 and closed with Escape. It
@@ -26,9 +27,15 @@ public final class SpriteLab extends ScreenAdapter {
     private static final String SUBJECT = "creature_02_cellar_rat_clubs";
     private static final int SCALE = 2;
 
+    /** One of each palette, plus a repeat, so all three ramps are on screen. */
+    private static final CardType[] ROW = {
+        CardType.MONSTER, CardType.WEAPON, CardType.POTION, CardType.MONSTER,
+    };
+
     private final ScoundrelGame game;
     private final Theme theme;
     private final Sprites sprites;
+    private final CardFrame cardFrame;
     private final PixelViewport viewport;
     private final SpriteBatch batch;
 
@@ -36,6 +43,7 @@ public final class SpriteLab extends ScreenAdapter {
         this.game = game;
         this.theme = theme;
         this.sprites = sprites;
+        this.cardFrame = new CardFrame(theme);
         // §5: one fixed virtual resolution, so every number in HANDOFF.md is
         // literal and the art is guaranteed to land on whole pixels.
         this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
@@ -53,16 +61,23 @@ public final class SpriteLab extends ScreenAdapter {
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
 
+        // The four-slot room row at the §9 geometry, for comparing against the
+        // mock's BOARD tab. Wells are empty until step 5 puts sprites on cards.
+        for (int i = 0; i < ROW.length; i++) {
+            cardFrame.draw(batch, ROW[i], CardArt.slotX(i), CardArt.SLOT_Y);
+        }
+
+        // The lone sprite from step 2, kept above the row as the crispness check.
         TextureRegion region = sprites.region(SUBJECT);
         int drawn = Sprites.SIZE * SCALE;
         // Whole-pixel placement (§4). These divide evenly at 1280×720, but the
         // rounding is what makes that a guarantee rather than a coincidence.
         int x = Math.round((Theme.WORLD_WIDTH - drawn) / 2f);
-        int y = Math.round((Theme.WORLD_HEIGHT - drawn) / 2f);
-        batch.draw(region, x, y, drawn, drawn);
+        batch.draw(region, x, CardArt.toWorldY(48, drawn), drawn, drawn);
 
         theme.body.setColor(Theme.BONE);
-        theme.body.draw(batch, SUBJECT + "  ×" + SCALE + "  (" + drawn + "px)", 40, 680);
+        theme.body.draw(batch, SUBJECT + "  ×" + SCALE + "  (" + drawn + "px)", 40, 700);
+        theme.body.draw(batch, "card frame: plate + 2px bevels + well", 40, 676);
         theme.body.draw(batch, "Esc to leave", 40, 48);
 
         batch.end();

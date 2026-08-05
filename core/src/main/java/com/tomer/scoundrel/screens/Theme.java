@@ -113,6 +113,7 @@ public final class Theme implements Disposable {
     private final Texture flask;
     private final Texture sliceUpper;
     private final Texture sliceLower;
+    private final TextureRegion whiteRegion;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
     private final TextureRegion dotRegion;
@@ -145,6 +146,7 @@ public final class Theme implements Disposable {
         pixel.fill();
         white = new Texture(pixel);
         pixel.dispose();
+        whiteRegion = new TextureRegion(white);
 
         glow = radialGlowTexture(256);
         vignette = vignetteTexture(256);
@@ -180,6 +182,11 @@ public final class Theme implements Disposable {
     /** A flat rectangle of the given color, stretchable to any size. */
     public Drawable solid(Color color) {
         return new TextureRegionDrawable(new TextureRegion(white)).tint(color);
+    }
+
+    /** A single white pixel, for drawing tinted rectangles straight onto a Batch. */
+    TextureRegion whiteRegion() {
+        return whiteRegion;
     }
 
     /** Soft warm radial glow (white; tinted at draw). Package-private — only the Backdrop uses it. */
