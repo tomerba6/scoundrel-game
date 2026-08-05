@@ -18,9 +18,15 @@ final class Barehanded {
     /** ~900ms, rounded to the effect grid. */
     static final float TOTAL = 11 * FRAME;
 
-    /** Each blow lands for two frames; the second follows one frame behind. */
+    /** The blows land on frames 0 and 3 — the second a quarter-second behind. */
     private static final int HIT_LENGTH = 2;
-    private static final int[] HIT_FRAMES = {0, 1};
+    private static final int[] HIT_FRAMES = {0, 3};
+
+    /** The star box before scaling, and its three discrete sizes. */
+    static final int STAR_BOX = 80;
+    private static final float[] STAR_SCALE = {0.5f, 1.2f, 1.9f};
+    /** Offsets from the struck card's centre, one per blow. */
+    private static final int[][] STAR_OFFSET = {{-26, -18}, {22, 24}};
 
     /** Whole-pixel shake, one entry per frame, settling back to rest. */
     private static final int[] SHAKE_X = {-8, 8, -4, 4, -4, 0, 0, 0, 0, 0, 0};
@@ -75,6 +81,57 @@ final class Barehanded {
     private static int shake(int[] table, float elapsed) {
         int frame = frameOf(elapsed);
         return frame >= 0 && frame < table.length ? table[frame] : 0;
+    }
+
+    /**
+     * The star's box for blow {@code hit} right now, or 0 when it is not up.
+     * Three discrete sizes — never a tween — rounded to whole pixels.
+     */
+    static int starSize(int hit, float elapsed) {
+        int step = starStep(hit, elapsed);
+        return step < 0 ? 0 : Math.round(STAR_BOX * STAR_SCALE[step]);
+    }
+
+    /** Full on the frame the blow lands, gone by the third. */
+    static float starAlpha(int hit, float elapsed) {
+        int step = starStep(hit, elapsed);
+        return step < 0 ? 0f : 1f - step / (float) STAR_SCALE.length;
+    }
+
+    static int starOffsetX(int hit) {
+        return STAR_OFFSET[hit][0];
+    }
+
+    static int starOffsetY(int hit) {
+        return STAR_OFFSET[hit][1];
+    }
+
+    /** How many blows there are, so callers do not hardcode two. */
+    static int hits() {
+        return HIT_FRAMES.length;
+    }
+
+    /**
+     * Which of the three growth steps a star is on, or -1 when it is not up.
+     * One step per frame: the spec's "three steps over two frames" would change
+     * a value mid-frame, and nothing here is allowed to slide.
+     */
+    private static int starStep(int hit, float elapsed) {
+        int frame = frameOf(elapsed);
+        int offset = frame - HIT_FRAMES[hit];
+        return offset >= 0 && offset < STAR_SCALE.length ? offset : -1;
+    }
+
+    /** The gold wash under a blow: 80% alpha decaying over two frames. */
+    static float flashAlpha(float elapsed) {
+        int frame = frameOf(elapsed);
+        for (int start : HIT_FRAMES) {
+            int offset = frame - start;
+            if (offset >= 0 && offset < HIT_LENGTH) {
+                return 0.8f * (1f - offset / (float) HIT_LENGTH);
+            }
+        }
+        return 0f;
     }
 
     static boolean finished(float elapsed) {

@@ -7,8 +7,9 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
 
 /**
- * The three pieces a weapon kill needs beyond the sprite itself: the two halves
- * the card is cleaved into, and the bone bar that cuts it.
+ * The generated pieces the kill effects need beyond the sprites themselves:
+ * the two halves a card is cleaved into, the bone bar that cuts it, and the
+ * eight-point burst a bare-handed blow throws.
  *
  * <p>All three are built as pixel masks at load rather than drawn with rotation
  * or a shader. The bar in particular is generated already diagonal instead of
@@ -30,18 +31,22 @@ final class SliceArt implements Disposable {
     private final Texture upperTexture;
     private final Texture lowerTexture;
     private final Texture barTexture;
+    private final Texture starTexture;
 
     private final TextureRegion upper;
     private final TextureRegion lower;
     private final TextureRegion bar;
+    private final TextureRegion star;
 
     SliceArt(int cardWidth, int cardHeight) {
         upperTexture = triangle(cardWidth, cardHeight, true);
         lowerTexture = triangle(cardWidth, cardHeight, false);
         barTexture = diagonalBar(cardWidth, cardHeight);
+        starTexture = burst(Barehanded.STAR_BOX);
         upper = new TextureRegion(upperTexture);
         lower = new TextureRegion(lowerTexture);
         bar = new TextureRegion(barTexture);
+        star = new TextureRegion(starTexture);
     }
 
     /** The half above-left of the cut, or the half below-right of it. */
@@ -55,6 +60,10 @@ final class SliceArt implements Disposable {
 
     TextureRegion bar() {
         return bar;
+    }
+
+    TextureRegion star() {
+        return star;
     }
 
     /**
@@ -98,6 +107,38 @@ final class SliceArt implements Disposable {
         }
     }
 
+    /**
+     * The eight-point burst: four bars in a box, drawn as pixels rather than
+     * geometry. The two straight arms are plain rects; the diagonals are
+     * staircases of 8×8 blocks, each offset one block right and one block down
+     * from the last. That is exactly 45° and perfectly grid-aligned, where a
+     * rotated rect would resample into soft grey edges — the worst thing that
+     * can be done to a pixel sprite.
+     */
+    private static Texture burst(int box) {
+        Pixmap pixmap = new Pixmap(box, box, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        pixmap.setColor(0);
+        pixmap.fill();
+        pixmap.setColor(new Color((BONE << 8) | 0xff));
+
+        int arm = box / 10;                 // 8 at the design size
+        int mid = (box - arm) / 2;          // 36
+        pixmap.fillRectangle(0, mid, box, arm);
+        pixmap.fillRectangle(mid, 0, arm, box);
+
+        // Three blocks each side of centre covers the 52px diagonal arms.
+        for (int step = -3; step <= 3; step++) {
+            pixmap.fillRectangle(mid + step * arm, mid + step * arm, arm, arm);
+            pixmap.fillRectangle(mid + step * arm, mid - step * arm, arm, arm);
+        }
+
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        pixmap.dispose();
+        return texture;
+    }
+
     /** A bone bar already lying along the cut, so it never has to be rotated. */
     private static Texture diagonalBar(int w, int h) {
         Pixmap pixmap = new Pixmap(w, h, Pixmap.Format.RGBA8888);
@@ -124,5 +165,6 @@ final class SliceArt implements Disposable {
         upperTexture.dispose();
         lowerTexture.dispose();
         barTexture.dispose();
+        starTexture.dispose();
     }
 }

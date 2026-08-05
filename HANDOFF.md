@@ -72,9 +72,9 @@ names differ.
 > It also keeps ~574 KB of already-compressed PNGs out of every distributable, though at
 > ~1.3% of a build that was never the point.
 
-**Scope:** this covers the game board, its cards, and the effects listed in §8. The title screen,
-mode select, records, trophies and tutorial keep their current appearance — nothing here changes
-them. Their fonts change with everything else (§3).
+**Scope:** the game board, its cards, the effects in §10, **and every other screen** — title, mode
+select, ledger, trophies, tutorial and run-end (§11). Nothing in the game keeps its old look; the
+whole front end moves onto the same grammar.
 
 ---
 
@@ -315,7 +315,7 @@ HELD_ICON = 32;                      // the card sprite at ÷2 — even, so it s
 
 ÷2 is a clean halving: every 2×2 source block becomes one pixel. It loses detail but never produces
 an uneven grid. The long-term answer is the 16×16 hand-drawn icons the brief calls for, drawn at ×4 —
-see §13.
+see §14.
 
 ---
 
@@ -344,6 +344,38 @@ different game than one that steps.
 > creature looks the same however it is being killed and only what follows differs — cleaved
 > versus shrugged off. The ordering below is unchanged and still enforced.
 
+### The barehanded stars
+
+The two cream bursts are the effect most likely to be got wrong, because the obvious
+implementation — a rotated sprite or a vector star — blurs.
+
+An 8-point star made of **four bars**, all `e8ddc7`, in an 80×80 box, drawn centred:
+
+```java
+horizontal  80 × 8   at (0, 36)      // arms 1 and 2: plain rects, exact
+vertical     8 × 80  at (36, 0)
+// arms 3 and 4: the diagonals, 52px long
+```
+
+**Do not rotate anything.** A 45° rotated rect is the single worst thing you can do to a pixel
+sprite. Draw each diagonal arm as a **staircase of 8×8 blocks**, each block offset one block right
+and one block down from the last — exactly 45°, perfectly grid-aligned, no transform. Six blocks
+per arm covers the 52px, three each side of centre.
+
+Placement and timing, relative to the struck card's centre (`CARD_CX`, `CARD_CY` from §9):
+
+```java
+star 1 offset (-26, -18)   fires at t = 0
+star 2 offset (+22, +24)   fires at t = 3 frames (250 ms)
+each star: scale 0.5 → 1.9 over 2 frames in 3 steps, alpha 1 → 0
+```
+
+Three scale steps at 12 fps means three discrete sizes — 40, 96, 152 px — not a tween. Round the
+scaled box to whole pixels each step.
+
+Under each star, a full-screen `f2cf7a` flash at 80% alpha decaying to 0 over 2 frames. The
+creature holds its **struck frame** for the whole 900 ms exchange, and the card shakes on a 4px grid.
+
 **Weapon kill ordering is load-bearing.** The rim flash must complete before anything occludes the
 card. In the mock this broke twice because the slice halves were present-but-transparent during the
 delay and covered the sprite. In Java: do not draw the halves at all until `elapsed >= 0.36f`.
@@ -353,7 +385,76 @@ HP pulses: damage jumps the bar ±4px for 2 frames and flips the number to dried
 
 ---
 
-## 11. Order of work
+## 11. The other screens
+
+Six screens, all 1280×720 on the same torchlit backdrop, all Silkscreen. The mock's **SCREENS** tab
+has each one; the picker under the tabs switches between them.
+
+They are built from five parts and nothing else. Learn these and every screen is assembly:
+
+```java
+FRAME    2px 0f1410 around every widget          // the recess that unifies everything
+FACE     161210 panel · 141110 table · 12161a well
+BEVEL    2px inset — light top-left, dark bottom-right
+  gold   plate d9a441, light f2cf7a, dark b5651f, label 12161a
+  dark   plate 1a1410, light 2f2620, dark 0a0806, label e8ddc7 at 72%
+LABEL    11px d9a441, letter-spacing .16em          // section headings
+BODY     13px e8ddc7 at 55%                         // descriptions
+RULE     2px rgba(232,221,199,.08)                   // dividers
+```
+
+Sizes above are the mock's. Per §5, prefer even sizes when Silkscreen goes in — 12 for 11, and
+either 12 or 14 for 13.
+
+**Header band** — every screen except the title has one: 88px tall, 40px side padding, 2px rule
+along the bottom. Screen name 26px cream on the left with an 11px `9a8b70` caption beside it,
+`ESC · BACK` as a dark button on the right.
+
+**TITLE** — two columns, centred. Left: a 216px framed portrait well showing **The Debt breathing**
+at ×3 (192px), captioned `WHAT WAITS AT THE BOTTOM` — the only sprite on any menu, and the reason
+the title screen reads as this game rather than a card game. Right: `FIFTY-TWO CARDS · ONE DESCENT`
+in gold, the wordmark at 52px with a 4px hard shadow, a 2px `4a3524` rule, the best-score line, then
+four 268px buttons — the first gold, the rest dark. Credit line 10px at the bottom.
+
+**NEW GAME** — three mode panels stacked, 14px apart. Each: number key in a 24px well, mode name
+17px, a badge (`trophies count` gold / `no trophies` `241d16`), starting health right-aligned in
+`74838f`, description below. **The selected panel's frame is `d9a441` instead of `0f1410`** — that
+is the whole selection treatment, no glow and no scale.
+
+**THE LEDGER** — a table in one frame beside a 296px totals panel. Column header row on `0f1410`
+with 9px gold labels. Rows alternate `191513` / `141110` — striping by **flat colour, never alpha**.
+Score is 14px, cream when positive and `8c2f22` when negative; outcome is 10px, `71b45c` for
+cleared and `8c2f22` for defeated. Totals panel: gold heading, then rows separated by 2px rules.
+
+**TROPHIES** — the header carries a 160×16 progress bar built exactly like the HP bar (2px frame,
+three-band gold fill, segment overlay every 16px). Ten entries in two columns: a 26px seal well per
+row, filled `d9a441` when earned and `1e1a17` when not; earned rows sit on `191513` with cream
+text, locked on `131110` with `4a3524`. **No padlock glyph and no greyscale filter** — the empty
+well is the locked state.
+
+**TUTORIAL** — an overlay on the live board. The board dims under a **4×4 ordered dither at 82%**,
+not an alpha scrim — same rule as the death wipe. The taught card is ringed by **eight 24×4 corner
+ticks** in `f7f0dc`, 4px thick, leaving the edges open. The callout is a framed panel with
+`STEP 2 OF 7`, seven 6×6 step dots (current one gold), and the instruction at 14px cream; a 20×14
+triangle notch points down at the card. `SKIP TUTORIAL` as a dark button, bottom right.
+
+**RUN END** — one 600px centred panel over the dither, covering both outcomes.
+`THE DUNGEON RAN OUT` in gold, `CLEARED` at 38px with the hard shadow, then three stat cells in a
+shared frame (score, health left in `71b45c`, time) at 26px. `NEW BEST` as a gold badge, a 2px
+rule, then unlocked trophies each with a 22px gold seal. Four buttons in a row, first gold.
+
+**For the death variant:** same layout, headline `YOU DIED`, the gold accents swapped to `8c2f22`
+and the health cell showing the negative score. The death *sequence* that precedes it is in §10.
+
+### What is deliberately absent
+
+No hover glows, no fades between screens, no drop shadows on panels, no rounded anything, no
+gradients except the three-band fills. A screen transition is a **cut** — one frame, old screen
+gone, new screen up. Anything softer reads as a web page.
+
+---
+
+## 12. Order of work
 
 Each step is verifiable on its own. Do not start the next until the current one looks right.
 
@@ -384,7 +485,7 @@ Map card → region name from §1. Weapons and potions are done here.
 
 **6 — Idle cycles.** *(done — `IdleCycle` holds the clock and the stagger; only creatures animate,
 since §1 ships no idle frames for weapons or potions. Frame selection floors time rather than using
-`Animation`, so the quantising §11 step 11 asks for is already in one tested place.)*
+`Animation`, so the quantising §12 step 12 asks for is already in one tested place.)*
 `Animation` per creature card, 6 fps, random start offset.
 *Verify:* four cards in a room are visibly out of phase; nothing shimmers or drifts sub-pixel.
 
@@ -403,33 +504,40 @@ Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
 
 **9 — Hurt generation and barehanded.** *(done — `Ramps` holds the 80-colour table, `HurtMask`
 moves each pixel two steps up its own ramp and lays the rim over it, `Barehanded` is the
-exchange. Two corrections to §8 below.)*
+exchange and `SliceArt.star()` the burst. Two corrections to §8 below. The stars step once per
+frame rather than three times across two: three steps inside two frames would change a value
+mid-frame, and nothing here may slide.)*
 §8 in full, then the two-hit exchange.
 *Verify:* the hurt frame is brighter but still on-palette — no white, no new colours.
 
 **10 — Remaining effects.** Deal, avoid, equip, potion, death, HP pulses, from the §10 table.
 *Verify:* each against the mock's EFFECTS tab, which plays them in isolation.
 
-**11 — Quantise.** One place that floors time to 1/12 s for effects, 1/6 s for idles.
+**11 — The other screens.** §11, in this order: title, new game, ledger, trophies, run end,
+tutorial. The tutorial is last because it overlays a finished board.
+*Verify:* each against the mock's SCREENS tab. No rounded corner, no fade, no hover glow anywhere.
+
+**12 — Quantise.** One place that floors time to 1/12 s for effects, 1/6 s for idles.
 *Verify:* pause on any frame and every element is on a whole pixel.
 
 ---
 
-## 12. Where the reference lives
+## 13. Where the reference lives
 
-`Scoundrel - Sprite Directions.dc.html`, five tabs:
+`Scoundrel - Sprite Directions.dc.html`, six tabs:
 
 - **BOARD** — the target layout at 1280×720, real sprites, live idles
 - **EFFECTS** — every effect in isolation, one button each
 - **BESTIARY** — all 13 creatures, materials and per-creature hexes
 - **ARMOURY & APOTHECARY** — all 18 objects
 - **ANIMATION** — all 26 cycles side by side
+- **SCREENS** — title, new game, ledger, trophies, tutorial and run end
 
 How the art was generated is in the appendix below, not in the document.
 
 ---
 
-## 13. Open questions for whoever picks this up
+## 14. Open questions for whoever picks this up
 
 - **Does the discard pile show sprites?** Not specified. The mock shows slain values as small
   22×30 chips with the number only. If you want sprites there, they need a ×1 (64px) draw and the

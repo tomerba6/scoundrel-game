@@ -34,6 +34,43 @@ class BarehandedTest {
             }
         }
         assertEquals(2, hitFrames.size(), "expected two distinct hit frames, got " + hitFrames);
+        assertEquals(Set.of(0, 3), hitFrames, "blows land on frames 0 and 3");
+    }
+
+    @Test
+    void theSecondBlowLandsThreeFramesAfterTheFirst() {
+        assertTrue(Barehanded.hitLanding(0f));
+        assertFalse(Barehanded.hitLanding(Barehanded.FRAME));
+        assertFalse(Barehanded.hitLanding(2 * Barehanded.FRAME));
+        assertTrue(Barehanded.hitLanding(3 * Barehanded.FRAME), "second blow at 250ms");
+    }
+
+    @Test
+    void eachStarSteppsThroughThreeDiscreteSizes() {
+        Set<Integer> sizes = new LinkedHashSet<>();
+        for (float t = 0f; t < Barehanded.TOTAL; t += 0.004f) {
+            int size = Barehanded.starSize(0, t);
+            if (size > 0) {
+                sizes.add(size);
+            }
+        }
+        // 80px box at 0.5, 1.2 and 1.9 -- never a tween between them.
+        assertEquals(Set.of(40, 96, 152), sizes, "expected three discrete sizes, got " + sizes);
+    }
+
+    @Test
+    void bothStarsFireAndTheSecondFollowsTheFirst() {
+        assertTrue(Barehanded.starSize(0, 0f) > 0, "first star should be up at t=0");
+        assertEquals(0, Barehanded.starSize(1, 0f), "second star must not exist yet");
+        assertTrue(Barehanded.starSize(1, 3 * Barehanded.FRAME) > 0, "second star should fire");
+    }
+
+    @Test
+    void aStarFadesAsItGrows() {
+        float first = Barehanded.starAlpha(0, 0f);
+        float last = Barehanded.starAlpha(0, 2 * Barehanded.FRAME);
+        assertTrue(first > last, "star should fade: " + first + " -> " + last);
+        assertEquals(0f, Barehanded.starAlpha(0, Barehanded.TOTAL), 1e-6f);
     }
 
     @Test
@@ -69,7 +106,9 @@ class BarehandedTest {
             for (float within = 0f; within < Barehanded.FRAME - 1e-4f; within += 0.004f) {
                 float t = frame * Barehanded.FRAME + within;
                 seen.add(Barehanded.shakeX(t) + "|" + Barehanded.shakeY(t) + "|"
-                        + Barehanded.flashShowing(t) + "|" + Barehanded.hitLanding(t));
+                        + Barehanded.flashShowing(t) + "|" + Barehanded.hitLanding(t) + "|"
+                        + Barehanded.starSize(0, t) + "|" + Barehanded.starAlpha(0, t) + "|"
+                        + Barehanded.flashAlpha(t));
             }
             assertEquals(1, seen.size(), "values slid within frame " + frame + ": " + seen);
         }

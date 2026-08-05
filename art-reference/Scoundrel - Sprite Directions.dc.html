@@ -76,6 +76,15 @@ a:hover { color: #e8ddc7; }
     </div>
   </sc-if>
 
+  <sc-if value="{{ isScreens }}" hint-placeholder-val="{{ false }}">
+    <div style="width:100%;max-width:1280px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px solid rgba(232,221,199,.1);padding-top:12px">
+      <div style="font-family:Silkscreen,monospace;font-size:10px;letter-spacing:.16em;color:#d9a441;margin-right:8px">SCREEN</div>
+      <sc-for list="{{ screenTabs }}" as="s" hint-placeholder-count="6">
+        <button onClick="{{ s.go }}" style="{{ s.style }}"><span style="white-space:nowrap">{{ s.name }}</span></button>
+      </sc-for>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ showStage }}" hint-placeholder-val="{{ true }}">
   <div style="{{ stageOuterStyle }}">
     <div style="{{ stageStyle }}">
@@ -185,6 +194,230 @@ a:hover { color: #e8ddc7; }
               <div style="font-size:11px;letter-spacing:.1em;color:#4a3524">POTION READY</div>
             </div>
           </div>
+        </div>
+      </sc-if>
+
+
+      <!-- ══════════ SCREENS — title, menus and overlays in the board's grammar ══════════ -->
+      <sc-if value="{{ isScreens }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;font-family:Silkscreen,ui-monospace,monospace">
+
+          <sc-if value="{{ scTitle }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:60px">
+              <div style="background:#0f1410;padding:2px">
+                <div style="width:216px;height:216px;background:#0e050c;position:relative;box-shadow:inset 0 2px 0 rgba(0,0,0,.6),inset 0 -2px 0 rgba(232,221,199,.05)">
+                  <sc-for list="{{ aceFrames }}" as="L" hint-placeholder-count="5">
+                    <div role="img" aria-label="{{ L.alt }}" style="{{ L.style }}"></div>
+                  </sc-for>
+                </div>
+                <div style="text-align:center;font-size:9px;letter-spacing:.2em;color:#6b5f4c;padding:8px 0 4px">WHAT WAITS AT THE BOTTOM</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-start">
+                <div style="font-size:11px;letter-spacing:.3em;color:#d9a441;padding-bottom:16px">FIFTY-TWO CARDS · ONE DESCENT</div>
+                <div style="font-size:52px;line-height:1;color:#e8ddc7;letter-spacing:.02em;text-shadow:0 4px 0 rgba(10,8,6,.75)">SCOUNDREL</div>
+                <div style="width:268px;height:2px;background:#4a3524;margin:22px 0 8px"></div>
+                <div style="font-size:11px;letter-spacing:.1em;color:rgba(232,221,199,.45);padding-bottom:26px">BEST 17 · 38 RUNS FINISHED</div>
+                <div style="display:flex;flex-direction:column;gap:10px;width:268px">
+                  <sc-for list="{{ titleMenu }}" as="b" hint-placeholder-count="4">
+                    <div style="background:#0f1410;padding:2px"><div style="{{ b.plate }}">{{ b.label }}</div></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;left:0;right:0;bottom:24px;text-align:center;font-size:10px;letter-spacing:.14em;color:rgba(232,221,199,.28)">DESIGNED BY ZACH GAGE &amp; KURT BIEG — AN UNOFFICIAL IMPLEMENTATION</div>
+          </sc-if>
+
+          <sc-if value="{{ scModes }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column">
+              <div style="height:88px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;flex:none;border-bottom:2px solid rgba(232,221,199,.08)">
+                <div style="display:flex;align-items:baseline;gap:16px">
+                  <div style="font-size:26px;color:#e8ddc7;letter-spacing:.04em">NEW GAME</div>
+                  <div style="font-size:11px;letter-spacing:.12em;color:#9a8b70">CHOOSE YOUR DESCENT</div>
+                </div>
+                <div style="background:#0f1410;padding:2px"><div style="background:#1a1410;box-shadow:inset 2px 2px 0 #2f2620,inset -2px -2px 0 #0a0806;padding:9px 18px;font-size:11px;letter-spacing:.14em;color:rgba(232,221,199,.7)">ESC · BACK</div></div>
+              </div>
+              <div style="flex:1;padding:24px 40px;display:flex;flex-direction:column;gap:14px">
+                <sc-for list="{{ modeRows }}" as="m" hint-placeholder-count="3">
+                  <div style="{{ m.frame }}">
+                    <div style="{{ m.face }}">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:24px">
+                        <div style="display:flex;align-items:center;gap:14px">
+                          <div style="{{ m.key }}">{{ m.k }}</div>
+                          <div style="{{ m.name }}">{{ m.title }}</div>
+                          <div style="{{ m.badge }}">{{ m.tag }}</div>
+                        </div>
+                        <div style="{{ m.hp }}">{{ m.start }}</div>
+                      </div>
+                      <div style="font-size:13px;line-height:1.55;color:rgba(232,221,199,.55);padding-top:9px;max-width:900px;text-wrap:pretty">{{ m.description }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ scLedger }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column">
+              <div style="height:88px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;flex:none;border-bottom:2px solid rgba(232,221,199,.08)">
+                <div style="display:flex;align-items:baseline;gap:16px">
+                  <div style="font-size:26px;color:#e8ddc7;letter-spacing:.04em">THE LEDGER</div>
+                  <div style="font-size:11px;letter-spacing:.12em;color:#9a8b70">38 FINISHED RUNS</div>
+                </div>
+                <div style="background:#0f1410;padding:2px"><div style="background:#1a1410;box-shadow:inset 2px 2px 0 #2f2620,inset -2px -2px 0 #0a0806;padding:9px 18px;font-size:11px;letter-spacing:.14em;color:rgba(232,221,199,.7)">ESC · BACK</div></div>
+              </div>
+              <div style="flex:1;padding:20px 40px;display:flex;gap:32px;align-items:flex-start">
+                <div style="flex:1;background:#0f1410;padding:2px">
+                  <div style="background:#141110">
+                    <div style="display:flex;align-items:center;padding:8px 14px;background:#0f1410;font-size:9px;letter-spacing:.18em;color:#d9a441">
+                      <div style="width:40px">RUN</div><div style="width:70px;text-align:right;padding-right:22px">SCORE</div>
+                      <div style="width:96px">OUTCOME</div><div style="width:104px">MODE</div>
+                      <div style="width:74px">DATE</div><div style="width:64px">TIME</div><div style="flex:1;text-align:right">SLAIN</div>
+                    </div>
+                    <sc-for list="{{ ledgerRows }}" as="r" hint-placeholder-count="10">
+                      <div style="{{ r.row }}">
+                        <div style="width:40px;color:#6b5f4c">{{ r.roman }}</div>
+                        <div style="{{ r.scoreStyle }}">{{ r.score }}</div>
+                        <div style="{{ r.outcomeStyle }}">{{ r.outcome }}</div>
+                        <div style="width:104px;color:rgba(232,221,199,.45)">{{ r.mode }}</div>
+                        <div style="width:74px;color:rgba(232,221,199,.45)">{{ r.date }}</div>
+                        <div style="width:64px;color:rgba(232,221,199,.45)">{{ r.time }}</div>
+                        <div style="flex:1;text-align:right;color:rgba(232,221,199,.45)">{{ r.slain }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="width:296px;background:#0f1410;padding:2px;flex:none">
+                  <div style="background:#141110;padding:14px 16px">
+                    <div style="font-size:10px;letter-spacing:.16em;color:#d9a441;padding-bottom:12px">ACROSS ALL RUNS</div>
+                    <sc-for list="{{ totalRows }}" as="t" hint-placeholder-count="8">
+                      <div style="{{ t.row }}">
+                        <div style="font-size:11px;letter-spacing:.06em;color:rgba(232,221,199,.5)">{{ t.name }}</div>
+                        <div style="font-size:13px;color:#e8ddc7">{{ t.value }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ scTrophies }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column">
+              <div style="height:88px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;flex:none;border-bottom:2px solid rgba(232,221,199,.08)">
+                <div style="display:flex;align-items:center;gap:20px">
+                  <div style="font-size:26px;color:#e8ddc7;letter-spacing:.04em">TROPHIES</div>
+                  <div style="background:#0f1410;padding:2px">
+                    <div style="width:160px;height:16px;background:#1e2a1c;position:relative;overflow:hidden">
+                      <div style="position:absolute;left:0;top:0;bottom:0;width:40%;background:linear-gradient(to bottom,#f2cf7a 0 4px,#d9a441 4px 9px,#b5651f 9px 100%)"></div>
+                      <div style="position:absolute;inset:0;background:repeating-linear-gradient(to right,rgba(15,20,16,0) 0 14px,rgba(15,20,16,.8) 14px 16px)"></div>
+                    </div>
+                  </div>
+                  <div style="font-size:11px;letter-spacing:.12em;color:#9a8b70">4 OF 10 EARNED</div>
+                </div>
+                <div style="background:#0f1410;padding:2px"><div style="background:#1a1410;box-shadow:inset 2px 2px 0 #2f2620,inset -2px -2px 0 #0a0806;padding:9px 18px;font-size:11px;letter-spacing:.14em;color:rgba(232,221,199,.7)">ESC · BACK</div></div>
+              </div>
+              <div style="flex:1;padding:20px 40px;display:grid;grid-template-columns:1fr 1fr;gap:10px 28px;align-content:start">
+                <sc-for list="{{ trophyRows }}" as="a" hint-placeholder-count="10">
+                  <div style="{{ a.frame }}">
+                    <div style="{{ a.face }}">
+                      <div style="{{ a.sealWell }}"><div style="{{ a.seal }}"></div></div>
+                      <div style="flex:1;min-width:0">
+                        <div style="{{ a.name }}">{{ a.title }}</div>
+                        <div style="{{ a.desc }}">{{ a.detail }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ scTutorial }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:24px">
+              <sc-for list="{{ plainCards }}" as="c" hint-placeholder-count="4">
+                <div style="{{ c.outer }}">
+                  <div style="{{ c.plate }}">
+                    <div style="{{ c.bevelLt }}"></div>
+                    <div style="{{ c.bevelDk }}"></div>
+                    <div style="position:relative;height:26px;padding:0 6px;display:flex;align-items:center;justify-content:space-between">
+                      <span style="font-size:13px;color:#e8ddc7">{{ c.rank }}</span>
+                      <span style="{{ c.typeStyle }}">{{ c.type }}</span>
+                    </div>
+                    <div style="{{ c.well }}"><div style="{{ c.sprite }}"></div></div>
+                    <div style="position:relative;flex:1;display:flex;align-items:center;justify-content:center">
+                      <span style="font-size:38px;line-height:1;color:#e8ddc7;text-shadow:0 4px 0 rgba(10,8,6,.7)">{{ c.value }}</span>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="position:absolute;inset:0;background:repeating-conic-gradient(#0a0806 0% 25%, rgba(0,0,0,0) 0% 50%) 0 0/4px 4px;opacity:.82;pointer-events:none"></div>
+            <div style="position:absolute;left:250px;top:214px;width:184px;height:268px;pointer-events:none">
+              <div style="position:absolute;left:0;top:0;width:24px;height:4px;background:#f7f0dc"></div>
+              <div style="position:absolute;left:0;top:0;width:4px;height:24px;background:#f7f0dc"></div>
+              <div style="position:absolute;right:0;top:0;width:24px;height:4px;background:#f7f0dc"></div>
+              <div style="position:absolute;right:0;top:0;width:4px;height:24px;background:#f7f0dc"></div>
+              <div style="position:absolute;left:0;bottom:0;width:24px;height:4px;background:#f7f0dc"></div>
+              <div style="position:absolute;left:0;bottom:0;width:4px;height:24px;background:#f7f0dc"></div>
+              <div style="position:absolute;right:0;bottom:0;width:24px;height:4px;background:#f7f0dc"></div>
+              <div style="position:absolute;right:0;bottom:0;width:4px;height:24px;background:#f7f0dc"></div>
+            </div>
+            <div style="position:absolute;left:250px;top:96px;width:420px;background:#0f1410;padding:2px">
+              <div style="background:#161210;padding:16px 18px">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:10px">
+                  <div style="font-size:10px;letter-spacing:.18em;color:#d9a441">STEP 2 OF 7</div>
+                  <div style="display:flex;gap:4px">
+                    <sc-for list="{{ stepDots }}" as="d" hint-placeholder-count="7">
+                      <div style="{{ d.style }}"></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="font-size:14px;line-height:1.6;color:#e8ddc7;text-wrap:pretty">Clubs and spades are monsters. Fought bare-handed you take the monster's full value as damage. Fight this 2.</div>
+              </div>
+            </div>
+            <div style="position:absolute;left:330px;top:190px;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:14px solid #0f1410"></div>
+            <div style="position:absolute;right:40px;bottom:40px;background:#0f1410;padding:2px">
+              <div style="background:#1a1410;box-shadow:inset 2px 2px 0 #2f2620,inset -2px -2px 0 #0a0806;padding:11px 22px;font-size:12px;letter-spacing:.14em;color:rgba(232,221,199,.7)">SKIP TUTORIAL</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ scEnd }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;background:repeating-conic-gradient(#0a0806 0% 25%, rgba(0,0,0,0) 0% 50%) 0 0/4px 4px;opacity:.72"></div>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+              <div style="background:#0f1410;padding:2px;width:600px">
+                <div style="background:#161210;padding:30px 34px;display:flex;flex-direction:column;align-items:center">
+                  <div style="font-size:11px;letter-spacing:.3em;color:#d9a441;padding-bottom:14px">THE DUNGEON RAN OUT</div>
+                  <div style="font-size:38px;line-height:1;color:#e8ddc7;letter-spacing:.02em;text-shadow:0 4px 0 rgba(10,8,6,.75)">CLEARED</div>
+                  <div style="display:flex;align-items:stretch;gap:2px;background:#0f1410;padding:2px;margin:22px 0 18px">
+                    <sc-for list="{{ endStats }}" as="s" hint-placeholder-count="3">
+                      <div style="{{ s.cell }}">
+                        <div style="font-size:9px;letter-spacing:.16em;color:#6b5f4c;padding-bottom:6px">{{ s.k }}</div>
+                        <div style="{{ s.vStyle }}">{{ s.v }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="background:#d9a441;color:#12161a;font-size:11px;letter-spacing:.16em;padding:6px 14px;margin-bottom:22px">NEW BEST</div>
+                  <div style="width:100%;height:2px;background:rgba(232,221,199,.08);margin-bottom:16px"></div>
+                  <div style="font-size:10px;letter-spacing:.18em;color:#d9a441;padding-bottom:12px">TROPHIES UNLOCKED</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;width:100%;padding-bottom:26px">
+                    <sc-for list="{{ endUnlocks }}" as="u" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <div style="width:22px;height:22px;background:#0f1410;padding:2px;box-sizing:border-box;flex:none"><div style="width:100%;height:100%;background:#d9a441"></div></div>
+                        <div style="font-size:12px;color:#e8ddc7">{{ u.title }}</div>
+                        <div style="font-size:11px;color:rgba(232,221,199,.4)">{{ u.detail }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;gap:10px">
+                    <sc-for list="{{ endMenu }}" as="b" hint-placeholder-count="4">
+                      <div style="background:#0f1410;padding:2px"><div style="{{ b.plate }}">{{ b.label }}</div></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
         </div>
       </sc-if>
 
@@ -728,6 +961,8 @@ class Component extends DCLogic {
         height: '78px', objectFit: 'contain', imageRendering: 'pixelated' },
     });
     const FX_VIEW = this.state.dir === 'effects';
+    const SCR = this.state.dir === 'screens';
+    const SC = this.state.screen || 'title';
     const A = this.state.dir === 'A' || FX_VIEW;
     const k = this.state.scale;
     const fx = this.state.fx, on = this.state.fxOn;
@@ -763,7 +998,8 @@ class Component extends DCLogic {
     return {
       wrapRef: this.wrapRef, bgRef: this.bgRef,
       isA: A,
-      showStage: A,
+      isScreens: SCR,
+      showStage: A || SCR,
       isPlain: A,
       isEffects: FX_VIEW,
       isBestiary: this.state.dir === 'bestiary',
@@ -811,7 +1047,148 @@ class Component extends DCLogic {
         }),
       })),
       bgW: 640, bgH: 360,
-      dirTabs: [tab('A', 'BOARD'), tab('effects', 'EFFECTS'), tab('bestiary', 'BESTIARY · 13'), tab('armoury', 'ARMOURY & APOTHECARY'), tab('anim', 'ANIMATION · 26')],
+      scTitle: SC === 'title', scModes: SC === 'modes', scLedger: SC === 'ledger',
+      scTrophies: SC === 'trophies', scTutorial: SC === 'tutorial', scEnd: SC === 'end',
+
+      screenTabs: [['title','TITLE'],['modes','NEW GAME'],['ledger','THE LEDGER'],['trophies','TROPHIES'],['tutorial','TUTORIAL'],['end','RUN END']].map(([id, name]) => ({
+        name, go: () => this.setState({ screen: id }),
+        style: {
+          font: 'inherit', fontFamily: 'Silkscreen,monospace', fontSize: '10px', letterSpacing: '.1em',
+          cursor: 'pointer', padding: '8px 13px',
+          border: '1px solid ' + (SC === id ? '#d9a441' : 'rgba(232,221,199,.16)'),
+          background: SC === id ? 'rgba(217,164,65,.18)' : 'transparent',
+          color: SC === id ? '#f2cf7a' : 'rgba(232,221,199,.6)',
+        },
+      })),
+
+      // the Ace breathing in the title portrait — the one sprite on a menu screen
+      aceFrames: Array.from({ length: 5 }, (_, n) => ({
+        alt: n === 0 ? 'The Debt' : '',
+        style: {
+          position: 'absolute', left: '12px', top: '12px', width: '192px', height: '192px',
+          backgroundImage: `url("sprites/anim/creature_14_the_debt.clubs.idle.0${n + 1}.png")`,
+          backgroundSize: '192px 192px', backgroundRepeat: 'no-repeat', imageRendering: 'pixelated',
+          animation: `${['c5a','c5b','c5c','c5d','c5e'][n]} .83s steps(1,end) infinite`,
+          opacity: n === 0 ? 1 : 0,
+        },
+      })),
+
+      titleMenu: [['NEW GAME', true], ['HOW TO PLAY', false], ['THE LEDGER', false], ['TROPHIES', false]].map(([label, primary]) => ({
+        label,
+        plate: primary
+          ? { background: '#d9a441', boxShadow: 'inset 2px 2px 0 #f2cf7a, inset -2px -2px 0 #b5651f',
+              padding: '12px 20px', fontSize: '14px', letterSpacing: '.14em', color: '#12161a', textAlign: 'center' }
+          : { background: '#1a1410', boxShadow: 'inset 2px 2px 0 #2f2620, inset -2px -2px 0 #0a0806',
+              padding: '12px 20px', fontSize: '14px', letterSpacing: '.14em', color: 'rgba(232,221,199,.72)', textAlign: 'center' },
+      })),
+
+      modeRows: [
+        ['1', 'STANDARD', 'trophies count', 'START 20', true, 'The classic dungeon. Scoop a room to skip it now and then — but never twice in a row.'],
+        ['2', 'RELENTLESS', 'no trophies', 'START 20', false, 'No escape: you may never avoid a room. Face every card the dungeon deals.'],
+        ['3', 'FRAIL', 'no trophies', 'START 14', false, 'You begin at 14 health and can never heal past it. Every wound bites deeper.'],
+      ].map(([k, title, tag, start, tracks, description], i) => ({
+        k, title, tag, start, description,
+        frame: { background: i === 0 ? '#d9a441' : '#0f1410', padding: '2px' },
+        face: { background: '#161210', padding: '16px 18px' },
+        key: { width: '24px', height: '24px', background: '#0f1410', color: i === 0 ? '#d9a441' : '#6b5f4c',
+               fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' },
+        name: { fontSize: '17px', letterSpacing: '.06em', color: '#e8ddc7' },
+        badge: { fontSize: '9px', letterSpacing: '.14em', padding: '4px 9px',
+                 background: tracks ? '#d9a441' : '#241d16', color: tracks ? '#12161a' : '#6b5f4c' },
+        hp: { fontSize: '11px', letterSpacing: '.12em', color: '#74838f' },
+      })),
+
+      ledgerRows: [
+        ['I', 17, 'CLEARED', 'Standard', 'Jul 24', '4:12', 12], ['II', 14, 'CLEARED', 'Standard', 'Jul 19', '5:03', 15],
+        ['III', 11, 'CLEARED', 'Relentless', 'Jul 22', '3:48', 18], ['IV', 9, 'CLEARED', 'Standard', 'Jul 11', '6:21', 14],
+        ['V', 4, 'CLEARED', 'Frail', 'Jul 28', '4:55', 16], ['VI', -3, 'DEFEATED', 'Standard', 'Jul 2', '3:07', 11],
+        ['VII', -12, 'DEFEATED', 'Standard', 'Jul 26', '3:19', 9], ['VIII', -28, 'DEFEATED', 'Relentless', 'Jul 15', '2:44', 7],
+        ['IX', -63, 'DEFEATED', 'Standard', 'Jul 30', '2:38', 6], ['X', -104, 'DEFEATED', 'Frail', 'Jul 6', '1:52', 4],
+      ].map(([roman, score, outcome, mode, date, time, slain], i) => ({
+        roman, score, outcome, mode, date, time, slain,
+        row: { display: 'flex', alignItems: 'center', padding: '9px 14px', fontSize: '12px',
+               background: i % 2 ? '#141110' : '#191513' },
+        scoreStyle: { width: '70px', textAlign: 'right', paddingRight: '22px', fontSize: '14px',
+                      color: score < 0 ? '#8c2f22' : '#e8ddc7' },
+        outcomeStyle: { width: '96px', fontSize: '10px', letterSpacing: '.12em',
+                        color: score < 0 ? '#8c2f22' : '#71b45c' },
+      })),
+
+      totalRows: [
+        ['BEST SCORE', '17'], ['WORST', '-104'], ['CLEARED', '5 of 38'], ['MONSTERS SLAIN', '412'],
+        ['POTIONS DRUNK', '96'], ['WEAPONS BROKEN', '71'], ['FASTEST CLEAR', '3:48'], ['TOTAL TIME', '2h 14m'],
+      ].map(([name, value], i) => ({
+        name, value,
+        row: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '20px',
+               padding: '7px 0', borderTop: i ? '2px solid rgba(232,221,199,.06)' : 'none' },
+      })),
+
+      trophyRows: [
+        ['FIRST BLOOD', 'Slay a monster bare-handed', true],
+        ['TEMPERANCE', 'Clear a run without drinking', true],
+        ['ARMOURER', 'Break nine weapons in one run', true],
+        ['SPELUNKER', 'Reach depth 40', true],
+        ['UNTOUCHED', 'Clear a room without losing health', false],
+        ['GIANT-KILLER', 'Kill the Ace bare-handed', false],
+        ['ASCETIC', 'Clear a run with no weapon', false],
+        ['FLEET', 'Clear the dungeon under three minutes', false],
+        ['RELENTLESS', 'Clear a run without avoiding', false],
+        ['THE DEBT PAID', 'Clear every mode', false],
+      ].map(([title, detail, earned]) => ({
+        title, detail,
+        frame: { background: '#0f1410', padding: '2px' },
+        face: { background: earned ? '#191513' : '#131110', padding: '11px 13px',
+                display: 'flex', alignItems: 'center', gap: '13px' },
+        sealWell: { width: '26px', height: '26px', background: '#0f1410', padding: '3px',
+                    boxSizing: 'border-box', flex: 'none' },
+        seal: { width: '100%', height: '100%', background: earned ? '#d9a441' : '#1e1a17' },
+        name: { fontSize: '12px', letterSpacing: '.06em', color: earned ? '#e8ddc7' : '#4a3524' },
+        desc: { fontSize: '11px', paddingTop: '4px', color: earned ? 'rgba(232,221,199,.45)' : '#3a2e26' },
+      })),
+
+      stepDots: Array.from({ length: 7 }, (_, n) => ({
+        style: { width: '6px', height: '6px', background: n === 1 ? '#d9a441' : '#3a2e26' },
+      })),
+
+      endStats: [['SCORE', '17', '#e8ddc7'], ['HEALTH LEFT', '17', '#71b45c'], ['TIME', '4:12', '#e8ddc7']].map(([k, v, col]) => ({
+        k, v,
+        cell: { background: '#141110', padding: '12px 26px', textAlign: 'center', minWidth: '120px' },
+        vStyle: { fontSize: '26px', lineHeight: 1, color: col },
+      })),
+
+      endUnlocks: [
+        { title: 'SPELUNKER', detail: 'reached depth 40' },
+        { title: 'ARMOURER', detail: 'broke nine weapons' },
+      ],
+
+      endMenu: [['NEW GAME', true], ['MAIN MENU', false], ['TROPHIES', false], ['THE LEDGER', false]].map(([label, primary]) => ({
+        label,
+        plate: primary
+          ? { background: '#d9a441', boxShadow: 'inset 2px 2px 0 #f2cf7a, inset -2px -2px 0 #b5651f',
+              padding: '10px 16px', fontSize: '11px', letterSpacing: '.12em', color: '#12161a' }
+          : { background: '#1a1410', boxShadow: 'inset 2px 2px 0 #2f2620, inset -2px -2px 0 #0a0806',
+              padding: '10px 16px', fontSize: '11px', letterSpacing: '.12em', color: 'rgba(232,221,199,.72)' },
+      })),
+
+      plainCards: ROOM.map((c) => {
+        const p = PAL_A[c.type];
+        const stem = c.type === 'MONSTER' ? `sprites/anim/${c.asset}.idle.01.png` : `sprites/${c.asset}.png`;
+        return {
+          rank: c.id.slice(0, -1), type: c.type, value: c.value,
+          outer: { width: '176px', height: '256px', background: '#0a0806', padding: '2px', boxSizing: 'border-box', flex: 'none' },
+          plate: { position: 'relative', width: '100%', height: '100%', background: p.plate,
+                   display: 'flex', flexDirection: 'column', boxSizing: 'border-box' },
+          bevelLt: { position: 'absolute', left: 0, top: 0, right: 0, height: '2px', background: p.lt },
+          bevelDk: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '2px', background: p.dk },
+          typeStyle: { fontSize: '9px', letterSpacing: '.14em', color: p.type },
+          well: { position: 'relative', margin: '0 8px', height: '132px', background: p.well,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center' },
+          sprite: { width: '128px', height: '128px', backgroundImage: `url("${stem}")`,
+                    backgroundSize: '128px 128px', backgroundRepeat: 'no-repeat', imageRendering: 'pixelated' },
+        };
+      }),
+
+      dirTabs: [tab('A', 'BOARD'), tab('effects', 'EFFECTS'), tab('bestiary', 'BESTIARY · 13'), tab('armoury', 'ARMOURY & APOTHECARY'), tab('anim', 'ANIMATION · 26'), tab('screens', 'SCREENS · 6')],
 
       fxButtons: FX_LIST.map((f) => ({
         name: f.label,

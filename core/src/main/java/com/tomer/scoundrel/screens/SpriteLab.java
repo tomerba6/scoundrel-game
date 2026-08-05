@@ -172,6 +172,17 @@ public final class SpriteLab extends ScreenAdapter {
                 cardWithId("10C"),  // should be on different frames
                 cardWithId("QC"));
         hovered = hoveredIn(room);
+        // The gold wash sits under the cards, so a blow lights the room
+        // rather than washing out the creature taking it.
+        if (struckBare != null) {
+            float wash = Barehanded.flashAlpha(bareElapsed);
+            if (wash > 0f) {
+                batch.setColor(0.95f, 0.81f, 0.48f, wash);
+                batch.draw(theme.whiteRegion(), 0, 0,
+                        Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+                batch.setColor(1f, 1f, 1f, 1f);
+            }
+        }
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
@@ -198,14 +209,6 @@ public final class SpriteLab extends ScreenAdapter {
             batch.draw(body, CardArt.spriteLeft(slotX),
                     CardArt.toWorldY(CardArt.spriteTop() - lift, CardArt.SPRITE),
                     CardArt.SPRITE, CardArt.SPRITE);
-            if (bare && Barehanded.flashShowing(bareElapsed)) {
-                // A short bone wash under the blow, over the well only.
-                batch.setColor(0.91f, 0.87f, 0.78f, 0.35f);
-                batch.draw(theme.whiteRegion(), CardArt.wellLeft(slotX),
-                        CardArt.toWorldY(CardArt.wellTop() - lift, CardArt.WELL_H),
-                        CardArt.wellWidth(), CardArt.WELL_H);
-                batch.setColor(1f, 1f, 1f, 1f);
-            }
             // R flashes the bare outline on its own, for inspecting it.
             if (showRim && !beingStruck) {
                 TextureRegion rim = sprites.rim(CardSprites.regionName(card));
@@ -214,6 +217,9 @@ public final class SpriteLab extends ScreenAdapter {
                             CardArt.toWorldY(CardArt.spriteTop() - lift, CardArt.SPRITE),
                             CardArt.SPRITE, CardArt.SPRITE);
                 }
+            }
+            if (bare) {
+                drawStars(slotX, lift);
             }
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
@@ -257,6 +263,26 @@ public final class SpriteLab extends ScreenAdapter {
             }
         }
         theme.body.draw(batch, "SHEET — all 44 cards, 31 objects, by rank", 40, 700);
+    }
+
+    /**
+     * The two bursts a bare-handed blow throws, each growing through three
+     * discrete sizes as it fades. Drawn over the card, centred on their own
+     * offsets from its centre.
+     */
+    private void drawStars(int slotX, int lift) {
+        for (int hit = 0; hit < Barehanded.hits(); hit++) {
+            int size = Barehanded.starSize(hit, bareElapsed);
+            if (size == 0) {
+                continue;
+            }
+            int cx = slotX + CardArt.CARD_W / 2 + Barehanded.starOffsetX(hit);
+            int cy = CardArt.SLOT_Y + CardArt.CARD_H / 2 + Barehanded.starOffsetY(hit) - lift;
+            batch.setColor(1f, 1f, 1f, Barehanded.starAlpha(hit, bareElapsed));
+            batch.draw(sliceArt.star(), cx - size / 2,
+                    CardArt.toWorldY(cy - size / 2, size), size, size);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
     }
 
     /**

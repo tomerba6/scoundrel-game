@@ -28,26 +28,26 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 - The UI layer (Scene2D screens) only does two things: draw the current state, and translate
   user input into calls on the rules engine. It never contains rule logic.
 - Suggested package split inside `core`:
-  - `...scoundrel.model` — cards, deck, game state (pure).
-  - `...scoundrel.rules` — actions and rule resolution (pure).
-  - `...scoundrel.screens` — Scene2D screens (LibGDX-dependent). Pure logic is
-    kept **out** of the GL classes: leaf helpers are extracted into small,
-    headlessly-unit-tested classes (`Motion`, `CardHitRegions`, `ClockText`,
-    `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`), leaving the
-    screens as thin views verified by screenshot. When touching a screen, prefer
-    extracting any new pure formatter/decision/geometry the same way — write a
-    characterization test first, then move the method verbatim.
-  - `...scoundrel.CrashLog` — appends uncaught crashes to `~/.scoundrel/crash.log`
-    (installed by the launcher); pure and tested, robust (never throws itself).
-  - `...scoundrel.runs` — run recording + local high-score persistence (pure Java;
-    observes the engine from outside — `model`/`rules` never import it).
-  - `...scoundrel.achievements` — achievement definitions, evaluation, and the
-    unlocked-latch persistence (pure Java; observes the engine + run log from
-    outside — `model`/`rules`/`runs` never import it).
-  - `...scoundrel.tutorial` — the guided first-run: a scripted deck + narrated
-    steps and the gating state machine, plus the tutorial-seen flag (pure Java;
-    drives the engine through its public ordered-deck entry — `model`/`rules`
-    never import it). The Scene2D tutorial *mode* lives in `screens.GameScreen`.
+    - `...scoundrel.model` — cards, deck, game state (pure).
+    - `...scoundrel.rules` — actions and rule resolution (pure).
+    - `...scoundrel.screens` — Scene2D screens (LibGDX-dependent). Pure logic is
+      kept **out** of the GL classes: leaf helpers are extracted into small,
+      headlessly-unit-tested classes (`Motion`, `CardHitRegions`, `ClockText`,
+      `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`), leaving the
+      screens as thin views verified by screenshot. When touching a screen, prefer
+      extracting any new pure formatter/decision/geometry the same way — write a
+      characterization test first, then move the method verbatim.
+    - `...scoundrel.CrashLog` — appends uncaught crashes to `~/.scoundrel/crash.log`
+      (installed by the launcher); pure and tested, robust (never throws itself).
+    - `...scoundrel.runs` — run recording + local high-score persistence (pure Java;
+      observes the engine from outside — `model`/`rules` never import it).
+    - `...scoundrel.achievements` — achievement definitions, evaluation, and the
+      unlocked-latch persistence (pure Java; observes the engine + run log from
+      outside — `model`/`rules`/`runs` never import it).
+    - `...scoundrel.tutorial` — the guided first-run: a scripted deck + narrated
+      steps and the gating state machine, plus the tutorial-seen flag (pure Java;
+      drives the engine through its public ordered-deck entry — `model`/`rules`
+      never import it). The Scene2D tutorial *mode* lives in `screens.GameScreen`.
 - **Detailed design reference:** the full rules-engine design — the `model`/`rules`
   types, the turn loop, extension seams, and the locked edge-case decisions — is
   documented in [`docs/design.md`](docs/design.md) (prose + Mermaid diagrams).
@@ -68,7 +68,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 
 The art is **done**: 31 objects (13 creatures × 2 suits, 9 weapons, 9 potions) and 130 idle
 frames, all 64×64. [`HANDOFF.md`](HANDOFF.md) is the full contract — region names, palette,
-geometry, effect timings, and an 11-step order of work with a verify line per step. Read it
+geometry, effect timings, and a 12-step order of work with a verify line per step. Read it
 before touching anything visual.
 
 - **Never regenerate, recolour, or "improve" a sprite.** Every pixel sits on a locked 80-colour
@@ -98,6 +98,16 @@ before touching anything visual.
   unit-tested `PixelScale`; keep it there rather than in the GL class.
 - **Idles run at 6 fps, effects at 12 fps**, and nothing tweens or rotates — every segment holds
   on a frame. A rotated pixel is a blurred pixel.
+- **The barehanded stars are four bars, never a rotation** (§10). The diagonal arms are staircases
+  of 8×8 blocks — exactly 45°, grid-aligned, no transform. A rotated rect is the worst thing you
+  can do to a pixel sprite.
+- **Every screen is in scope, not just the board** (§11) — title, new game, ledger, trophies,
+  tutorial and run end all move onto the same grammar. They are assembled from five parts
+  (frame, face, bevel, label, rule); learn those and the screens are assembly work.
+- **Screen transitions are cuts.** One frame, old screen gone, new screen up. No fades, no hover
+  glows, no panel shadows, no rounded corners anywhere.
+- **Do not change the torchlit backdrop without asking.** It is the one deliberately open decision
+  in `HANDOFF.md` — smooth gradients behind flat-palette sprites. Both answers are defensible.
 - **Hurt and rim frames are generated in Java at load** from each base sprite (§8), not shipped.
   There are no death frames — the card dissolve covers it.
 - **Silkscreen replaces IM Fell English and Alegreya Sans entirely**, at pixel-aligned sizes with
@@ -106,8 +116,8 @@ before touching anything visual.
   they are. Don't generate them — models are unreliable below 32px.
 
 The mock (`art-reference/Scoundrel - Sprite Directions.dc.html`) is the visual target: the board
-at 1280×720, every effect in isolation, all 26 idle cycles. It opens in a browser — ask the user
-to compare against it; you can't render it yourself.
+at 1280×720, every effect in isolation, all 26 idle cycles, and all six screens. It opens in a
+browser — ask the user to compare against it; you can't render it yourself.
 
 ## Working preferences
 - For any non-trivial change, propose a plan first and wait for review before coding.
