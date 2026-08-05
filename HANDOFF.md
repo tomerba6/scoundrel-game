@@ -538,7 +538,10 @@ mid-frame, and nothing here may slide.)*
 §8 in full, then the two-hit exchange.
 *Verify:* the hurt frame is brighter but still on-palette — no white, no new colours.
 
-**10 — Remaining effects.** Deal, avoid, equip, potion, death, HP pulses, from the §10 table.
+**10 — Remaining effects.** *(done — `CardFlight` for the avoid sweep and the equip carry,
+`PotionDrink` + `EffectArt.bottle` for the drink, `HpPulse` for the bar, `DeathCinematic` +
+`EffectArt.ditherAt` for the death. Deal-in keeps its release 1 behaviour, as asked.)*
+Deal, avoid, equip, potion, death, HP pulses, from the §10 table.
 *Verify:* each against the mock's EFFECTS tab, which plays them in isolation.
 
 **11 — The other screens.** §11, in this order: title, new game, ledger, trophies, run end,

@@ -35,6 +35,21 @@ final class EffectArt implements Disposable {
     private static final int CORK = 0x9a8b70;
     static final int BOTTLE_SIZE = 48;
 
+    /**
+     * The classic 4×4 ordered (Bayer) matrix. Each cell's number is the level
+     * at which that pixel goes dark, so raising the level turns pixels off in a
+     * fixed, evenly-spread order rather than dimming them all together.
+     */
+    private static final int[] BAYER = {
+        0, 8, 2, 10,
+        12, 4, 14, 6,
+        3, 11, 1, 9,
+        15, 7, 13, 5,
+    };
+
+    private final Texture[] ditherTextures;
+    private final TextureRegion[] dither;
+
     private final Texture upperTexture;
     private final Texture lowerTexture;
     private final Texture barTexture;
@@ -60,6 +75,44 @@ final class EffectArt implements Disposable {
         bar = new TextureRegion(barTexture);
         star = new TextureRegion(starTexture);
         bottle = new TextureRegion(bottleTexture);
+
+        // One 4x4 tile per level, wrapped so a single draw covers the screen.
+        ditherTextures = new Texture[DeathCinematic.DITHER_LEVELS + 1];
+        dither = new TextureRegion[ditherTextures.length];
+        for (int level = 0; level < ditherTextures.length; level++) {
+            ditherTextures[level] = ditherTile(level);
+            dither[level] = new TextureRegion(ditherTextures[level]);
+        }
+    }
+
+    /**
+     * The screen-death pattern at a given level, as a 4×4 tile set to repeat.
+     * Drawn once across the whole stage with the region sized in tiles, so the
+     * pattern lands on the pixel grid however big the stage is.
+     */
+    TextureRegion ditherAt(int level, int stageWidth, int stageHeight) {
+        TextureRegion region = dither[Math.max(0, Math.min(dither.length - 1, level))];
+        region.setRegion(0, 0, stageWidth / 4, stageHeight / 4);
+        return region;
+    }
+
+    private static Texture ditherTile(int level) {
+        Pixmap pixmap = new Pixmap(4, 4, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 4; x++) {
+                // Opaque black where this cell's threshold has been crossed,
+                // fully clear everywhere else. No partial alpha anywhere: that
+                // is what makes it a pattern rather than a fade.
+                boolean dark = BAYER[y * 4 + x] < level;
+                pixmap.drawPixel(x, y, dark ? 0x000000ff : 0x00000000);
+            }
+        }
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+        pixmap.dispose();
+        return texture;
     }
 
     /** The half above-left of the cut, or the half below-right of it. */
@@ -232,5 +285,8 @@ final class EffectArt implements Disposable {
         barTexture.dispose();
         starTexture.dispose();
         bottleTexture.dispose();
+        for (Texture texture : ditherTextures) {
+            texture.dispose();
+        }
     }
 }

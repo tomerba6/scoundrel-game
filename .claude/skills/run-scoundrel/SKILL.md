@@ -118,6 +118,19 @@ These all cost real time in this container.
   the caller forces foreground properly. `drive.ps1` does the
   `AttachThreadInput` dance for this; a naive `SetForegroundWindow` is refused
   and costs you a click.
+- **Toggle keys carry state between calls.** `S` (slow motion), `R` and `Tab` flip
+  whatever the game is already in, and the game outlives a `drive.ps1` call. A
+  second chain that "turns slow motion on" actually turns it off, and every
+  timed capture then lands in the wrong place — which looks exactly like the
+  effect being broken. Either do the whole sequence in one chain, or read the
+  on-screen state (the ROOM line prints `[SLOW 1/8]`) before assuming.
+- **Do the whole capture in one `drive.ps1` call.** Windows refuses
+  `SetForegroundWindow` from a background process, so once the game loses focus
+  the driver cannot get it back and exits `NOT_FOREGROUND` until a human clicks
+  the window. The game *has* focus right after `lwjgl3:run`, so a single long
+  action chain — toggle, trigger, and every `shot:` — works unattended, while
+  splitting the same steps across several calls stalls partway. Chain
+  aggressively; there is no cost to a long `-Actions` string.
 - **The same swallowing hits `key:`, and worse right after launch.** A single
   `key:F9` in the first invocation after `lwjgl3:run` was dropped twice during
   this skill's own verification — the window exists well before the game loop is

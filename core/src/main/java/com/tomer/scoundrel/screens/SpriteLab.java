@@ -4,8 +4,9 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
@@ -83,6 +84,9 @@ public final class SpriteLab extends ScreenAdapter {
     private float drinkElapsed;
     /** Set once the pour starts, so the bar fills once and not again. */
     private boolean poured;
+    /** The death cinematic, and the card that dealt the blow. */
+    private float deathElapsed = -1f;
+    private Card killer;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -207,6 +211,16 @@ public final class SpriteLab extends ScreenAdapter {
             }
             if (PotionDrink.finished(drinkElapsed)) {
                 endDrink();
+            }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+            deathElapsed = 0f;
+            killer = hovered;
+        }
+        if (deathElapsed >= 0f) {
+            deathElapsed += slowMotion ? delta / 8f : delta;
+            if (DeathCinematic.finished(deathElapsed)) {
+                deathElapsed = -1f;
             }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
@@ -387,6 +401,9 @@ public final class SpriteLab extends ScreenAdapter {
         if (drinking != null) {
             drawDrink(CardArt.slotX(3));
         }
+        if (deathElapsed >= 0f) {
+            drawDeath();
+        }
         theme.body.draw(batch, "ROOM — hover to animate, K to cleave, B to strike"
                 + (slowMotion ? "   [SLOW 1/8]" : ""), 40, 700);
     }
@@ -512,6 +529,41 @@ public final class SpriteLab extends ScreenAdapter {
             batch.draw(effectArt.bar(), slotX + WeaponKill.slashOffset(killElapsed),
                     CardArt.toWorldY(top - WeaponKill.slashOffset(killElapsed), CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
+        }
+    }
+
+    /**
+     * The death: a red flare over whatever killed you, then the screen going
+     * out by ordered dither with the title growing over it. Drawn last so the
+     * pattern covers the whole board.
+     */
+    private void drawDeath() {
+        if (DeathCinematic.flaring(deathElapsed) && killer != null) {
+            int slot = deck.indexOf(killer);
+            int x = CardArt.slotX(Math.max(0, slot % 4));
+            batch.setColor(0.55f, 0.18f, 0.13f, DeathCinematic.flareStrength(deathElapsed));
+            batch.draw(theme.whiteRegion(), x, CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+
+        int level = DeathCinematic.ditherLevel(deathElapsed);
+        if (level > 0) {
+            // One tiled draw of a 4x4 pattern. Every pixel is either fully dark
+            // or fully clear, so the board thins out rather than dimming.
+            batch.draw(effectArt.ditherAt(level, (int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
+                    0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        }
+
+        if (DeathCinematic.titleShowing(deathElapsed)) {
+            BitmapFont font = theme.pixelTitle;
+            float scale = DeathCinematic.titleScale(deathElapsed) / 100f;
+            font.getData().setScale(scale);
+            font.setColor(Color.valueOf("8c2f22"));
+            font.draw(batch, "YOU DIED", 0, Theme.WORLD_HEIGHT / 2f + 20,
+                    Theme.WORLD_WIDTH, Align.center, false);
+            font.getData().setScale(1f);
+            font.setColor(Color.WHITE);
         }
     }
 
