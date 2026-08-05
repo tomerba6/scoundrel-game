@@ -7,9 +7,9 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
 
 /**
- * The generated pieces the kill effects need beyond the sprites themselves:
- * the two halves a card is cleaved into, the bone bar that cuts it, and the
- * eight-point burst a bare-handed blow throws.
+ * The shapes the effects draw that are not sprites: the two halves a card is
+ * cleaved into, the bone bar that cuts it, the eight-point burst a blow
+ * throws, and the bottle a potion card collapses into.
  *
  * <p>All three are built as pixel masks at load rather than drawn with rotation
  * or a shader. The bar in particular is generated already diagonal instead of
@@ -17,7 +17,7 @@ import com.badlogic.gdx.utils.Disposable;
  * edges into colours that are not on the ramp, which is the one thing the art
  * cannot tolerate.
  */
-final class SliceArt implements Disposable {
+final class EffectArt implements Disposable {
 
     /** The cleaved card's cut faces, from the reference mock. */
     private static final int UPPER_FILL = 0x3a1d18;
@@ -28,25 +28,38 @@ final class SliceArt implements Disposable {
     /** The bar is drawn long enough to cross the card corner to corner. */
     private static final int BAR_THICKNESS = 8;
 
+    /** The bottle, from the reference render. */
+    private static final int GLASS = 0x5d8a4a;
+    private static final int GLASS_SHADE = 0x507641;
+    private static final int BOTTLE_EDGE = 0x35291f;
+    private static final int CORK = 0x9a8b70;
+    static final int BOTTLE_SIZE = 48;
+
     private final Texture upperTexture;
     private final Texture lowerTexture;
     private final Texture barTexture;
     private final Texture starTexture;
+    private final Texture bottleTexture;
+    private final int[] bottlePixels;
 
     private final TextureRegion upper;
     private final TextureRegion lower;
     private final TextureRegion bar;
     private final TextureRegion star;
+    private final TextureRegion bottle;
 
-    SliceArt(int cardWidth, int cardHeight) {
+    EffectArt(int cardWidth, int cardHeight) {
         upperTexture = triangle(cardWidth, cardHeight, true);
         lowerTexture = triangle(cardWidth, cardHeight, false);
         barTexture = diagonalBar(cardWidth, cardHeight);
         starTexture = burst(Barehanded.STAR_BOX);
+        bottlePixels = flaskPixels(BOTTLE_SIZE);
+        bottleTexture = Sprites.textureFrom(bottlePixels, BOTTLE_SIZE, BOTTLE_SIZE);
         upper = new TextureRegion(upperTexture);
         lower = new TextureRegion(lowerTexture);
         bar = new TextureRegion(barTexture);
         star = new TextureRegion(starTexture);
+        bottle = new TextureRegion(bottleTexture);
     }
 
     /** The half above-left of the cut, or the half below-right of it. */
@@ -64,6 +77,16 @@ final class SliceArt implements Disposable {
 
     TextureRegion star() {
         return star;
+    }
+
+    /** The bottle a potion card collapses into. */
+    TextureRegion bottle() {
+        return bottle;
+    }
+
+    /** Its pixels, so it can be tipped without rotating anything. */
+    int[] bottlePixels() {
+        return bottlePixels.clone();
     }
 
     /**
@@ -105,6 +128,48 @@ final class SliceArt implements Disposable {
                 pixmap.drawLine(from, y, to - 1, y);
             }
         }
+    }
+
+    /**
+     * The bottle a potion card collapses into — a squat body with a heavy dark
+     * lip, a neck and a cork, drawn as flat rects the way the card frames are.
+     * Not the potion sprite: this is furniture, and it has to read at 24px on
+     * its way to the health bar where a 64px illustration would turn to mush.
+     */
+    private static int[] flaskPixels(int size) {
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        pixmap.setColor(0);
+        pixmap.fill();
+
+        int unit = size / 12;                 // 4 at the design size
+        int neckW = unit * 2;
+        int neckX = (size - neckW) / 2;
+
+        // Cork, then neck, then the body beneath them.
+        pixmap.setColor(new Color((CORK << 8) | 0xff));
+        pixmap.fillRectangle(neckX - unit / 2, 0, neckW + unit, unit * 2);
+        pixmap.setColor(new Color((BOTTLE_EDGE << 8) | 0xff));
+        pixmap.fillRectangle(neckX, unit * 2, neckW, unit * 2);
+
+        int bodyY = unit * 4;
+        int bodyH = size - bodyY;
+        pixmap.fillRectangle(unit, bodyY, size - unit * 2, bodyH);
+        pixmap.setColor(new Color((GLASS << 8) | 0xff));
+        pixmap.fillRectangle(unit * 2, bodyY + unit, size - unit * 4, bodyH - unit * 2);
+        // A shade down the left, so the glass reads as round rather than flat.
+        pixmap.setColor(new Color((GLASS_SHADE << 8) | 0xff));
+        pixmap.fillRectangle(unit * 2, bodyY + unit, unit, bodyH - unit * 2);
+
+        int[] out = new int[size * size];
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                int rgba = pixmap.getPixel(x, y);
+                out[y * size + x] = (rgba >>> 8) | (rgba << 24);
+            }
+        }
+        pixmap.dispose();
+        return out;
     }
 
     /**
@@ -166,5 +231,6 @@ final class SliceArt implements Disposable {
         lowerTexture.dispose();
         barTexture.dispose();
         starTexture.dispose();
+        bottleTexture.dispose();
     }
 }

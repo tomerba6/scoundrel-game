@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -51,7 +52,7 @@ public final class SpriteLab extends ScreenAdapter {
     private final Theme theme;
     private final Sprites sprites;
     private final CardFrame cardFrame;
-    private final SliceArt sliceArt;
+    private final EffectArt effectArt;
     private final BoardHud hud;
     private final PixelViewport viewport;
     private final SpriteBatch batch;
@@ -77,6 +78,10 @@ public final class SpriteLab extends ScreenAdapter {
     /** A hit or a drink landing on the bar. */
     private float damageElapsed = -1f;
     private float healElapsed = -1f;
+    /** A potion being drunk, and the bottle's tilt stages built for it. */
+    private Card drinking;
+    private float drinkElapsed;
+    private Texture[] tilts;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -86,7 +91,7 @@ public final class SpriteLab extends ScreenAdapter {
         this.theme = theme;
         this.sprites = sprites;
         this.cardFrame = new CardFrame(theme);
-        this.sliceArt = new SliceArt(CardArt.CARD_W, CardArt.CARD_H);
+        this.effectArt = new EffectArt(CardArt.CARD_W, CardArt.CARD_H);
         this.hud = new BoardHud(theme);
         // One fixed virtual resolution, so the layout numbers are literal and
         // the art is guaranteed to land on whole pixels.
@@ -115,6 +120,66 @@ public final class SpriteLab extends ScreenAdapter {
         return frames.get(index);
     }
 
+    /**
+     * Builds the bottle's lean stages for this potion. Done here rather than at
+     * load because only one potion is ever being drunk, so nine sprites' worth
+     * of tilts would sit unused.
+     */
+    private void startDrink(Card card) {
+        endDrink();
+        drinking = card;
+        drinkElapsed = 0f;
+        // The bar waits for the pour. Starting it here would fill it while the
+        // bottle was still in the air, which is the whole thing PotionDrink's
+        // phase order exists to prevent.
+        healElapsed = -1f;
+        // The card collapses into a drawn bottle, not into its own sprite --
+        // a 64px illustration is unreadable at the size this ends up.
+        int n = EffectArt.BOTTLE_SIZE;
+        int[] base = effectArt.bottlePixels();
+        tilts = new Texture[TiltMask.STAGES + 1];
+        for (int stage = 0; stage <= TiltMask.STAGES; stage++) {
+            tilts[stage] = Sprites.textureFrom(
+                    TiltMask.tilt(base, n, n, stage), n, n);
+        }
+    }
+
+    private void endDrink() {
+        drinking = null;
+        if (tilts != null) {
+            for (Texture t : tilts) {
+                t.dispose();
+            }
+            tilts = null;
+        }
+    }
+
+    /**
+     * The bottle on its way to the bar and pouring into it. Nothing is drawn at
+     * the bar until it has arrived and tipped, so the fill always has a visible
+     * cause.
+     */
+    private void drawDrink(int slotX) {
+        int size = EffectArt.BOTTLE_SIZE;
+        int fromX = CardArt.spriteLeft(slotX) + (CardArt.SPRITE - size) / 2;
+        int fromY = CardArt.spriteTop() + (CardArt.SPRITE - size) / 2;
+        float progress = PotionDrink.flightProgress(drinkElapsed);
+        int x = Math.round(fromX + (HudArt.BAR_X + 40 - fromX) * progress);
+        int y = Math.round(fromY + (HudArt.BAR_Y - 24 - fromY) * progress);
+        int drawn = size;   // already the right size; it does not shrink
+
+        batch.draw(new TextureRegion(tilts[PotionDrink.tiltStage(drinkElapsed)]),
+                x, CardArt.toWorldY(y, drawn), drawn, drawn);
+
+        // Drops fall from the lip once it is pouring.
+        for (int drop = 0; drop < PotionDrink.dropsFallen(drinkElapsed); drop++) {
+            int dy = y + drawn - 4 + drop * 6;
+            batch.setColor(0.44f, 0.71f, 0.36f, 1f);
+            batch.draw(theme.whiteRegion(), x + drawn / 2, CardArt.toWorldY(dy, 4), 4, 4);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
     /** The room card under the pointer, reusing the tested hit-test. */
     private Card hoveredIn(List<Card> room) {
         Vector2 point = viewport.unproject(
@@ -133,6 +198,19 @@ public final class SpriteLab extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             game.showTitle();
             return;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && hovered != null
+                && hovered.type() == CardType.POTION) {
+            startDrink(hovered);
+        }
+        if (drinking != null) {
+            drinkElapsed += slowMotion ? delta / 8f : delta;
+            if (PotionDrink.pouring(drinkElapsed) && healElapsed < 0f) {
+                healElapsed = 0f;
+            }
+            if (PotionDrink.finished(drinkElapsed)) {
+                endDrink();
+            }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
             damageElapsed = 0f;
@@ -212,7 +290,7 @@ public final class SpriteLab extends ScreenAdapter {
         } else {
             drawSheet();
         }
-        theme.body.draw(batch, "R:rim K:kill B:bare A:avoid E:equip D:hit H:heal S:slow Esc", 40, 48);
+        theme.body.draw(batch, "R rim  K kill  B bare  A avoid  E equip  P potion  D hit  H heal  S slow", 40, 48);
 
         batch.end();
     }
@@ -220,10 +298,10 @@ public final class SpriteLab extends ScreenAdapter {
     /** Four framed cards at the board geometry, each with its sprite in the well. */
     private void drawRoom() {
         List<Card> room = List.of(
-                cardWithId("2C"),   // four creatures, so the idle stagger
-                cardWithId("7C"),   // is visible: at any instant they
-                cardWithId("10C"),  // should be on different frames
-                cardWithId("QC"));
+                cardWithId("10C"),  // the reference board's room, so a
+                cardWithId("7D"),   // side-by-side against it means
+                cardWithId("QS"),   // something -- and so equip and drink
+                cardWithId("5H"));  // have something to act on
         hovered = hoveredIn(room);
         // The reference board: 14 of 20 health, depth 27 of the 44-card deck.
         boolean healing = healElapsed >= 0f;
@@ -244,6 +322,17 @@ public final class SpriteLab extends ScreenAdapter {
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
+            if (card.equals(drinking)) {
+                int scale = PotionDrink.cardScale(drinkElapsed);
+                if (scale > 0) {
+                    int w = CardArt.CARD_W * scale / 100;
+                    int h = CardArt.CARD_H * scale / 100;
+                    cardFrame.draw(batch, card.type(),
+                            slotX + (CardArt.CARD_W - w) / 2,
+                            CardArt.SLOT_Y + (CardArt.CARD_H - h) / 2, w, h);
+                }
+                continue;
+            }
             boolean sweeping = avoidElapsed >= 0f
                     && CardFlight.started(CardFlight.AVOID, i, avoidElapsed);
             if (sweeping || card.equals(equipping)) {
@@ -297,6 +386,9 @@ public final class SpriteLab extends ScreenAdapter {
                         Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
                 batch.setColor(1f, 1f, 1f, 1f);
             }
+        }
+        if (drinking != null) {
+            drawDrink(CardArt.slotX(3));
         }
         theme.body.draw(batch, "ROOM — hover to animate, K to cleave, B to strike"
                 + (slowMotion ? "   [SLOW 1/8]" : ""), 40, 700);
@@ -384,7 +476,7 @@ public final class SpriteLab extends ScreenAdapter {
             int cx = slotX + CardArt.CARD_W / 2 + Barehanded.starOffsetX(hit);
             int cy = CardArt.SLOT_Y + CardArt.CARD_H / 2 + Barehanded.starOffsetY(hit) - lift;
             batch.setColor(1f, 1f, 1f, Barehanded.starAlpha(hit, bareElapsed));
-            batch.draw(sliceArt.star(), cx - size / 2,
+            batch.draw(effectArt.star(), cx - size / 2,
                     CardArt.toWorldY(cy - size / 2, size), size, size);
             batch.setColor(1f, 1f, 1f, 1f);
         }
@@ -401,10 +493,10 @@ public final class SpriteLab extends ScreenAdapter {
         if (WeaponKill.halvesShowing(killElapsed)) {
             float alpha = WeaponKill.halfAlpha(killElapsed);
             batch.setColor(1f, 1f, 1f, alpha);
-            batch.draw(sliceArt.upper(), slotX + WeaponKill.upperDx(killElapsed),
+            batch.draw(effectArt.upper(), slotX + WeaponKill.upperDx(killElapsed),
                     CardArt.toWorldY(top + WeaponKill.upperDy(killElapsed), CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
-            batch.draw(sliceArt.lower(), slotX + WeaponKill.lowerDx(killElapsed),
+            batch.draw(effectArt.lower(), slotX + WeaponKill.lowerDx(killElapsed),
                     CardArt.toWorldY(top + WeaponKill.lowerDy(killElapsed), CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
             batch.setColor(1f, 1f, 1f, 1f);
@@ -412,15 +504,15 @@ public final class SpriteLab extends ScreenAdapter {
             // Between the lift and the halves parting the card is whole but
             // already raised, so the blow reads before the cut does.
             int lift = WeaponKill.cardLift(killElapsed);
-            batch.draw(sliceArt.upper(), slotX,
+            batch.draw(effectArt.upper(), slotX,
                     CardArt.toWorldY(top - lift, CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
-            batch.draw(sliceArt.lower(), slotX,
+            batch.draw(effectArt.lower(), slotX,
                     CardArt.toWorldY(top - lift, CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
         }
         if (WeaponKill.slashShowing(killElapsed)) {
-            batch.draw(sliceArt.bar(), slotX + WeaponKill.slashOffset(killElapsed),
+            batch.draw(effectArt.bar(), slotX + WeaponKill.slashOffset(killElapsed),
                     CardArt.toWorldY(top - WeaponKill.slashOffset(killElapsed), CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
         }
@@ -446,7 +538,8 @@ public final class SpriteLab extends ScreenAdapter {
 
     @Override
     public void dispose() {
-        sliceArt.dispose();
+        endDrink();
+        effectArt.dispose();
         batch.dispose();
     }
 }

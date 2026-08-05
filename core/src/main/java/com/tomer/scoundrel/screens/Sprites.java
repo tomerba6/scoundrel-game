@@ -33,10 +33,21 @@ public final class Sprites implements Disposable {
     private final Texture hurtPage;
     private final Map<String, TextureRegion> rims = new HashMap<>();
     private final Map<String, TextureRegion> hurts = new HashMap<>();
+    /**
+     * The atlas page kept in memory so effects can read a sprite's pixels at
+     * runtime — the bottle's tilt stages are built when a potion is drunk
+     * rather than for all nine at load. 4MB, against 27 regions never used.
+     */
+    private final Pixmap page;
 
     public Sprites() {
         atlas = new TextureAtlas(Gdx.files.internal("sprites/sprites.atlas"));
         assertNearestFiltering();
+        TextureData data = atlas.getTextures().first().getTextureData();
+        if (!data.isPrepared()) {
+            data.prepare();
+        }
+        page = data.consumePixmap();
         rimPage = buildDerived(RimMask::generate, rims);
         hurtPage = buildDerived(HurtMask::generate, hurts);
     }
@@ -53,11 +64,6 @@ public final class Sprites implements Disposable {
      * out of the atlas and cannot fall out of step if a sprite is redrawn.
      */
     private Texture buildDerived(Rule rule, Map<String, TextureRegion> into) {
-        TextureData data = atlas.getTextures().first().getTextureData();
-        if (!data.isPrepared()) {
-            data.prepare();
-        }
-        Pixmap page = data.consumePixmap();
         Pixmap rimmed = new Pixmap(page.getWidth(), page.getHeight(), Pixmap.Format.RGBA8888);
         rimmed.setBlending(Pixmap.Blending.None);
 
@@ -97,7 +103,39 @@ public final class Sprites implements Disposable {
                     region.getRegionY(), region.getRegionWidth(), region.getRegionHeight()));
         }
         rimmed.dispose();
-        page.dispose();
+        return texture;
+    }
+
+    /** A named region's pixels in ARGB, for effects that transform a sprite. */
+    public int[] pixelsOf(String regionName) {
+        TextureAtlas.AtlasRegion region = atlas.findRegion(regionName);
+        if (region == null) {
+            throw new GdxRuntimeException("no sprite region named '" + regionName + "'");
+        }
+        int w = region.getRegionWidth();
+        int h = region.getRegionHeight();
+        int[] out = new int[w * h];
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                out[y * w + x] = rgbaToArgb(
+                        page.getPixel(region.getRegionX() + x, region.getRegionY() + y));
+            }
+        }
+        return out;
+    }
+
+    /** Builds a texture from ARGB pixels, nearest-filtered like everything else. */
+    public static Texture textureFrom(int[] argb, int width, int height) {
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                pixmap.drawPixel(x, y, argbToRgba(argb[y * width + x]));
+            }
+        }
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        pixmap.dispose();
         return texture;
     }
 
@@ -170,6 +208,7 @@ public final class Sprites implements Disposable {
     public void dispose() {
         rimPage.dispose();
         hurtPage.dispose();
+        page.dispose();
         atlas.dispose();
     }
 }
