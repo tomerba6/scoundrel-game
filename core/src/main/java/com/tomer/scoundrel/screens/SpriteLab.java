@@ -234,8 +234,10 @@ public final class SpriteLab extends ScreenAdapter {
         } else if (hit) {
             fill = HpPulse.damageWidth(HIT_FROM, HIT_TO, damageElapsed);
         }
-        hud.drawHealth(batch, 14, 20, healing,
-                hit && HpPulse.bleeding(HIT_FROM, HIT_TO, damageElapsed),
+        hud.drawHealth(batch,
+                healing ? 19 : hit ? 6 : 14, 20,
+                healing && HpPulse.numberHealed(HEAL_FROM, HEAL_TO, healElapsed),
+                hit && HpPulse.numberBloodied(HIT_FROM, HIT_TO, damageElapsed),
                 hit ? HpPulse.barOffset(HIT_FROM, HIT_TO, damageElapsed) : 0, fill);
         hud.drawTicker(batch, 27, 44);
         hud.drawAvoid(batch, true);

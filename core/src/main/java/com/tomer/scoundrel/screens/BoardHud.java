@@ -2,6 +2,7 @@ package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 /**
@@ -15,10 +16,13 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 final class BoardHud {
 
     private final TextureRegion pixel;
+    private final BitmapFont font;
     private final Color tint = new Color();
 
     BoardHud(Theme theme) {
         this.pixel = theme.whiteRegion();
+        // Placeholder face until Silkscreen replaces both old fonts.
+        this.font = theme.body;
     }
 
     /**
@@ -70,6 +74,18 @@ final class BoardHud {
             fill(batch, sx, inY, HudArt.SEGMENT_GAP, HudArt.barInteriorHeight(),
                     HudArt.SEGMENT_LINE, HudArt.SEGMENT_ALPHA);
         }
+
+        // The readout takes the colour of whatever is happening to the bar, and
+        // holds it for as long as the bar is still changing.
+        int colour = healing ? HudArt.FILL_HEAL
+                : bleeding ? HudArt.FILL_BLOOD : HudArt.NUMBER_REST;
+        tint.set((colour >>> 16 & 0xff) / 255f, (colour >>> 8 & 0xff) / 255f,
+                (colour & 0xff) / 255f, 1f);
+        font.setColor(tint);
+        font.draw(batch, String.valueOf(Math.max(0, health)),
+                HudArt.NUMBER_X + offsetX,
+                CardArt.toWorldY(HudArt.NUMBER_BASELINE, 0));
+        font.setColor(Color.WHITE);
     }
 
     /** One tick per card still face-down; the rest of the dungeon sits dim. */

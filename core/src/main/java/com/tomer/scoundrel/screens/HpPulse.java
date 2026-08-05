@@ -51,10 +51,23 @@ final class HpPulse {
         return Math.max(JOLT_FRAMES, drainFrames);
     }
 
-    /** Whether the health number is showing in dried blood rather than bone. */
-    static boolean numberBloodied(float elapsed) {
+    /**
+     * Whether the health number is showing in dried blood rather than bone. It
+     * holds for the whole drain, so a big hit does not read as settled while
+     * the bar is still bleeding; the three-frame floor covers a hit that takes
+     * nothing off.
+     */
+    static boolean numberBloodied(int fromWidth, int toWidth, float elapsed) {
         int frame = frameOf(elapsed);
-        return frame >= 0 && frame < BLOOD_FRAMES;
+        if (frame < 0) {
+            return false;
+        }
+        return frame < BLOOD_FRAMES || bleeding(fromWidth, toWidth, elapsed);
+    }
+
+    /** And green for as long as a drink is still filling the bar. */
+    static boolean numberHealed(int fromWidth, int toWidth, float elapsed) {
+        return toWidth > fromWidth && healWidth(fromWidth, toWidth, elapsed) < toWidth;
     }
 
     /**

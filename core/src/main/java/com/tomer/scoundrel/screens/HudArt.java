@@ -56,6 +56,12 @@ final class HudArt {
     /** And damage repaints it in dried blood as it drains. */
     static final int FILL_BLOOD = 0x8c2f22;
 
+    /** The health readout beside the bar, and where it sits. */
+    static final int NUMBER_X = BAR_X + BAR_W + 10;
+    /** Sits beside the bar rather than under it, as the reference does. */
+    static final int NUMBER_BASELINE = 44;
+    static final int NUMBER_REST = 0xe8ddc7;
+
     /**
      * Separators are an overlay on a continuous bar, not one cell per point of
      * health — the fill is proportional and these are drawn on top of it.

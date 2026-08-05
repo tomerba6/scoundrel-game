@@ -51,14 +51,34 @@ class HpPulseTest {
         }
     }
 
-    /** The number stays red a frame longer than the bar moves, so it registers. */
+    /**
+     * The number holds its colour for as long as the bar is changing, so a big
+     * hit does not go back to bone while it is still visibly bleeding.
+     */
     @Test
-    void theNumberRedensForThreeFrames() {
-        assertTrue(HpPulse.numberBloodied(0f));
-        assertTrue(HpPulse.numberBloodied(2 * FRAME));
-        assertFalse(HpPulse.numberBloodied(3 * FRAME));
-        assertTrue(HpPulse.numberBloodied(2 * FRAME) && HpPulse.barOffset(120, 120, 2 * FRAME) == 0,
-                "on a hit that takes nothing, the number outlasts the shake");
+    void theNumberStaysRedForTheWholeDrain() {
+        for (int frame = 0; frame < 10; frame++) {
+            assertTrue(HpPulse.numberBloodied(140, 40, frame * FRAME),
+                    "number went back to bone at frame " + frame + ", still draining");
+        }
+        assertFalse(HpPulse.numberBloodied(140, 40, 10 * FRAME));
+    }
+
+    @Test
+    void aHitThatTakesNothingStillRedensBriefly() {
+        assertTrue(HpPulse.numberBloodied(120, 120, 0f));
+        assertTrue(HpPulse.numberBloodied(120, 120, 2 * FRAME));
+        assertFalse(HpPulse.numberBloodied(120, 120, 3 * FRAME));
+    }
+
+    @Test
+    void theNumberStaysGreenForTheWholeFill() {
+        for (int frame = 0; frame < 4; frame++) {
+            assertTrue(HpPulse.numberHealed(100, 140, frame * FRAME),
+                    "number stopped being green at frame " + frame + ", still filling");
+        }
+        assertFalse(HpPulse.numberHealed(100, 140, 4 * FRAME));
+        assertFalse(HpPulse.numberHealed(120, 120, 0f), "nothing gained, nothing green");
     }
 
     @Test
