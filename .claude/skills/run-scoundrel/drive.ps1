@@ -85,17 +85,30 @@ if ($h -eq [IntPtr]::Zero) { Write-Output "WINDOW_NOT_FOUND"; exit 2 }
 # process; without this the first synthesised click is swallowed activating the
 # window instead of pressing the button under it.
 function Activate([IntPtr]$hwnd) {
-  if ([W]::GetForegroundWindow() -eq $hwnd) { return }
-  $tidFg = [W]::GetWindowThreadProcessId([W]::GetForegroundWindow(), [IntPtr]::Zero)
-  $tidMe = [W]::GetCurrentThreadId()
-  [void][W]::AttachThreadInput($tidMe, $tidFg, $true)
-  [void][W]::ShowWindow($hwnd, 9)   # SW_RESTORE
-  [void][W]::BringWindowToTop($hwnd)
-  [void][W]::SetForegroundWindow($hwnd)
-  [void][W]::AttachThreadInput($tidMe, $tidFg, $false)
-  Start-Sleep -Milliseconds 350
+  # Windows can still refuse the raise (foreground lock, another app grabbing
+  # focus). One attempt is not enough in practice, so try a few times.
+  for ($i = 0; $i -lt 5; $i++) {
+    if ([W]::GetForegroundWindow() -eq $hwnd) { return $true }
+    $tidFg = [W]::GetWindowThreadProcessId([W]::GetForegroundWindow(), [IntPtr]::Zero)
+    $tidMe = [W]::GetCurrentThreadId()
+    [void][W]::AttachThreadInput($tidMe, $tidFg, $true)
+    [void][W]::ShowWindow($hwnd, 9)   # SW_RESTORE
+    [void][W]::BringWindowToTop($hwnd)
+    [void][W]::SetForegroundWindow($hwnd)
+    [void][W]::AttachThreadInput($tidMe, $tidFg, $false)
+    Start-Sleep -Milliseconds 400
+  }
+  return ([W]::GetForegroundWindow() -eq $hwnd)
 }
-Activate $h
+
+# Refuse to work blind. If the game is not actually in front, clicks land on
+# whatever is (an IDE, a browser) and screenshots capture that instead -- which
+# looks like a game that ignored the input rather than like a targeting failure,
+# and has twice produced confident measurements of the wrong window.
+if (-not (Activate $h)) {
+  Write-Output "NOT_FOREGROUND - the Scoundrel window could not be raised; refusing to click or capture"
+  exit 3
+}
 
 $rect = New-Object W+RECT
 [void][W]::GetClientRect($h, [ref]$rect)
