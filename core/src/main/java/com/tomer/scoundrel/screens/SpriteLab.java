@@ -13,8 +13,13 @@ import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.rules.CardDefinition;
 import com.tomer.scoundrel.rules.StandardDeck;
 
+import com.badlogic.gdx.utils.Array;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * A developer-only art inspector, opened with F9, closed with Escape and
@@ -42,7 +47,10 @@ public final class SpriteLab extends ScreenAdapter {
     private final SpriteBatch batch;
 
     private final List<Card> deck = new ArrayList<>();
+    /** Per-card start offsets, assigned once (§7) — never recomputed per frame. */
+    private final Map<String, Float> idleOffsets = new HashMap<>();
     private View view = View.ROOM;
+    private float elapsed;
 
     public SpriteLab(ScoundrelGame game, Theme theme, Sprites sprites) {
         this.game = game;
@@ -53,9 +61,26 @@ public final class SpriteLab extends ScreenAdapter {
         // literal and the art is guaranteed to land on whole pixels.
         this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         this.batch = new SpriteBatch();
+        Random random = new Random();
         for (CardDefinition def : new StandardDeck().cards()) {
-            deck.add(new Card(def.id(), def.type(), def.value()));
+            Card card = new Card(def.id(), def.type(), def.value());
+            deck.add(card);
+            idleOffsets.put(card.id(), IdleCycle.randomOffset(random));
         }
+    }
+
+    /**
+     * The region to draw for a card right now. Only creatures have idle frames
+     * (§1 ships none for weapons or potions), so everything else is its static
+     * base sprite.
+     */
+    private TextureRegion current(Card card) {
+        if (card.type() != CardType.MONSTER) {
+            return sprites.region(CardSprites.regionName(card));
+        }
+        Array<TextureRegion> frames = sprites.frames(CardSprites.idleStem(card));
+        int index = IdleCycle.frameIndex(elapsed, idleOffsets.get(card.id()), frames.size);
+        return frames.get(index);
     }
 
     @Override
@@ -67,6 +92,7 @@ public final class SpriteLab extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
             view = view == View.ROOM ? View.SHEET : View.ROOM;
         }
+        elapsed += delta;
         ScreenUtils.clear(BACKDROP);
         viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);
@@ -86,20 +112,20 @@ public final class SpriteLab extends ScreenAdapter {
     /** Four framed cards at the §9 geometry, each with its sprite in the well. */
     private void drawRoom() {
         List<Card> room = List.of(
-                cardWithId("KS"),   // a face monster
-                cardWithId("7C"),   // a numbered monster, other suit
-                cardWithId("5D"),   // a weapon
-                cardWithId("9H"));  // a potion
+                cardWithId("2C"),   // four creatures, so the idle stagger
+                cardWithId("7C"),   // is visible: at any instant they
+                cardWithId("10C"),  // should be on different frames
+                cardWithId("QC"));
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
             cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y);
-            batch.draw(sprites.region(CardSprites.regionName(card)),
+            batch.draw(current(card),
                     CardArt.spriteLeft(slotX), CardArt.toWorldY(CardArt.spriteTop(), CardArt.SPRITE),
                     CardArt.SPRITE, CardArt.SPRITE);
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
-        theme.body.draw(batch, "ROOM — card frame + sprite in the well", 40, 700);
+        theme.body.draw(batch, "ROOM — four idle cycles, staggered (§7)", 40, 700);
     }
 
     /**
@@ -133,7 +159,7 @@ public final class SpriteLab extends ScreenAdapter {
                     continue;
                 }
                 int x = left + (card.value() - 2) * cell + 12;
-                batch.draw(sprites.region(CardSprites.regionName(card)),
+                batch.draw(current(card),
                         x, CardArt.toWorldY(y, Sprites.SIZE), Sprites.SIZE, Sprites.SIZE);
             }
         }

@@ -349,7 +349,10 @@ SHEET view lays all 44 out by rank for the verify.)*
 Map card → region name from §1. Weapons and potions are done here.
 *Verify:* all 31 objects appear on their correct ranks; nothing is missing or doubled.
 
-**6 — Idle cycles.** `Animation` per creature card, 6 fps, random start offset.
+**6 — Idle cycles.** *(done — `IdleCycle` holds the clock and the stagger; only creatures animate,
+since §1 ships no idle frames for weapons or potions. Frame selection floors time rather than using
+`Animation`, so the quantising §11 step 11 asks for is already in one tested place.)*
+`Animation` per creature card, 6 fps, random start offset.
 *Verify:* four cards in a room are visibly out of phase; nothing shimmers or drifts sub-pixel.
 
 **7 — Rim generation.** §8, rim only. Add a debug key that flashes the rim on a card.
