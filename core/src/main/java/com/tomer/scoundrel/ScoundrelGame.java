@@ -38,7 +38,9 @@ public class ScoundrelGame extends Game {
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
-    private boolean fullscreen = true; // launched borderless-fullscreen by the launcher
+    // The launcher starts windowed at the design resolution while the art
+    // conversion is in progress; flip both back together when it lands.
+    private boolean fullscreen = false;
 
     @Override
     public void create() {

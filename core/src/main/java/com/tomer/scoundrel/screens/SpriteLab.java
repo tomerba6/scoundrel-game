@@ -180,6 +180,17 @@ public final class SpriteLab extends ScreenAdapter {
         }
     }
 
+    /**
+     * The four cards on show — the reference board's room, so a side-by-side
+     * against it means something, and so equip and drink have something to act
+     * on. One place, because effects need to know which slot a card is in and
+     * looking it up in the 44-card deck instead gives an unrelated answer.
+     */
+    private List<Card> room() {
+        return List.of(cardWithId("10C"), cardWithId("7D"),
+                cardWithId("QS"), cardWithId("5H"));
+    }
+
     /** The room card under the pointer, reusing the tested hit-test. */
     private Card hoveredIn(List<Card> room) {
         Vector2 point = viewport.unproject(
@@ -308,11 +319,7 @@ public final class SpriteLab extends ScreenAdapter {
 
     /** Four framed cards at the board geometry, each with its sprite in the well. */
     private void drawRoom() {
-        List<Card> room = List.of(
-                cardWithId("10C"),  // the reference board's room, so a
-                cardWithId("7D"),   // side-by-side against it means
-                cardWithId("QS"),   // something -- and so equip and drink
-                cardWithId("5H"));  // have something to act on
+        List<Card> room = room();
         hovered = hoveredIn(room);
         // The reference board: 14 of 20 health, depth 27 of the 44-card deck.
         boolean healing = healElapsed >= 0f;
@@ -539,8 +546,14 @@ public final class SpriteLab extends ScreenAdapter {
      */
     private void drawDeath() {
         if (DeathCinematic.flaring(deathElapsed) && killer != null) {
-            int slot = deck.indexOf(killer);
-            int x = CardArt.slotX(Math.max(0, slot % 4));
+            // The slot in the room, not the index in the 44-card deck: the deck
+            // index modulo four picked an unrelated card, so hovering the
+            // weapon flared the potion.
+            int slot = room().indexOf(killer);
+            if (slot < 0) {
+                slot = 0;
+            }
+            int x = CardArt.slotX(slot);
             batch.setColor(0.55f, 0.18f, 0.13f, DeathCinematic.flareStrength(deathElapsed));
             batch.draw(theme.whiteRegion(), x, CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
@@ -556,7 +569,7 @@ public final class SpriteLab extends ScreenAdapter {
         }
 
         if (DeathCinematic.titleShowing(deathElapsed)) {
-            BitmapFont font = theme.pixelTitle;
+            BitmapFont font = theme.pixelDisplayBold;
             float scale = DeathCinematic.titleScale(deathElapsed) / 100f;
             font.getData().setScale(scale);
             font.setColor(Color.valueOf("8c2f22"));
