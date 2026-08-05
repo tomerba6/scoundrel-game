@@ -40,6 +40,16 @@ final class IdleCycle {
     }
 
     /**
+     * As {@link #frameIndex(float, float, int)}, but holds on frame 1 when the
+     * card is not the player's focus (§13). Four cards breathing at once reads
+     * as busy; frame 1 is the base sprite pixel-for-pixel, so a held card is
+     * indistinguishable from a static one and nothing jumps when focus moves.
+     */
+    static int frameIndex(float elapsed, float offset, int frameCount, boolean animating) {
+        return animating ? frameIndex(elapsed, offset, frameCount) : 0;
+    }
+
+    /**
      * A start offset spanning exactly one cycle. Assigned once when a card is
      * dealt and kept — recomputing it per frame would make the card stutter
      * instead of breathe.

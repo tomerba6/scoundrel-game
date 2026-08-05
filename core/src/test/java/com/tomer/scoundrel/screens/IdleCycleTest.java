@@ -91,6 +91,29 @@ class IdleCycleTest {
     }
 
     /**
+     * §13: four cards breathing at once reads as busy, so only the card the
+     * player is looking at animates and the rest hold on frame 1 — which is the
+     * base sprite, pixel-identical, so a frozen card is indistinguishable from a
+     * static one.
+     */
+    @Test
+    void aCardThatIsNotTheFocusHoldsOnTheBaseFrame() {
+        for (float t = 0f; t < 3f; t += 0.07f) {
+            assertEquals(0, IdleCycle.frameIndex(t, 0.4f, FRAMES, false),
+                    "an unfocused card moved at t=" + t);
+        }
+    }
+
+    @Test
+    void theFocusedCardStillRunsItsCycle() {
+        Set<Integer> seen = new HashSet<>();
+        for (float t = 0f; t < IdleCycle.CYCLE_TIME; t += 0.02f) {
+            seen.add(IdleCycle.frameIndex(t, 0f, FRAMES, true));
+        }
+        assertEquals(FRAMES, seen.size(), "focused card should pass through every frame");
+    }
+
+    /**
      * The stagger has to actually spread a room. With four cards drawn from one
      * cycle of offsets, they should rarely all show the same frame.
      */

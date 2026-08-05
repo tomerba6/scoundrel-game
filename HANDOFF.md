@@ -391,9 +391,11 @@ How the art was generated is in the appendix below, not in the document.
 - **Does the discard pile show sprites?** Not specified. The mock shows slain values as small
   22×30 chips with the number only. If you want sprites there, they need a ×1 (64px) draw and the
   card frame simplifying — ask before building it.
-- **What happens to the idle when a card is not the player's focus?** Everything breathes in the
-  mock. If four cycles at once is too busy in motion, the cheapest fix is to run only the
-  hovered/targeted card and freeze the rest on frame 1.
+- ~~**What happens to the idle when a card is not the player's focus?**~~ **Answered.** Four
+  cycles at once did read as busy in motion, so only the hovered card animates and the rest hold
+  on frame 1. Frame 1 is the base sprite pixel-for-pixel, so a held card is indistinguishable
+  from a static one and nothing jumps as focus moves. `IdleCycle.frameIndex(..., animating)` is
+  the switch; hit-testing reuses `CardHitRegions`.
 - **The nine 16×16 rail icons do not exist yet.** The brief calls for them; nothing in `atlas/` is
   one. Until they are drawn, the rail shows the 64×64 card sprite at ×1 (§9), which works but is
   detailed for its size. They are hand-drawing work, not generation — models are unreliable below

@@ -197,6 +197,12 @@ foreach ($a in $Actions.Split(",")) {
   } elseif ($a.StartsWith("click:")) {
     $c = $a.Substring(6).Split(":")
     Click ([int]$c[0]) ([int]$c[1])
+  } elseif ($a.StartsWith("move:")) {
+    # Cursor move with no button, for hover states.
+    $m = $a.Substring(5).Split(":")
+    [void][W]::SetCursorPos($origin.X + [int]$m[0], $origin.Y + [int]$m[1])
+    Start-Sleep -Milliseconds 200
+    Write-Output ("MOVE {0},{1}" -f $m[0], $m[1])
   } elseif ($a.StartsWith("resize:")) {
     $r = $a.Substring(7).Split(":")
     Resize ([int]$r[0]) ([int]$r[1])

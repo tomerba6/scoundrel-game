@@ -13,6 +13,7 @@ import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.rules.CardDefinition;
 import com.tomer.scoundrel.rules.StandardDeck;
 
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 
 import java.util.ArrayList;
@@ -51,6 +52,8 @@ public final class SpriteLab extends ScreenAdapter {
     private final Map<String, Float> idleOffsets = new HashMap<>();
     private View view = View.ROOM;
     private float elapsed;
+    /** The card under the pointer, or null. Only it animates (§13). */
+    private Card hovered;
 
     public SpriteLab(ScoundrelGame game, Theme theme, Sprites sprites) {
         this.game = game;
@@ -74,13 +77,27 @@ public final class SpriteLab extends ScreenAdapter {
      * (§1 ships none for weapons or potions), so everything else is its static
      * base sprite.
      */
-    private TextureRegion current(Card card) {
+    private TextureRegion current(Card card, boolean animating) {
         if (card.type() != CardType.MONSTER) {
             return sprites.region(CardSprites.regionName(card));
         }
         Array<TextureRegion> frames = sprites.frames(CardSprites.idleStem(card));
-        int index = IdleCycle.frameIndex(elapsed, idleOffsets.get(card.id()), frames.size);
+        int index = IdleCycle.frameIndex(
+                elapsed, idleOffsets.get(card.id()), frames.size, animating);
         return frames.get(index);
+    }
+
+    /** The room card under the pointer, reusing the tested hit-test. */
+    private Card hoveredIn(List<Card> room) {
+        Vector2 point = viewport.unproject(
+                new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+        List<CardHitRegions.CardRect> rects = new ArrayList<>();
+        for (int i = 0; i < room.size(); i++) {
+            rects.add(new CardHitRegions.CardRect(room.get(i), CardArt.slotX(i),
+                    CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H));
+        }
+        return CardHitRegions.cardAt(rects, point.x, point.y);
     }
 
     @Override
@@ -116,16 +133,17 @@ public final class SpriteLab extends ScreenAdapter {
                 cardWithId("7C"),   // is visible: at any instant they
                 cardWithId("10C"),  // should be on different frames
                 cardWithId("QC"));
+        hovered = hoveredIn(room);
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
             cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y);
-            batch.draw(current(card),
+            batch.draw(current(card, card.equals(hovered)),
                     CardArt.spriteLeft(slotX), CardArt.toWorldY(CardArt.spriteTop(), CardArt.SPRITE),
                     CardArt.SPRITE, CardArt.SPRITE);
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
-        theme.body.draw(batch, "ROOM — four idle cycles, staggered (§7)", 40, 700);
+        theme.body.draw(batch, "ROOM — only the hovered card breathes (§13)", 40, 700);
     }
 
     /**
@@ -159,7 +177,7 @@ public final class SpriteLab extends ScreenAdapter {
                     continue;
                 }
                 int x = left + (card.value() - 2) * cell + 12;
-                batch.draw(current(card),
+                batch.draw(current(card, false),
                         x, CardArt.toWorldY(y, Sprites.SIZE), Sprites.SIZE, Sprites.SIZE);
             }
         }
