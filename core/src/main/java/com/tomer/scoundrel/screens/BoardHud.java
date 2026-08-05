@@ -27,15 +27,17 @@ final class BoardHud {
      * @param healing   paints the fill in the heal colour for the pulse
      */
     void drawHealth(Batch batch, int health, int maxHealth, boolean healing) {
-        drawHealth(batch, health, maxHealth, healing, 0, HudArt.barFillWidth(health, maxHealth));
+        drawHealth(batch, health, maxHealth, healing, false, 0,
+                HudArt.barFillWidth(health, maxHealth));
     }
 
     /**
-     * @param offsetX  the jolt a hit gives the whole bar
-     * @param fillWidth how much is filled, so a heal can grow it a segment at a time
+     * @param bleeding  paints the fill in dried blood while it drains
+     * @param offsetX   the jolt a hit gives the whole bar
+     * @param fillWidth how much is filled, so a change can step a segment at a time
      */
     void drawHealth(Batch batch, int health, int maxHealth, boolean healing,
-                    int offsetX, int fillWidth) {
+                    boolean bleeding, int offsetX, int fillWidth) {
         int x = HudArt.BAR_X + offsetX;
         int y = HudArt.BAR_Y;
         fill(batch, x, y, HudArt.BAR_W, HudArt.BAR_H, HudArt.FRAME);
@@ -49,9 +51,13 @@ final class BoardHud {
         // Three bands rather than one flat colour, so the bar reads as lit.
         int filled = Math.min(fillWidth, inW);
         if (filled > 0) {
-            int top = healing ? HudArt.FILL_HEAL : HudArt.FILL_TOP;
-            int mid = healing ? HudArt.FILL_HEAL : HudArt.FILL_MID;
-            int low = healing ? HudArt.FILL_HEAL : HudArt.FILL_LOW;
+            // A change repaints the whole fill so the bar reads as one event:
+            // green while it grows, dried blood while it drains.
+            int wash = healing ? HudArt.FILL_HEAL : HudArt.FILL_BLOOD;
+            boolean changing = healing || bleeding;
+            int top = changing ? wash : HudArt.FILL_TOP;
+            int mid = changing ? wash : HudArt.FILL_MID;
+            int low = changing ? wash : HudArt.FILL_LOW;
             fill(batch, inX, inY, filled, HudArt.BAND_TOP, top);
             fill(batch, inX, inY + HudArt.BAND_TOP, filled, HudArt.BAND_MID, mid);
             fill(batch, inX, inY + HudArt.BAND_TOP + HudArt.BAND_MID, filled, HudArt.BAND_LOW, low);

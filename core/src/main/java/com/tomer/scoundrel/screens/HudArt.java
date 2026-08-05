@@ -53,6 +53,8 @@ final class HudArt {
     static final int BAR_LIP_H = 2;
     /** Heal repaints the fill in this before settling back. */
     static final int FILL_HEAL = 0x71b45c;
+    /** And damage repaints it in dried blood as it drains. */
+    static final int FILL_BLOOD = 0x8c2f22;
 
     /**
      * Separators are an overlay on a continuous bar, not one cell per point of

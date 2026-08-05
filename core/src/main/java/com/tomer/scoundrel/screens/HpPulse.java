@@ -5,8 +5,9 @@ package com.tomer.scoundrel.screens;
  *
  * <p>Damage jolts the bar sideways for two frames and reddens the number for
  * three, so the number outlasts the movement and the loss registers after the
- * jolt has stopped. Healing grows the fill a segment at a time rather than
- * jumping to its new length, which is what makes a big potion look like one.
+ * jolt has stopped. It also <em>drains</em>: the fill recedes a segment a
+ * frame in dried blood, the mirror of a heal growing in green, so a big hit
+ * reads as a big hit rather than the bar simply being shorter next frame.
  */
 final class HpPulse {
 
@@ -17,7 +18,8 @@ final class HpPulse {
     private static final int JOLT_FRAMES = 2;
     private static final int BLOOD_FRAMES = 3;
 
-    static final float DAMAGE_TOTAL = BLOOD_FRAMES * FRAME;
+    /** How long the shake and the reddened number last, drain aside. */
+    static final float JOLT_TOTAL = BLOOD_FRAMES * FRAME;
 
     private HpPulse() {
     }
@@ -41,8 +43,28 @@ final class HpPulse {
         return frame >= 0 && frame < BLOOD_FRAMES;
     }
 
-    static boolean damageFinished(float elapsed) {
-        return elapsed >= DAMAGE_TOTAL;
+    /**
+     * How wide the fill is partway through a drain: it recedes one segment per
+     * frame and stops exactly on {@code toWidth}, so a partial last segment
+     * lands on the right number rather than undershooting. Never negative — a
+     * killing blow empties the bar and stops there.
+     */
+    static int damageWidth(int fromWidth, int toWidth, float elapsed) {
+        if (toWidth >= fromWidth) {
+            return toWidth;
+        }
+        int drained = fromWidth - Math.max(0, frameOf(elapsed)) * HudArt.SEGMENT_PITCH;
+        return Math.max(Math.max(toWidth, 0), drained);
+    }
+
+    /** Whether the bar is still losing ground, and so painted in blood. */
+    static boolean bleeding(int fromWidth, int toWidth, float elapsed) {
+        return toWidth < fromWidth && damageWidth(fromWidth, toWidth, elapsed) > toWidth;
+    }
+
+    /** Over only when both the jolt and the drain have finished. */
+    static boolean damageFinished(int fromWidth, int toWidth, float elapsed) {
+        return elapsed >= JOLT_TOTAL && !bleeding(fromWidth, toWidth, elapsed);
     }
 
     /**

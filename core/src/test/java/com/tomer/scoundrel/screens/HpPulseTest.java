@@ -75,10 +75,58 @@ class HpPulseTest {
         assertTrue(HpPulse.healFinished(120, 120, 0f));
     }
 
+    /**
+     * Damage drains the bar the way a heal fills it — a segment a frame — so a
+     * big hit reads as a big hit rather than the bar simply being shorter next
+     * frame. It runs backwards, and stops exactly on the target.
+     */
+    @Test
+    void damageDrainsOneSegmentPerFrame() {
+        assertEquals(140, HpPulse.damageWidth(140, 100, 0f));
+        assertEquals(130, HpPulse.damageWidth(140, 100, FRAME));
+        assertEquals(120, HpPulse.damageWidth(140, 100, 2 * FRAME));
+        assertEquals(100, HpPulse.damageWidth(140, 100, 4 * FRAME));
+    }
+
+    @Test
+    void damageNeverUndershootsItsTarget() {
+        assertEquals(100, HpPulse.damageWidth(140, 100, 99f));
+        assertEquals(105, HpPulse.damageWidth(140, 105, 99f));
+        assertEquals(0, HpPulse.damageWidth(40, 0, 99f), "a killing blow empties the bar");
+        assertTrue(HpPulse.damageWidth(140, 100, 99f) >= 0);
+    }
+
+    @Test
+    void aHitThatChangesNothingStillJolts() {
+        // Being struck for zero -- a weapon that outclasses the monster -- should
+        // still shake the bar, just not drain it.
+        assertEquals(120, HpPulse.damageWidth(120, 120, 0f));
+        assertEquals(-4, HpPulse.barOffset(0f));
+    }
+
+    @Test
+    void theBarBleedsWhileItIsDraining() {
+        assertTrue(HpPulse.bleeding(140, 100, 0f));
+        assertTrue(HpPulse.bleeding(140, 100, 2 * FRAME));
+        assertFalse(HpPulse.bleeding(140, 100, 4 * FRAME), "settled once it reaches the target");
+        assertFalse(HpPulse.bleeding(120, 120, 0f), "nothing lost, nothing bleeding");
+    }
+
+    /** The pulse is not over until both the jolt and the drain have finished. */
+    @Test
+    void aLongDrainOutlastsTheJolt() {
+        // 140 to 40 is ten segments, far longer than the three-frame jolt.
+        assertFalse(HpPulse.damageFinished(140, 40, 5 * FRAME));
+        assertTrue(HpPulse.damageFinished(140, 40, 10 * FRAME));
+        // And a short drain still waits for the jolt to end.
+        assertFalse(HpPulse.damageFinished(140, 130, FRAME));
+        assertTrue(HpPulse.damageFinished(140, 130, 3 * FRAME));
+    }
+
     @Test
     void bothPulsesEnd() {
-        assertTrue(HpPulse.damageFinished(HpPulse.DAMAGE_TOTAL));
-        assertFalse(HpPulse.damageFinished(HpPulse.DAMAGE_TOTAL - 0.01f));
+        assertTrue(HpPulse.damageFinished(120, 120, HpPulse.JOLT_TOTAL));
+        assertFalse(HpPulse.damageFinished(120, 120, HpPulse.JOLT_TOTAL - 0.01f));
         assertTrue(HpPulse.healFinished(100, 140, 4 * FRAME));
         assertFalse(HpPulse.healFinished(100, 140, 3 * FRAME));
     }

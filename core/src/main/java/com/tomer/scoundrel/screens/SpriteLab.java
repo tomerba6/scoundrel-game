@@ -40,6 +40,9 @@ public final class SpriteLab extends ScreenAdapter {
     /** 14 of 20 healing up to 19, so a drink has several segments to grow through. */
     private static final int HEAL_FROM = 148;
     private static final int HEAL_TO = 201;
+    /** And 14 down to 6, so a hit has several segments to drain through. */
+    private static final int HIT_FROM = 148;
+    private static final int HIT_TO = 64;
 
     /** ROOM shows four framed cards; SHEET shows every object by rank. */
     private enum View { ROOM, SHEET }
@@ -136,7 +139,7 @@ public final class SpriteLab extends ScreenAdapter {
         }
         if (damageElapsed >= 0f) {
             damageElapsed += slowMotion ? delta / 8f : delta;
-            if (HpPulse.damageFinished(damageElapsed)) {
+            if (HpPulse.damageFinished(HIT_FROM, HIT_TO, damageElapsed)) {
                 damageElapsed = -1f;
             }
         }
@@ -224,11 +227,16 @@ public final class SpriteLab extends ScreenAdapter {
         hovered = hoveredIn(room);
         // The reference board: 14 of 20 health, depth 27 of the 44-card deck.
         boolean healing = healElapsed >= 0f;
-        int fill = healing
-                ? HpPulse.healWidth(HEAL_FROM, HEAL_TO, healElapsed)
-                : HudArt.barFillWidth(14, 20);
+        boolean hit = damageElapsed >= 0f;
+        int fill = HudArt.barFillWidth(14, 20);
+        if (healing) {
+            fill = HpPulse.healWidth(HEAL_FROM, HEAL_TO, healElapsed);
+        } else if (hit) {
+            fill = HpPulse.damageWidth(HIT_FROM, HIT_TO, damageElapsed);
+        }
         hud.drawHealth(batch, 14, 20, healing,
-                damageElapsed >= 0f ? HpPulse.barOffset(damageElapsed) : 0, fill);
+                hit && HpPulse.bleeding(HIT_FROM, HIT_TO, damageElapsed),
+                hit ? HpPulse.barOffset(damageElapsed) : 0, fill);
         hud.drawTicker(batch, 27, 44);
         hud.drawAvoid(batch, true);
         for (int i = 0; i < room.size(); i++) {

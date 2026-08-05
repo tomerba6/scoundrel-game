@@ -394,6 +394,12 @@ delay and covered the sprite. In Java: do not draw the halves at all until `elap
 HP pulses: damage jumps the bar ±4px for 2 frames and flips the number to dried blood `8c2f22` for
 3. Heal redraws the fill one segment per frame, `71b45c`.
 
+> **As built — damage drains the bar too.** The line above jolts the bar and reddens the number
+> but never shortens it, so a hit landed without the bar visibly losing anything. Damage now
+> recedes the fill one segment per frame in `8c2f22`, the mirror of the heal growing in
+> `71b45c` — a bleed rather than a jump. The jolt is unchanged and runs independently, so it is
+> over long before a large hit has finished draining.
+
 ---
 
 ## 11. The other screens
