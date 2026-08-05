@@ -44,6 +44,7 @@ public final class SpriteLab extends ScreenAdapter {
     private final Theme theme;
     private final Sprites sprites;
     private final CardFrame cardFrame;
+    private final SliceArt sliceArt;
     private final PixelViewport viewport;
     private final SpriteBatch batch;
 
@@ -53,6 +54,11 @@ public final class SpriteLab extends ScreenAdapter {
     private View view = View.ROOM;
     /** R toggles the generated outline on, the way a weapon kill flashes it. */
     private boolean showRim;
+    /** The card being killed and how far into the effect it is, or null. */
+    private Card killing;
+    private float killElapsed;
+    /** S slows effects 8x. Sub-second animation cannot be screenshotted at speed. */
+    private boolean slowMotion;
     private float elapsed;
     /** The card under the pointer, or null. Only it animates. */
     private Card hovered;
@@ -62,6 +68,7 @@ public final class SpriteLab extends ScreenAdapter {
         this.theme = theme;
         this.sprites = sprites;
         this.cardFrame = new CardFrame(theme);
+        this.sliceArt = new SliceArt(CardArt.CARD_W, CardArt.CARD_H);
         // One fixed virtual resolution, so the layout numbers are literal and
         // the art is guaranteed to land on whole pixels.
         this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
@@ -108,6 +115,19 @@ public final class SpriteLab extends ScreenAdapter {
             game.showTitle();
             return;
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.K) && hovered != null) {
+            killing = hovered;
+            killElapsed = 0f;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            slowMotion = !slowMotion;
+        }
+        if (killing != null) {
+            killElapsed += slowMotion ? delta / 8f : delta;
+            if (WeaponKill.finished(killElapsed)) {
+                killing = null;
+            }
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
             showRim = !showRim;
         }
@@ -126,7 +146,7 @@ public final class SpriteLab extends ScreenAdapter {
         } else {
             drawSheet();
         }
-        theme.body.draw(batch, "Tab: switch view    R: toggle rim    Esc: leave", 40, 48);
+        theme.body.draw(batch, "Tab: view    R: rim    K: kill    S: slow-mo    Esc: leave", 40, 48);
 
         batch.end();
     }
@@ -142,23 +162,31 @@ public final class SpriteLab extends ScreenAdapter {
         for (int i = 0; i < room.size(); i++) {
             Card card = room.get(i);
             int slotX = CardArt.slotX(i);
-            cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y);
+            boolean struck = card.equals(killing);
+            if (struck && WeaponKill.cardCut(killElapsed)) {
+                drawCleaved(slotX);
+                continue;
+            }
+            int lift = struck ? WeaponKill.cardLift(killElapsed) : 0;
+            cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y - lift);
             batch.draw(current(card, card.equals(hovered)),
-                    CardArt.spriteLeft(slotX), CardArt.toWorldY(CardArt.spriteTop(), CardArt.SPRITE),
+                    CardArt.spriteLeft(slotX),
+                    CardArt.toWorldY(CardArt.spriteTop() - lift, CardArt.SPRITE),
                     CardArt.SPRITE, CardArt.SPRITE);
             // R flashes the generated outline over the sprite, the way the
             // weapon kill will before the card is cut.
-            if (showRim) {
+            if (showRim || (struck && WeaponKill.rimShowing(killElapsed))) {
                 TextureRegion rim = sprites.rim(CardSprites.regionName(card));
                 if (rim != null) {
                     batch.draw(rim, CardArt.spriteLeft(slotX),
-                            CardArt.toWorldY(CardArt.spriteTop(), CardArt.SPRITE),
+                            CardArt.toWorldY(CardArt.spriteTop() - lift, CardArt.SPRITE),
                             CardArt.SPRITE, CardArt.SPRITE);
                 }
             }
             theme.body.draw(batch, card.id(), slotX + 4, CardArt.toWorldY(CardArt.SLOT_Y - 8, 0));
         }
-        theme.body.draw(batch, "ROOM — only the hovered card breathes", 40, 700);
+        theme.body.draw(batch, "ROOM — hover to animate, K to cleave"
+                + (slowMotion ? "   [SLOW 1/8]" : ""), 40, 700);
     }
 
     /**
@@ -199,6 +227,42 @@ public final class SpriteLab extends ScreenAdapter {
         theme.body.draw(batch, "SHEET — all 44 cards, 31 objects, by rank", 40, 700);
     }
 
+    /**
+     * The card after the blade lands. Nothing here is drawn before
+     * {@code cardCut} is true — the halves do not exist during the flash
+     * rather than existing transparently, which is what keeps the
+     * creature visible through it.
+     */
+    private void drawCleaved(int slotX) {
+        int top = CardArt.SLOT_Y;
+        if (WeaponKill.halvesShowing(killElapsed)) {
+            float alpha = WeaponKill.halfAlpha(killElapsed);
+            batch.setColor(1f, 1f, 1f, alpha);
+            batch.draw(sliceArt.upper(), slotX + WeaponKill.upperDx(killElapsed),
+                    CardArt.toWorldY(top + WeaponKill.upperDy(killElapsed), CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H);
+            batch.draw(sliceArt.lower(), slotX + WeaponKill.lowerDx(killElapsed),
+                    CardArt.toWorldY(top + WeaponKill.lowerDy(killElapsed), CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H);
+            batch.setColor(1f, 1f, 1f, 1f);
+        } else {
+            // Between the lift and the halves parting the card is whole but
+            // already raised, so the blow reads before the cut does.
+            int lift = WeaponKill.cardLift(killElapsed);
+            batch.draw(sliceArt.upper(), slotX,
+                    CardArt.toWorldY(top - lift, CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H);
+            batch.draw(sliceArt.lower(), slotX,
+                    CardArt.toWorldY(top - lift, CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H);
+        }
+        if (WeaponKill.slashShowing(killElapsed)) {
+            batch.draw(sliceArt.bar(), slotX + WeaponKill.slashOffset(killElapsed),
+                    CardArt.toWorldY(top - WeaponKill.slashOffset(killElapsed), CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H);
+        }
+    }
+
     /** Clubs 0, spades 1, weapons 2, potions 3. */
     private int rowOf(Card card) {
         if (card.type() == CardType.MONSTER) {
@@ -219,6 +283,7 @@ public final class SpriteLab extends ScreenAdapter {
 
     @Override
     public void dispose() {
+        sliceArt.dispose();
         batch.dispose();
     }
 }

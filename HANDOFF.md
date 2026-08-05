@@ -362,7 +362,10 @@ a one-off.)*
 §8, rim only. Add a debug key that flashes the rim on a card.
 *Verify:* a clean 2px cream outline (1px source × 2), no gaps at the silhouette's diagonals.
 
-**8 — Weapon kill.** Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
+**8 — Weapon kill.** *(done — `WeaponKill` is the timeline, `SliceArt` the halves and bar.
+Note: 0.36s is 4.32 frames at 12fps, so the flash is quantised to the 4 frames it was tuned
+for; held literally the phase change lands mid-frame and the effect slides.)*
+Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
 *Verify:* you can see the outline flash with the creature still visible, *then* the cut.
 
 **9 — Hurt generation and barehanded.** §8 in full, then the two-hit exchange.
