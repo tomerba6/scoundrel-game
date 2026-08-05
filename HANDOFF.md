@@ -84,6 +84,16 @@ Silkscreen replaces IM Fell English and Alegreya Sans **entirely**. One face, on
 label, numeral and heading. It is a pixel face, so the same rule as the sprites applies: use it only
 at sizes that land on whole pixels — 8, 11, 13, 16, 26, 38 px are the sizes the mock uses.
 
+> **As built — even sizes only.** 11 and 13 are odd, and the viewport snaps to half-steps, so at
+> 1920×1080 everything draws at ×1.5 and an odd size lands on a half pixel — the exact blur a
+> pixel face exists to avoid. The sizes in use are **8, 12, 14, 26, 38**, held in `PixelType` and
+> checked by a test against every scale the viewport can produce.
+>
+> Loading matters as much as the sizes. Silkscreen is rasterised at 1:1 with `mono = true`,
+> `hinting = None`, gamma 1 and **Nearest** filtering — the opposite of the vector faces, which
+> are drawn at 3× and scaled down to survive upscaling. Measured on screen: the Silkscreen
+> readout renders in exactly **one** colour, against **27** for the same text in Alegreya.
+
 Silkscreen is SIL Open Font License, free to redistribute:
 <https://fonts.google.com/specimen/Silkscreen>. Load the TTF through `FreeTypeFontGenerator` with
 `hinting = None` and no gamma, or pre-bake a bitmap font — either way, **no anti-aliasing**.

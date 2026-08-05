@@ -21,8 +21,7 @@ final class BoardHud {
 
     BoardHud(Theme theme) {
         this.pixel = theme.whiteRegion();
-        // Placeholder face until Silkscreen replaces both old fonts.
-        this.font = theme.body;
+        this.font = theme.pixelBody;
     }
 
     /**

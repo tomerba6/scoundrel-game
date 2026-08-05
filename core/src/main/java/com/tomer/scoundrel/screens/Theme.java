@@ -103,6 +103,16 @@ public final class Theme implements Disposable {
     /** Alegreya Sans — the smallest text: feed detail, card corners. */
     public final BitmapFont small;
 
+    /** Silkscreen — the pixel face the whole front end is moving onto. */
+    public final BitmapFont pixelSmall;
+    public final BitmapFont pixelLabel;
+    public final BitmapFont pixelBody;
+    public final BitmapFont pixelTitle;
+    public final BitmapFont pixelDisplay;
+    /** Silkscreen Bold, for headings and emphasised numerals. */
+    public final BitmapFont pixelLabelBold;
+    public final BitmapFont pixelDisplayBold;
+
     private final Texture white;
     private final Texture glow;
     private final Texture vignette;
@@ -132,14 +142,28 @@ public final class Theme implements Disposable {
                 new FreeTypeFontGenerator(Gdx.files.internal("fonts/AlegreyaSans-Regular.ttf"));
         FreeTypeFontGenerator sansBold =
                 new FreeTypeFontGenerator(Gdx.files.internal("fonts/AlegreyaSans-Bold.ttf"));
+        FreeTypeFontGenerator silk =
+                new FreeTypeFontGenerator(Gdx.files.internal("fonts/Silkscreen-Regular.ttf"));
+        FreeTypeFontGenerator silkBold =
+                new FreeTypeFontGenerator(Gdx.files.internal("fonts/Silkscreen-Bold.ttf"));
         display = generate(fell, 64);
         title = generate(fell, 42);
         body = generate(sans, 18);
         bodyBold = generate(sansBold, 18);
         small = generate(sans, 14);
         fell.dispose();
+        pixelSmall = generatePixel(silk, PixelType.SMALL);
+        pixelLabel = generatePixel(silk, PixelType.LABEL);
+        pixelBody = generatePixel(silk, PixelType.BODY);
+        pixelTitle = generatePixel(silk, PixelType.TITLE);
+        pixelDisplay = generatePixel(silk, PixelType.DISPLAY);
+        pixelLabelBold = generatePixel(silkBold, PixelType.LABEL);
+        pixelDisplayBold = generatePixel(silkBold, PixelType.DISPLAY);
+
         sans.dispose();
         sansBold.dispose();
+        silk.dispose();
+        silkBold.dispose();
 
         Pixmap pixel = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixel.setColor(Color.WHITE);
@@ -348,6 +372,33 @@ public final class Theme implements Disposable {
         return t * t * (3f - 2f * t);
     }
 
+    /**
+     * Silkscreen, rasterised the way a pixel face has to be: at its exact size
+     * with no supersampling, nearest-filtered, unhinted, un-gamma'd and with
+     * anti-aliasing off entirely.
+     *
+     * <p>Every one of those is the opposite of what {@link #generate} does, and
+     * for good reason — the vector faces are drawn 3× and scaled down so they
+     * stay smooth when the viewport upscales. Doing that to Silkscreen would
+     * take a face that is already exactly right at 1:1 and blur it.
+     */
+    private static BitmapFont generatePixel(FreeTypeFontGenerator generator, int size) {
+        FreeTypeFontParameter parameter = new FreeTypeFontParameter();
+        parameter.size = size;
+        parameter.characters = FreeTypeFontGenerator.DEFAULT_CHARS + EXTRA_CHARS;
+        parameter.minFilter = Texture.TextureFilter.Nearest;
+        parameter.magFilter = Texture.TextureFilter.Nearest;
+        parameter.hinting = FreeTypeFontGenerator.Hinting.None;
+        parameter.gamma = 1f;
+        // The one that actually matters: FreeType renders a 1-bit glyph, so a
+        // pixel is either on or off and no edge is ever blended.
+        parameter.mono = true;
+        BitmapFont font = generator.generateFont(parameter);
+        // Whole positions only; a glyph on a half pixel is the same blur.
+        font.setUseIntegerPositions(true);
+        return font;
+    }
+
     private static BitmapFont generate(FreeTypeFontGenerator generator, int size) {
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();
         parameter.size = size * FONT_SUPERSAMPLE;
@@ -545,6 +596,13 @@ public final class Theme implements Disposable {
         body.dispose();
         bodyBold.dispose();
         small.dispose();
+        pixelSmall.dispose();
+        pixelLabel.dispose();
+        pixelBody.dispose();
+        pixelTitle.dispose();
+        pixelDisplay.dispose();
+        pixelLabelBold.dispose();
+        pixelDisplayBold.dispose();
         white.dispose();
         glow.dispose();
         vignette.dispose();
