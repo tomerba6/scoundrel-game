@@ -1,18 +1,31 @@
 # Scoundrel — UI Layer
 
-This documents the Scene2D UI as it exists today: the decisions locked in the
-design interview, the visual tokens, the architecture, and every component on
-screen. It complements [`design.md`](design.md) (the rules engine); keep both
-in sync with the code.
+This documents the UI: the decisions locked in the design interview, the
+visual tokens, the architecture, and every component on screen. It complements
+[`design.md`](design.md) (the rules engine); keep both in sync with the code.
 
+> ## ⚠ The board has moved on — read this first
+>
+> **The game board is no longer Scene2D.** The pixel-art conversion
+> ([`HANDOFF.md`](../HANDOFF.md)) replaced it with immediate-mode drawing at a
+> fixed 1280×720: `GameScreen` draws onto a batch, `BoardView` owns the room and
+> every effect, `BoardHud` the chrome, `CardFace` the printing on a card, and
+> `BoardArt`/`CardArt`/`HudArt` hold the measurements. `CardTiles`,
+> `Choreographer` and `Motion` are **gone**, and so is the *Ashen* palette —
+> the 80-colour ramp system in `HANDOFF.md` §6 supersedes it.
+>
+> Everything below still describes the board accurately as **behaviour** —
+> what a press does, when Avoid is live, what the feed says, why a click is
+> never swallowed. Where it describes Scene2D *mechanics* for the board, read
+> it as history. The five other screens (title, mode picker, records,
+> trophies, end and tutorial overlays) are still Scene2D exactly as written,
+> and are converted in the next pass; this document is rewritten when they land.
+>
 > **Where the look stands.** The board is a torchlit dungeon: a procedural
 > backdrop (warm glow with a live flicker over a vignette, drifting embers) and
-> framed cards in the muted *Ashen* palette. What is still deliberately absent
-> is *illustration* — no drawn card art or creature sprites; type is carried by
-> the value, label, and drawn suit pips. That illustration pass, when it comes,
-> swaps assets in `Theme` without rewriting screen logic. Motion (deal-in,
-> avoid-sweep, HP pulses, the per-card resolve effects, and the YOU DIED death
-> cinematic) and the atmosphere already ship.
+> hand-drawn 64×64 pixel sprites at ×2 inside 176×256 framed cards. Motion
+> (deal-in, avoid-sweep, HP pulses, the per-card resolve effects, and the YOU
+> DIED death cinematic) steps on a 12 fps grid; idles run at 6.
 
 ## Locked decisions (from the design interview)
 
@@ -28,11 +41,11 @@ in sync with the code.
   1. **`Table` defaults to `Touchable.childrenOnly`** — the table itself is
      never a hit target, only its children are. A card tile is a Table, so
      only its *label glyphs* were clickable and presses on the blank part of a
-     card vanished into the stage. `CardTiles.makeWholeFaceHittable` sets
-     `Touchable.enabled`; `CardTileHitAreaTest` pins it. The same trap made
-     the end overlay non-modal (presses fell through to the dead board), so it
-     is explicitly `enabled` too. Any full-screen or overlapping actor needs a
-     deliberate `Touchable` decision.
+     card vanished into the stage. Cards no longer go through Scene2D at all —
+     the board hit-tests its own rectangles (`CardHitRegions`) — but the trap
+     is still live for the overlays: it made the end overlay non-modal (presses
+     fell through to the dead board), so it is explicitly `enabled`. Any
+     full-screen or overlapping actor needs a deliberate `Touchable` decision.
   2. **Cards, chooser buttons, and the animation gate act on _press_, not
      click** (`Widgets.pressListener`). Scene2D's `ClickListener` only fires
      when the release lands back on the same actor, so fast play — where the
@@ -80,59 +93,35 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 
 ## Architecture
 
-- **View = f(state), rebuilt wholesale.** `GameScreen` holds the immutable
-  `GameState`; every move runs `apply`, replaces the state, and rebuilds the
-  whole widget tree from it. No incremental widget updates — if the state is
-  right, the screen is right. Motion never weakens this: the `Choreographer`
-  (below) plays cosmetic flights *over* rebuilds, so widget identity across
-  moves is never needed.
-- **Choreographer: cosmetic motion over the final board.** After a move the
-  board is rebuilt first (truth before motion), then flight proxies — built by
-  the same `CardTiles` factory as the real tiles, which hide meanwhile —
-  replay the transition above it: dealt cards fly out of the depth ticker
-  (the dungeon made physical), the carryover card slides from its old slot,
-  and an avoided room sweeps up into the ticker before the next deal.
-  Animations are **blocking but skippable, and no click is ever wasted**: a
-  fullscreen gate holds input while one plays, and a press on it settles the
-  board *and* resolves the card it landed on (`Choreographer.SkipListener` →
-  `GameScreen.resolveCardAt`). Always safe, because nothing mid-flight carries
-  game state. Durations, stagger, and card size are `Theme` tokens, kept short
-  on purpose — the gate covers the whole deal, so a long animation reads as
-  dropped clicks (`Motion.dealWindow` pins that span: 0.30s deal, 0.50s after
-  an avoid). Pure logic is kept out of the GL classes and unit tested headlessly:
-  the window arithmetic (`Motion`), the "which card is under this point" lookup
-  (`CardHitRegions`), the animation-routing decision (`ResolveEffect`), and the
-  feed and label text (`FeedText`, `Labels`) — the same characterize-then-move
-  extraction the rest of the screen follows. Shipped motion set:
-  traveling cards (deal-in + avoid sweep); feedback pulses (damage
-  shudders the HP bar and flashes the number dried blood; healing glows the
-  fill back in, herbal); and **resolve effects** — a bare-handed kill shudders
-  the monster's tile under two bone impact stars (`Theme.burstRegion`,
-  `Motion.strikeWindow`); equipping a weapon flies its card to the trophy rail,
-  shrinking and cross-fading into the rail's battleaxe (`Theme.axeRegion`,
-  `Theme.EQUIP_FLIGHT`) with the real rail mini hidden until it lands; and
-  drinking a potion flies its card up to the HP bar as a herbal flask that
-  spills a few drops on arrival (`Theme.flaskRegion`, `Theme.POTION_FLIGHT`) —
-  the HP count, fill, and green flash all wait for the flask to land, not the
-  click — while a wasted second potion just fizzles grey in its slot; and a
-  weapon kill cleaves the monster's card along a curved top-right→bottom-left
-  diagonal into two halves that lift, part, rotate, and fade
-  (`Theme.sliceUpperRegion`/`sliceLowerRegion`, `Theme.SLICE_DURATION`). Resolve
-  effects run under the same gate: the effect plays in the resolved card's slot,
-  then the deal-in follows.
-- **Death cinematic.** A losing blow withholds the instant end overlay: `rebuild`
-  skips it while `deathPending`, and `GameScreen.playDeath(killerSlot)` runs a
-  sequence (`Theme.DEATH_*` beats). The fatal blow flares — a red screen flash, a
-  heavy board shake (`shakeBoard`), and a large crimson burst over the card that
-  killed you — then the screen bleeds dark: a cold scrim and a blood-red edge
-  vignette (`Theme.vignette(tint)`) creep in while the torch snuffs out (the
-  `Backdrop` honours its actor alpha, so fading it kills the glow and embers but
-  keeps the dark vignette). Then **YOU DIED** fades in with a slow grow, holds,
-  and the score + buttons (the shared `buildEndPanel`) settle in beneath it. A
-  click fast-forwards straight to that settled screen (a catcher takes the click
-  while it plays, then retires so the buttons beneath go live); the shake and
-  snuffed torch are undone on `rebuild`. Only losses animate — a win keeps the
-  instant `DUNGEON CLEARED` overlay, and the tutorial never dies.
+- **View = f(state), drawn from scratch each frame.** `GameScreen` holds the
+  immutable `GameState`; every move runs `apply` and replaces it, and the board
+  is drawn from that state on every frame. There is nothing to update
+  incrementally — if the state is right, the screen is right. Motion never
+  weakens this: an effect plays *over* a board that is already final, so no
+  animation ever carries game state.
+- **`BoardView`: the room and everything that happens to it.** It owns the idle
+  clock, each card's stagger, and the single effect currently running; it owns
+  no game state and no rules. `GameScreen` tells it which cards are in the room,
+  what just happened to one of them, and where the pointer is. The developer lab
+  (`SpriteLab`, F9) draws through the same class, which is the only thing that
+  makes it a useful instrument.
+- **Effects are blocking but skippable, and no click is ever wasted.** While one
+  plays, a press settles it *and* resolves whatever card it landed on. Always
+  safe, because the state underneath is already final. Each effect is a pure,
+  unit-tested timeline quantised to a 12 fps grid — `CardFlight` (the deal, the
+  avoid sweep, the equip carry), `Barehanded`, `WeaponKill`, `PotionDrink`,
+  `HpPulse`, `DeathCinematic` — and nothing tweens: every value holds for a whole
+  frame. A card that was already on the board slides to its new slot as the room
+  closes up; a fresh one comes out of the depth ticker, the dungeon made physical.
+  The heal from a potion waits for the bottle to actually pour, so the bar filling
+  always has a visible cause.
+- **Death cinematic.** A losing blow withholds the end overlay until the
+  cinematic has run: a red flare over the card that killed you, a whole-pixel
+  board shake, then the screen going out by **ordered 4×4 dither — pattern,
+  never alpha**, so the board thins out rather than dimming, and YOU DIED grows
+  in over it in four held steps. A click fast-forwards straight to the settled
+  screen. Only losses animate — a win keeps the instant `DUNGEON CLEARED`
+  overlay, and the tutorial never dies.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the
@@ -195,12 +184,12 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   so it breathes without looping) over a generated vignette, plus drifting
   embers (`Embers`, a pure tested particle sim). All from `Theme`'s generated
   textures; no external assets.
-- **Room row** — up to four framed card tiles: a darkened role-colour border
-  around a panel with a soft top-and-bottom edge shade, rank+suit indices in two
-  corners (top-left and bottom-right), the type label, and the big display-font
-  value. Panels use the muted *Ashen* palette (oxblood monster, slate weapon,
-  moss potion); text is bone on all three. One builder feeds these and the
-  Choreographer's flight proxies.
+- **Room row** — up to four 176×256 cards, centred for however many are in the
+  room. Each is an outer bezel, a role-coloured plate with 2px light/dark
+  bevels, and a recessed well holding the 64×64 sprite at ×2. A 26px header
+  carries the rank, its suit pip and the type; the footer carries the value at
+  38px with a hard 4px drop shadow. Plates come from the ramp system
+  (`CardArt.paletteFor`): oxblood monster, slate weapon, moss potion.
 - **Chooser** — stone popup over the pressed card with one torchlight button
   per legal move ("Use weapon" / "Barehanded"). Generic: a future card
   offering three moves gets three buttons. It carries no padding, so its whole
@@ -306,24 +295,34 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   `TutorialScript` (curated deck + narrated steps), `TutorialStep`,
   `TutorialGuide` (the gating state machine), and `TutorialFlag` (the seen
   marker). No LibGDX; drives the engine via its ordered-deck entry.
-- `core/src/main/java/com/tomer/scoundrel/screens/Choreographer.java` — the
-  flight layer: deal-in and avoid-sweep choreographies, input gate, skip.
+- `core/src/main/java/com/tomer/scoundrel/screens/BoardView.java` — the room
+  and every effect that plays over it, drawn in immediate mode. Shared with the
+  developer lab so the instrument shows what ships. (Replaces `Choreographer`.)
+- `core/src/main/java/com/tomer/scoundrel/screens/BoardHud.java` /
+  `CardFrame.java` / `CardFace.java` / `Pips.java` / `EffectArt.java` — the
+  board's chrome, the card frame, the printing on a card, the four suit pips,
+  and the generated shapes the effects use.
 - `core/src/main/java/com/tomer/scoundrel/screens/TitleScreen.java` /
   `ModeSelectScreen.java` / `RecordsScreen.java` / `TrophiesScreen.java` — the
   navigation anchor, the difficulty picker, THE LEDGER, and the achievement
   catalog.
-- `core/src/main/java/com/tomer/scoundrel/screens/CardTiles.java` /
-  `Widgets.java` — shared tile, label and button builders, plus
-  `pressListener` (the press-not-click input rule) and
-  `makeWholeFaceHittable` (the `Touchable` rule).
+- `core/src/main/java/com/tomer/scoundrel/screens/Widgets.java` — shared label
+  and button builders for the screens that are still Scene2D, plus
+  `pressListener` (the press-not-click input rule).
 - `core/src/main/java/com/tomer/scoundrel/screens/Backdrop.java` — the ambient
   layer added first to each stage: torch glow, vignette, and embers.
-- `core/src/main/java/com/tomer/scoundrel/screens/Motion.java` /
-  `CardHitRegions.java` / `TorchFlicker.java` / `Embers.java` / `ClockText.java` /
-  `FeedText.java` / `Labels.java` / `ResolveEffect.java` — the pure, headlessly
-  unit-tested logic extracted out of the screens: motion and skip-and-act
-  geometry, the flicker curve, the ember sim, the run-timer/duration formatting,
-  the event-feed and label text, and the animation-routing decision.
+- `core/src/main/java/com/tomer/scoundrel/screens/CardHitRegions.java` /
+  `TorchFlicker.java` / `Embers.java` / `ClockText.java` / `FeedText.java` /
+  `Feed.java` / `Labels.java` / `ResolveEffect.java` / `BoardArt.java` /
+  `CardArt.java` / `HudArt.java` / `PixelScale.java` / `PixelType.java` — the
+  pure, headlessly unit-tested logic behind the screens: the "which card is
+  under this point" lookup, the flicker curve, the ember sim, the
+  run-timer/duration formatting, the event-feed text and its stepped fade, the
+  labels, the animation-routing decision, and every board measurement.
+- `core/src/main/java/com/tomer/scoundrel/screens/CardFlight.java` /
+  `WeaponKill.java` / `Barehanded.java` / `PotionDrink.java` / `HpPulse.java` /
+  `DeathCinematic.java` / `IdleCycle.java` — one pure timeline per effect, each
+  quantised to the 12 fps grid (6 for idles) and unit tested.
 - `core/src/main/java/com/tomer/scoundrel/ScoundrelGame.java` — the navigator:
   creates the Theme, RunLog and AchievementStore, boots into `TitleScreen`,
   owns disposal.

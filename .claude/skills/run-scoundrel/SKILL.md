@@ -67,9 +67,16 @@ Then **look at the PNG** with the Read tool. A blank frame means it never came u
 Actions are comma-separated and run in order: `click:<x>:<y>`, `key:<name>`,
 `wait:<ms>`, `shot:<path>`.
 
-`key:` takes `ESC`, `ENTER`, `SPACE` or `F1`-`F12` — the bindings the game polls
-per frame rather than through Scene2D: **F11** toggles fullscreen, **F9** opens
-the developer sprite inspector (`SpriteLab`), **Esc** leaves it.
+`key:` takes `ESC`, `ENTER`, `SPACE`, a letter, or `F1`-`F12` — the bindings the
+game polls per frame rather than through Scene2D: **F11** toggles fullscreen,
+**F9** opens the developer sprite inspector (`SpriteLab`), **Esc** leaves it.
+
+Inside the lab, one key per effect, acting on whatever card the pointer is over:
+**K** weapon kill, **B** barehanded, **A** avoid sweep, **E** equip, **P** potion,
+**D** hit, **H** heal, **X** death, **Tab** the all-sprites sheet, **S** slow
+motion (÷8). Sub-second effects cannot be frame-grabbed at their own speed —
+turn **S** on first, then trigger, and pace the `shot:`s at eight times the
+timing you are checking.
 
 ```powershell
 & powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 `
@@ -88,20 +95,26 @@ Client pixels, origin **top-left**, window 1280x720.
 
 | Screen | Target | x, y |
 |---|---|---|
-| Title | New game / Records / Trophies | 640,346 / 640,390 / 640,434 |
+| Title (3 buttons) | New game / Records / Trophies | 640,346 / 640,390 / 640,434 |
+| Title (4 buttons, tutorial seen) | New game / How to play / Records / Trophies | 640,324 / 640,367 / 640,410 / 640,453 |
 | Mode picker | Standard / Relentless / Frail | 176,153 / 176,204 / 176,255 |
 | Mode picker | Back | 92,680 |
-| Game board | Avoid button | 1214,48 |
-| Game board | card centres, y = 363 | see formula below |
+| Game board | Avoid button | 1198,46 |
+| Game board | card centres, y = 342 | see formula below |
+| End overlay | New game / Main menu / Trophies / Records | 639,423 / 639,464 / 639,505 / 639,546 |
 
-The room row is **centred**, so card centres shift as the room shrinks. Cards are
-170 wide on 194 pitch; for `n` cards the i-th centre (0-based) is:
+The room row is **centred**, so card centres shift as the room shrinks. Since the
+pixel conversion cards are **176 wide on a 200 pitch**; for `n` cards the i-th
+centre (0-based) is:
 
 ```
-x = 640 - (n * 194) / 2 + 97 + (i * 194)
+x = 640 - (n * 200) / 2 + 88 + (i * 200)
 ```
 
-Verified: n=4 gives 349, 543, 737, 931; n=3 gives 446, 640, 834.
+Verified: n=4 gives 340, 540, 740, 940; n=3 gives 440, 640, 840; n=2 gives
+540, 740; n=1 gives 640. **A click between those centres lands in the 24px gap
+and does nothing** — which looks exactly like a bug in whatever you just changed.
+Recompute for the current room size before blaming the code.
 
 ## Gotchas
 
@@ -157,6 +170,13 @@ These all cost real time in this container.
   disabled in Relentless mode, and disabled mid-room in every mode.
 - **Action strings split on the first colon only**, because screenshot paths
   contain `C:\`.
+- **A screen that switches itself mid-frame must stop rendering.** `game.showX()`
+  disposes the screen that called it, batch and textures included. Returning
+  from a *helper* rather than from `render` lets the rest of the frame draw
+  through freed memory — an `EXCEPTION_ACCESS_VIOLATION` in native code that
+  kills the JVM instead of throwing. If the window vanishes mid-chain, check
+  `/tmp/scoundrel-run.log` for an `hs_err_pid*.log` before assuming the driver
+  lost it.
 - **Screenshots capture screen pixels, not the window's buffer.** Anything
   floating above the window lands in the PNG - a desktop notification toast
   occluded the bottom-right corner during this skill's own verification run. If

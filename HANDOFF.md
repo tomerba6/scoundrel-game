@@ -310,6 +310,23 @@ HPBAR  = (140,  44);                 // health bar, top-left
 Rank and type sit in a 26px header. The value numeral is 38px, cream `e8ddc7`, with a
 `0 4px 0 rgba(10,8,6,.7)` drop shadow — at ×2 that is a 4px hard offset, not a blur.
 
+> **As built — `SLOT_Y = 214`, and the row re-centres.** The reference render puts the card row's
+> top bezel on **214**, not the 220 quoted above: 220 is where the row would sit if it were pinned,
+> and centring it between the HUD strip and the rail is what the render actually does. Measured off
+> `board.png` and pinned in `CardArtTest`.
+>
+> The block above also assumes four cards. A room shrinks as it is resolved, so the row is
+> **centred for however many cards are in it** — `BoardView.slotX(i, n)`, which reproduces
+> `SLOT_X(i)` exactly at n=4. Effect anchors are unchanged.
+>
+> **Every anchor is a centre**, including the slot a card is dealt to. Aiming a flight at a slot's
+> left edge lands the card half a card out, which on screen reads as the row being wrong rather
+> than as a bug.
+>
+> The rest of the board's furniture — the rail well, the slain chips, the degradation plate, the
+> potion marker, the feed and the depth line — was measured off the same render and lives in
+> `BoardArt`, pinned in `BoardArtTest`.
+
 ### Rail and held-item icons — read this before copying the mock
 
 The mock draws the rail weapon at **72px** and the held potion at **26px**. Both are wrong by §4:
@@ -340,6 +357,13 @@ different game than one that steps.
 | effect | total | timing | what happens |
 |---|---|---|---|
 | Deal in | 700 ms | 0.18 s, stagger 0.04 | Cards leave `TICKER` in two whole-pixel hops. |
+
+> **As built — three hops, and a stagger of one frame.** 0.18 s and 0.04 s are 2.2 and 0.5 frames
+> at 12 fps, so neither is on the grid. The deal is three hops of one frame each on a one-frame
+> stagger — the closest the grid allows to release 1's feel, and 0.5 s for a full room rather than
+> 0.30 s. A card that was already on the board **slides** to its new slot on the same clock instead
+> of growing, so a room closing up around a resolved card does not read as being re-dealt.
+
 | Avoid sweep | 800 ms | 0.20 s | Four cards hop into `TICKER` together; returned ticks flash 1 frame. |
 
 > **As built — the room empties left to right.** The table has all four cards hop together. They
@@ -540,9 +564,17 @@ mid-frame, and nothing here may slide.)*
 
 **10 — Remaining effects.** *(done — `CardFlight` for the avoid sweep and the equip carry,
 `PotionDrink` + `EffectArt.bottle` for the drink, `HpPulse` for the bar, `DeathCinematic` +
-`EffectArt.ditherAt` for the death. Deal-in keeps its release 1 behaviour, as asked.)*
+`EffectArt.ditherAt` for the death. Deal-in keeps its release 1 choreography, as asked.)*
 Deal, avoid, equip, potion, death, HP pulses, from the §10 table.
 *Verify:* each against the mock's EFFECTS tab, which plays them in isolation.
+
+**10b — The board.** *(done — `GameScreen` draws in immediate mode; `BoardView` owns the room
+and every effect, `BoardHud` the chrome, `CardFace` the printing, `BoardArt` the measurements.
+The lab draws through the same `BoardView`, so it shows what ships.)*
+Not a numbered step in the original plan, but the one that had to land between the effects and
+the screens: the effects were built in the lab, and this is what moved them onto the real board.
+Three notes below.
+*Verify:* play a run — the room deals in, resolves, refills, and dies in the new grammar.
 
 **11 — The other screens.** §11, in this order: title, new game, ledger, trophies, run end,
 tutorial. The tutorial is last because it overlays a finished board.
