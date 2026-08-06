@@ -62,6 +62,25 @@ final class CardFlight {
     static final Flight EQUIP = new Flight(RAIL_X, RAIL_Y, 3 * FRAME, 0f,
             new int[] {100, 55, 18});
 
+    /**
+     * A card arriving in the room, growing as it comes. Release 1 dealt in
+     * 0.18s on a 0.04s stagger; a frame is 0.083s, so the closest the grid
+     * allows is three hops of one frame on a one-frame stagger — a shade
+     * slower, and stepping rather than sliding.
+     */
+    static Flight dealTo(int toX, int toY) {
+        return new Flight(toX, toY, FRAME, FRAME, new int[] {28, 64, 100});
+    }
+
+    /**
+     * A card that was already on the board moving to its new slot as the room
+     * closes up around a resolved card. Same clock as a deal so a mixed room
+     * lands together, but it never changes size — it is already the right one.
+     */
+    static Flight slideTo(int toX, int toY) {
+        return new Flight(toX, toY, FRAME, FRAME, new int[] {100, 100, 100});
+    }
+
     private CardFlight() {
     }
 

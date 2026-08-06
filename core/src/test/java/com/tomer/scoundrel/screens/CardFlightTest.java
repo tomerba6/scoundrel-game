@@ -124,4 +124,57 @@ class CardFlightTest {
         assertFalse(CardFlight.AVOID.finished(CardFlight.AVOID.total() - 0.01f));
         assertTrue(CardFlight.AVOID.finished(CardFlight.AVOID.total()));
     }
+
+    /**
+     * A deal aims at the card's own slot, so unlike the sweep and the carry it
+     * is built per card rather than being a constant. Every anchor in a flight
+     * is a <b>centre</b> — the ticker and the rail
+     * included, so a deal has to be built with the slot's centre and not its
+     * left edge — aiming at the edge lands the card half a card too far left,
+     * which on screen reads as the row being off rather than as a bug.
+     */
+    @Test
+    void aDealLandsExactlyOnTheSlotCentreItWasBuiltFor() {
+        int centre = CardArt.slotX(1) + CardArt.CARD_W / 2;
+        int middle = CardArt.SLOT_Y + CardArt.CARD_H / 2;
+        CardFlight.Flight deal = CardFlight.dealTo(centre, middle);
+        float end = deal.total();
+        assertEquals(centre, CardFlight.x(deal, CardFlight.TICKER_X, end));
+        assertEquals(middle, CardFlight.y(deal, CardFlight.TICKER_Y, end));
+        assertEquals(100, CardFlight.scale(deal, end), "a dealt card ends full size");
+    }
+
+    @Test
+    void aDealStartsSmallAtTheDungeon() {
+        CardFlight.Flight deal = CardFlight.dealTo(452, CardArt.SLOT_Y);
+        assertEquals(CardFlight.TICKER_X, CardFlight.x(deal, CardFlight.TICKER_X, 0f));
+        assertTrue(CardFlight.scale(deal, 0f) < 100, "it should grow as it comes");
+    }
+
+    /**
+     * A card already on the board only moves; growing it would read as the
+     * room being re-dealt rather than closing up.
+     */
+    @Test
+    void aSlideNeverChangesSize() {
+        CardFlight.Flight slide = CardFlight.slideTo(252, CardArt.SLOT_Y);
+        for (float t = 0; t <= slide.total(); t += 1 / 60f) {
+            assertEquals(100, CardFlight.scale(slide, t), "a slide resized at t=" + t);
+        }
+        assertEquals(252, CardFlight.x(slide, 452, slide.total()));
+    }
+
+    /** Both arrive on the same clock, so a mixed room lands together. */
+    @Test
+    void aDealAndASlideRunToTheSameLength() {
+        assertEquals(CardFlight.dealTo(0, 0).total(), CardFlight.slideTo(0, 0).total(), 1e-5f);
+        assertEquals(CardFlight.dealTo(0, 0).staggerTime(),
+                CardFlight.slideTo(0, 0).staggerTime(), 1e-5f);
+    }
+
+    @Test
+    void everyDealHopIsAWholeFrame() {
+        float frames = CardFlight.dealTo(0, 0).hopTime() / (1f / 12f);
+        assertEquals(Math.round(frames), frames, 1e-3f);
+    }
 }

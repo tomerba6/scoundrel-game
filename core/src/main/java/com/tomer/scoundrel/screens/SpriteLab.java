@@ -6,8 +6,8 @@ import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.model.Card;
@@ -15,29 +15,22 @@ import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.rules.CardDefinition;
 import com.tomer.scoundrel.rules.StandardDeck;
 
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Array;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
 
 /**
  * A developer-only art inspector, opened with F9, closed with Escape and
  * switched between views with Tab. It exists to answer the verify questions in
- * the art conversion — is the art crisp at an integer scale, are all 31
- * objects on their right ranks, do the idle cycles run — without needing a run
- * of the actual game to reach them.
+ * the art conversion — is the art crisp at an integer scale, are all 31 objects
+ * on their right ranks, do the idle cycles run, does each effect read — without
+ * having to play a real game to reach them.
  *
- * <p>Not reachable from any menu, and drawn with a plain batch rather than
- * Scene2D: it is a measuring instrument, not part of the game.
+ * <p>It draws the room through the same {@link BoardView} the game does: an
+ * instrument is only worth anything if what it shows is literally what ships.
+ * What is here is the triggering — a key per effect, and S to run them at an
+ * eighth speed, because a sub-second effect cannot be screenshotted at its own.
  */
 public final class SpriteLab extends ScreenAdapter {
-
-    /** The stage background — dark enough to show colour fringing. */
-    private static final Color BACKDROP = Color.valueOf("100c09");
 
     /** 14 of 20 healing up to 19, so a drink has several segments to grow through. */
     private static final int HEAL_FROM = 148;
@@ -52,280 +45,184 @@ public final class SpriteLab extends ScreenAdapter {
     private final ScoundrelGame game;
     private final Theme theme;
     private final Sprites sprites;
-    private final CardFrame cardFrame;
-    private final CardFace cardFace;
-    private final Pips pips;
-    private final EffectArt effectArt;
+    private final BoardView board;
     private final BoardHud hud;
     private final PixelViewport viewport;
     private final SpriteBatch batch;
 
     private final List<Card> deck = new ArrayList<>();
-    /** Per-card start offsets, assigned once — never recomputed per frame. */
-    private final Map<String, Float> idleOffsets = new HashMap<>();
     private View view = View.ROOM;
-    /** R toggles the generated outline on, the way a weapon kill flashes it. */
-    private boolean showRim;
-    /** The card being killed and how far into the effect it is, or null. */
-    private Card killing;
-    private float killElapsed;
     /** S slows effects 8x. Sub-second animation cannot be screenshotted at speed. */
     private boolean slowMotion;
-    /** The card taking a bare-handed exchange, and how far into it. */
-    private Card struckBare;
-    private float bareElapsed;
-    /** A room being swept to the ticker, or a card carried to the rail. */
-    private float avoidElapsed = -1f;
-    private Card equipping;
-    private float equipElapsed;
     /** A hit or a drink landing on the bar. */
     private float damageElapsed = -1f;
     private float healElapsed = -1f;
-    /** A potion being drunk, and the bottle's tilt stages built for it. */
-    private Card drinking;
-    private float drinkElapsed;
-    /** Set once the pour starts, so the bar fills once and not again. */
-    private boolean poured;
     /** The death cinematic, and the card that dealt the blow. */
     private float deathElapsed = -1f;
-    private Card killer;
-    private float elapsed;
-    /** The card under the pointer, or null. Only it animates. */
-    private Card hovered;
+    private int killerSlotX = -1;
 
     public SpriteLab(ScoundrelGame game, Theme theme, Sprites sprites) {
         this.game = game;
         this.theme = theme;
         this.sprites = sprites;
-        this.cardFrame = new CardFrame(theme);
-        this.pips = new Pips();
-        this.cardFace = new CardFace(theme, pips);
-        this.effectArt = new EffectArt(CardArt.CARD_W, CardArt.CARD_H);
+        this.board = new BoardView(theme, sprites);
         this.hud = new BoardHud(theme);
         // One fixed virtual resolution, so the layout numbers are literal and
         // the art is guaranteed to land on whole pixels.
         this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         this.batch = new SpriteBatch();
-        Random random = new Random();
         for (CardDefinition def : new StandardDeck().cards()) {
-            Card card = new Card(def.id(), def.type(), def.value());
-            deck.add(card);
-            idleOffsets.put(card.id(), IdleCycle.randomOffset(random));
+            deck.add(new Card(def.id(), def.type(), def.value()));
         }
-    }
-
-    /**
-     * The region to draw for a card right now. Only creatures have idle frames
-     * (none were drawn for weapons or potions), so everything else is its
-     * static base sprite.
-     */
-    private TextureRegion current(Card card, boolean animating) {
-        if (card.type() != CardType.MONSTER) {
-            return sprites.region(CardSprites.regionName(card));
-        }
-        Array<TextureRegion> frames = sprites.frames(CardSprites.idleStem(card));
-        int index = IdleCycle.frameIndex(
-                elapsed, idleOffsets.get(card.id()), frames.size, animating);
-        return frames.get(index);
-    }
-
-    /**
-     * Builds the bottle's lean stages for this potion. Done here rather than at
-     * load because only one potion is ever being drunk, so nine sprites' worth
-     * of tilts would sit unused.
-     */
-    private void startDrink(Card card) {
-        endDrink();
-        drinking = card;
-        drinkElapsed = 0f;
-        poured = false;
-        // The bar waits for the pour. Starting it here would fill it while the
-        // bottle was still in the air, which is the whole thing PotionDrink's
-        // phase order exists to prevent.
-        healElapsed = -1f;
-
-    }
-
-    private void endDrink() {
-        drinking = null;
-    }
-
-    /**
-     * The bottle on its way to the bar and pouring into it. Nothing is drawn at
-     * the bar until it has arrived and tipped, so the fill always has a visible
-     * cause.
-     */
-    private void drawDrink(int slotX) {
-        int size = EffectArt.BOTTLE_SIZE;
-        int fromX = CardArt.spriteLeft(slotX) + (CardArt.SPRITE - size) / 2;
-        int fromY = CardArt.spriteTop() + (CardArt.SPRITE - size) / 2;
-        float progress = PotionDrink.flightProgress(drinkElapsed);
-        int x = Math.round(fromX + (HudArt.BAR_X + 40 - fromX) * progress);
-        int y = Math.round(fromY + (HudArt.BAR_Y - 24 - fromY) * progress);
-        int drawn = size;   // already the right size; it does not shrink
-
-        // Rotated about its own centre. Safe because the texture is nearest
-        // filtered: each pixel point-samples one texel, so the turn cannot
-        // blend two ramp steps into a colour that is not in the palette.
-        batch.draw(effectArt.bottle(), x, CardArt.toWorldY(y, drawn),
-                drawn / 2f, drawn / 2f, drawn, drawn, 1f, 1f,
-                PotionDrink.tiltDegrees(drinkElapsed));
-
-        // Drops fall from the lip once it is pouring.
-        for (int drop = 0; drop < PotionDrink.dropsFallen(drinkElapsed); drop++) {
-            int dy = y + drawn - 4 + drop * 6;
-            // From the palette constant, not hand-typed floats -- eyeballing the
-            // components put the drops on #70b55b, one off the ramp in every channel.
-            batch.setColor(((HudArt.FILL_HEAL >>> 16) & 0xff) / 255f,
-                    ((HudArt.FILL_HEAL >>> 8) & 0xff) / 255f,
-                    (HudArt.FILL_HEAL & 0xff) / 255f, 1f);
-            batch.draw(theme.whiteRegion(), x + drawn / 2, CardArt.toWorldY(dy, 4), 4, 4);
-            batch.setColor(1f, 1f, 1f, 1f);
-        }
+        board.setRoom(room());
     }
 
     /**
      * The four cards on show — the reference board's room, so a side-by-side
      * against it means something, and so equip and drink have something to act
-     * on. One place, because effects need to know which slot a card is in and
-     * looking it up in the 44-card deck instead gives an unrelated answer.
+     * on.
      */
     private List<Card> room() {
         return List.of(cardWithId("10C"), cardWithId("7D"),
                 cardWithId("QS"), cardWithId("5H"));
     }
 
-    /** The room card under the pointer, reusing the tested hit-test. */
-    private Card hoveredIn(List<Card> room) {
-        Vector2 point = viewport.unproject(
-                new Vector2(Gdx.input.getX(), Gdx.input.getY()));
-        List<CardHitRegions.CardRect> rects = new ArrayList<>();
-        for (int i = 0; i < room.size(); i++) {
-            rects.add(new CardHitRegions.CardRect(room.get(i), CardArt.slotX(i),
-                    CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H),
-                    CardArt.CARD_W, CardArt.CARD_H));
-        }
-        return CardHitRegions.cardAt(rects, point.x, point.y);
+    /** Puts the room back after an effect has taken a card out of it. */
+    private void reset() {
+        board.skip();
+        board.setRoom(room());
+        board.beginMove();
     }
 
     @Override
     public void render(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            game.showTitle();
+        float step = slowMotion ? delta / 8f : delta;
+        if (!handleKeys()) {
+            // Escape switched screens, which disposed this one. Anything drawn
+            // past that point goes through a freed batch onto freed textures,
+            // and takes the JVM down with it rather than throwing.
             return;
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && hovered != null
-                && hovered.type() == CardType.POTION) {
-            startDrink(hovered);
-        }
-        if (drinking != null) {
-            drinkElapsed += slowMotion ? delta / 8f : delta;
-            if (PotionDrink.pouring(drinkElapsed) && !poured) {
-                poured = true;
-                healElapsed = 0f;
-            }
-            if (PotionDrink.finished(drinkElapsed)) {
-                endDrink();
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
-            deathElapsed = 0f;
-            killer = hovered;
-        }
+        board.update(step);
+        advanceBar(step);
         if (deathElapsed >= 0f) {
-            deathElapsed += slowMotion ? delta / 8f : delta;
+            deathElapsed += step;
             if (DeathCinematic.finished(deathElapsed)) {
                 deathElapsed = -1f;
             }
         }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
-            damageElapsed = 0f;
-        }
-        if (damageElapsed >= 0f) {
-            damageElapsed += slowMotion ? delta / 8f : delta;
-            if (HpPulse.damageFinished(HIT_FROM, HIT_TO, damageElapsed)) {
-                damageElapsed = -1f;
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
-            healElapsed = 0f;
-        }
-        if (healElapsed >= 0f) {
-            healElapsed += slowMotion ? delta / 8f : delta;
-            if (HpPulse.healFinished(HEAL_FROM, HEAL_TO, healElapsed)) {
-                healElapsed = -1f;
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
-            avoidElapsed = 0f;
-        }
-        if (avoidElapsed >= 0f) {
-            avoidElapsed += slowMotion ? delta / 8f : delta;
-            if (avoidElapsed >= CardFlight.AVOID.totalFor(4)) {
-                avoidElapsed = -1f;
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.E) && hovered != null) {
-            equipping = hovered;
-            equipElapsed = 0f;
-        }
-        if (equipping != null) {
-            equipElapsed += slowMotion ? delta / 8f : delta;
-            if (CardFlight.EQUIP.finished(equipElapsed)) {
-                equipping = null;
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.B) && hovered != null) {
-            struckBare = hovered;
-            bareElapsed = 0f;
-        }
-        if (struckBare != null) {
-            bareElapsed += slowMotion ? delta / 8f : delta;
-            if (Barehanded.finished(bareElapsed)) {
-                struckBare = null;
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.K) && hovered != null) {
-            killing = hovered;
-            killElapsed = 0f;
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
-            slowMotion = !slowMotion;
-        }
-        if (killing != null) {
-            killElapsed += slowMotion ? delta / 8f : delta;
-            if (WeaponKill.finished(killElapsed)) {
-                killing = null;
-            }
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            showRim = !showRim;
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
-            view = view == View.ROOM ? View.SHEET : View.ROOM;
-        }
-        elapsed += delta;
-        ScreenUtils.clear(BACKDROP);
+
+        ScreenUtils.clear(new Color((CardArt.BACKDROP << 8) | 0xff));
         viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
 
-        theme.body.setColor(Theme.BONE);
+        int shake = deathElapsed >= 0f ? DeathCinematic.shakeX(deathElapsed) : 0;
+        batch.getTransformMatrix().translate(shake, 0, 0);
+        batch.setTransformMatrix(batch.getTransformMatrix());
         if (view == View.ROOM) {
             drawRoom();
         } else {
             drawSheet();
         }
-        theme.body.draw(batch, "R rim  K kill  B bare  A avoid  E equip  P potion  D hit  H heal  S slow", 40, 48);
+        batch.getTransformMatrix().translate(-shake, 0, 0);
+        batch.setTransformMatrix(batch.getTransformMatrix());
+        if (deathElapsed >= 0f) {
+            drawDeath();
+        }
 
+        theme.pixelSmall.setColor(Theme.BONE);
+        theme.pixelSmall.draw(batch,
+                "K KILL  B BARE  A AVOID  E EQUIP  P POTION  D HIT  H HEAL  X DEATH  S SLOW",
+                40, 48);
+        theme.pixelSmall.setColor(Color.WHITE);
         batch.end();
     }
 
-    /** Four framed cards at the board geometry, each with its sprite in the well. */
+    /**
+     * One key per effect, on whatever card the pointer is over. Returns false
+     * if the lab has just been left, in which case it no longer exists and the
+     * caller must not draw.
+     */
+    private boolean handleKeys() {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            game.showTitle(); // disposes this screen
+            return false;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB)) {
+            view = view == View.ROOM ? View.SHEET : View.ROOM;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            slowMotion = !slowMotion;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+            damageElapsed = 0f;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+            healElapsed = 0f;
+        }
+        Card hovered = board.hovered();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+            List<Card> outgoing = board.room();
+            board.beginMove();
+            board.setRoom(room());
+            board.playSweep(outgoing);
+        }
+        if (hovered == null) {
+            return true;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+            deathElapsed = 0f;
+            killerSlotX = board.slotX(board.room().indexOf(hovered));
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
+            without(hovered, () -> board.playSlice(hovered));
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
+            without(hovered, () -> board.playStrike(hovered));
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.E) && hovered.type() == CardType.WEAPON) {
+            without(hovered, () -> board.playEquip(hovered));
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P) && hovered.type() == CardType.POTION) {
+            without(hovered, () -> board.playPotion(hovered, () -> healElapsed = 0f));
+        }
+        return true;
+    }
+
+    /**
+     * Resolves a card the way the game does — it leaves the room, the rest
+     * closes up, and the effect plays over the gap it left.
+     */
+    private void without(Card card, Runnable effect) {
+        board.beginMove();
+        List<Card> rest = new ArrayList<>(room());
+        rest.remove(card);
+        board.setRoom(rest);
+        effect.run();
+    }
+
+    private void advanceBar(float step) {
+        if (damageElapsed >= 0f) {
+            damageElapsed += step;
+            if (HpPulse.damageFinished(HIT_FROM, HIT_TO, damageElapsed)) {
+                damageElapsed = -1f;
+            }
+        }
+        if (healElapsed >= 0f) {
+            healElapsed += step;
+            if (HpPulse.healFinished(HEAL_FROM, HEAL_TO, healElapsed)) {
+                healElapsed = -1f;
+            }
+        }
+    }
+
+    /** The reference board, drawn by the same code the game uses. */
     private void drawRoom() {
-        List<Card> room = room();
-        hovered = hoveredIn(room);
-        // The reference board: 14 of 20 health, depth 27 of the 44-card deck.
+        board.setHovered(hoveredCard());
+        if (!board.isPlaying() && board.room().size() < 4) {
+            reset(); // put the resolved card back, ready for the next trigger
+        }
         boolean healing = healElapsed >= 0f;
         boolean hit = damageElapsed >= 0f;
         int fill = HudArt.barFillWidth(14, 20);
@@ -342,89 +239,25 @@ public final class SpriteLab extends ScreenAdapter {
         hud.drawTicker(batch, 27, 44);
         hud.drawDepthLine(batch, 27, 44, "01:47");
         hud.drawAvoid(batch, true);
-        // The reference's rail and marker, so a side-by-side means something:
-        // a broadaxe that has taken a 10 and an 8, and an unused draught.
+        // The reference's rail and marker: a broadaxe that has taken a 10 and
+        // an 8, and an unused draught.
         hud.drawRail(batch, sprites.region(CardSprites.regionName(cardWithId("9D"))),
                 CardSprites.displayName(cardWithId("9D")) + " 9",
                 List.of(cardWithId("10S"), cardWithId("8C")), "SLAYS < 8");
         hud.drawPotionMarker(batch,
                 sprites.region(CardSprites.regionName(cardWithId("5H"))), false);
-        for (int i = 0; i < room.size(); i++) {
-            Card card = room.get(i);
-            int slotX = CardArt.slotX(i);
-            if (card.equals(drinking)) {
-                int scale = PotionDrink.cardScale(drinkElapsed);
-                if (scale > 0) {
-                    int w = CardArt.CARD_W * scale / 100;
-                    int h = CardArt.CARD_H * scale / 100;
-                    cardFrame.draw(batch, card.type(),
-                            slotX + (CardArt.CARD_W - w) / 2,
-                            CardArt.SLOT_Y + (CardArt.CARD_H - h) / 2, w, h);
-                }
-                continue;
-            }
-            boolean sweeping = avoidElapsed >= 0f
-                    && CardFlight.started(CardFlight.AVOID, i, avoidElapsed);
-            if (sweeping || card.equals(equipping)) {
-                drawFlight(card, slotX, i);
-                continue;
-            }
-            boolean struck = card.equals(killing);
-            if (struck && WeaponKill.cardCut(killElapsed)) {
-                drawCleaved(slotX);
-                continue;
-            }
-            boolean bare = card.equals(struckBare);
-            int lift = struck ? WeaponKill.cardLift(killElapsed) : 0;
-            int shakeX = bare ? Barehanded.shakeX(bareElapsed) : 0;
-            int shakeY = bare ? Barehanded.shakeY(bareElapsed) : 0;
-            slotX += shakeX;
-            lift -= shakeY;
-            cardFrame.draw(batch, card.type(), slotX, CardArt.SLOT_Y - lift);
-            // A creature reads the same however it is being killed: it holds
-            // its struck frame, and only what happens next differs. The hurt
-            // frame already carries the outline, so this is one draw.
-            boolean beingStruck = (bare && Barehanded.hurtShowing(bareElapsed))
-                    || (struck && WeaponKill.rimShowing(killElapsed));
-            TextureRegion body = beingStruck
-                    ? sprites.hurt(CardSprites.regionName(card))
-                    : current(card, card.equals(hovered));
-            batch.draw(body, CardArt.spriteLeft(slotX),
-                    CardArt.toWorldY(CardArt.spriteTop() - lift, CardArt.SPRITE),
-                    CardArt.SPRITE, CardArt.SPRITE);
-            // R flashes the bare outline on its own, for inspecting it.
-            if (showRim && !beingStruck) {
-                TextureRegion rim = sprites.rim(CardSprites.regionName(card));
-                if (rim != null) {
-                    batch.draw(rim, CardArt.spriteLeft(slotX),
-                            CardArt.toWorldY(CardArt.spriteTop() - lift, CardArt.SPRITE),
-                            CardArt.SPRITE, CardArt.SPRITE);
-                }
-            }
-            cardFace.draw(batch, card, slotX, CardArt.SLOT_Y - lift);
-            if (bare) {
-                drawStars(slotX, lift);
-            }
-        }
-        // One wash, over the whole board rather than under it, so the blow
-        // lands on everything at once instead of lighting the gaps.
-        if (struckBare != null) {
-            float wash = Barehanded.flashAlpha(bareElapsed);
-            if (wash > 0f) {
-                batch.setColor(0.95f, 0.81f, 0.48f, wash);
-                batch.draw(theme.whiteRegion(), 0, 0,
-                        Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-                batch.setColor(1f, 1f, 1f, 1f);
-            }
-        }
-        if (drinking != null) {
-            drawDrink(CardArt.slotX(3));
-        }
-        if (deathElapsed >= 0f) {
-            drawDeath();
-        }
-        theme.body.draw(batch, "ROOM — hover to animate, K to cleave, B to strike"
+        board.draw(batch);
+
+        theme.pixelSmall.setColor(Theme.BONE);
+        theme.pixelSmall.draw(batch, "ROOM — HOVER TO ANIMATE"
                 + (slowMotion ? "   [SLOW 1/8]" : ""), 40, 700);
+        theme.pixelSmall.setColor(Color.WHITE);
+    }
+
+    private Card hoveredCard() {
+        Vector2 point = viewport.unproject(
+                new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+        return board.cardAt(point.x, point.y);
     }
 
     /**
@@ -438,117 +271,25 @@ public final class SpriteLab extends ScreenAdapter {
         int top = 132;
         String[] rowLabels = {"CLUBS", "SPADES", "WEAPON", "POTION"};
 
+        theme.pixelSmall.setColor(Theme.BONE);
         for (int value = 2; value <= 14; value++) {
-            String rank = switch (value) {
-                case 11 -> "J";
-                case 12 -> "Q";
-                case 13 -> "K";
-                case 14 -> "A";
-                default -> String.valueOf(value);
-            };
-            theme.body.draw(batch, rank, left + (value - 2) * cell + 24,
+            theme.pixelSmall.draw(batch, Labels.rank(value), left + (value - 2) * cell + 24,
                     CardArt.toWorldY(top - 12, 0));
         }
-
         for (int row = 0; row < 4; row++) {
             int y = top + row * 96;
-            theme.body.draw(batch, rowLabels[row], 24, CardArt.toWorldY(y + 26, 0));
+            theme.pixelSmall.draw(batch, rowLabels[row], 24, CardArt.toWorldY(y + 26, 0));
             for (Card card : deck) {
                 if (rowOf(card) != row) {
                     continue;
                 }
                 int x = left + (card.value() - 2) * cell + 12;
-                batch.draw(current(card, false),
+                batch.draw(board.spriteFor(card, false),
                         x, CardArt.toWorldY(y, Sprites.SIZE), Sprites.SIZE, Sprites.SIZE);
             }
         }
-        theme.body.draw(batch, "SHEET — all 44 cards, 31 objects, by rank", 40, 700);
-    }
-
-    /**
-     * A card on its way out of the room — swept to the ticker, or carried down
-     * to the rail. The whole card shrinks and hops; nothing tweens between one
-     * hop and the next.
-     */
-    private void drawFlight(Card card, int slotX, int index) {
-        boolean sweeping = avoidElapsed >= 0f && !card.equals(equipping);
-        CardFlight.Flight flight = sweeping ? CardFlight.AVOID : CardFlight.EQUIP;
-        float t = sweeping
-                ? CardFlight.localTime(flight, index, avoidElapsed)
-                : equipElapsed;
-
-        int scale = CardFlight.scale(flight, t);
-        int w = CardArt.CARD_W * scale / 100;
-        int h = CardArt.CARD_H * scale / 100;
-        // The anchors are centres, so the card is placed by its own centre.
-        int cx = CardFlight.x(flight, slotX + CardArt.CARD_W / 2, t);
-        int cy = CardFlight.y(flight, CardArt.SLOT_Y + CardArt.CARD_H / 2, t);
-        int x = cx - w / 2;
-        int y = cy - h / 2;
-
-        cardFrame.draw(batch, card.type(), x, y, w, h);
-        int sprite = CardArt.SPRITE * scale / 100;
-        batch.draw(current(card, false),
-                x + (w - sprite) / 2,
-                CardArt.toWorldY(y + Math.round((CardArt.spriteTop() - CardArt.SLOT_Y)
-                        * scale / 100f), sprite),
-                sprite, sprite);
-    }
-
-    /**
-     * The two bursts a bare-handed blow throws, each growing through three
-     * discrete sizes as it fades. Drawn over the card, centred on their own
-     * offsets from its centre.
-     */
-    private void drawStars(int slotX, int lift) {
-        for (int hit = 0; hit < Barehanded.hits(); hit++) {
-            int size = Barehanded.starSize(hit, bareElapsed);
-            if (size == 0) {
-                continue;
-            }
-            int cx = slotX + CardArt.CARD_W / 2 + Barehanded.starOffsetX(hit);
-            int cy = CardArt.SLOT_Y + CardArt.CARD_H / 2 + Barehanded.starOffsetY(hit) - lift;
-            batch.setColor(1f, 1f, 1f, Barehanded.starAlpha(hit, bareElapsed));
-            batch.draw(effectArt.star(), cx - size / 2,
-                    CardArt.toWorldY(cy - size / 2, size), size, size);
-            batch.setColor(1f, 1f, 1f, 1f);
-        }
-    }
-
-    /**
-     * The card after the blade lands. Nothing here is drawn before
-     * {@code cardCut} is true — the halves do not exist during the flash
-     * rather than existing transparently, which is what keeps the
-     * creature visible through it.
-     */
-    private void drawCleaved(int slotX) {
-        int top = CardArt.SLOT_Y;
-        if (WeaponKill.halvesShowing(killElapsed)) {
-            float alpha = WeaponKill.halfAlpha(killElapsed);
-            batch.setColor(1f, 1f, 1f, alpha);
-            batch.draw(effectArt.upper(), slotX + WeaponKill.upperDx(killElapsed),
-                    CardArt.toWorldY(top + WeaponKill.upperDy(killElapsed), CardArt.CARD_H),
-                    CardArt.CARD_W, CardArt.CARD_H);
-            batch.draw(effectArt.lower(), slotX + WeaponKill.lowerDx(killElapsed),
-                    CardArt.toWorldY(top + WeaponKill.lowerDy(killElapsed), CardArt.CARD_H),
-                    CardArt.CARD_W, CardArt.CARD_H);
-            batch.setColor(1f, 1f, 1f, 1f);
-        } else {
-            // Between the lift and the halves parting the card is whole but
-            // already raised, so the blow reads before the cut does.
-            int lift = WeaponKill.cardLift(killElapsed);
-            batch.draw(effectArt.upper(), slotX,
-                    CardArt.toWorldY(top - lift, CardArt.CARD_H),
-                    CardArt.CARD_W, CardArt.CARD_H);
-            batch.draw(effectArt.lower(), slotX,
-                    CardArt.toWorldY(top - lift, CardArt.CARD_H),
-                    CardArt.CARD_W, CardArt.CARD_H);
-        }
-        if (WeaponKill.slashShowing(killElapsed)) {
-            batch.draw(effectArt.bar(), slotX + WeaponKill.slashOffset(killElapsed),
-                    CardArt.toWorldY(top - WeaponKill.slashOffset(killElapsed), CardArt.CARD_H),
-                    CardArt.CARD_W, CardArt.CARD_H);
-        }
+        theme.pixelSmall.draw(batch, "SHEET — ALL 44 CARDS, 31 OBJECTS, BY RANK", 40, 700);
+        theme.pixelSmall.setColor(Color.WHITE);
     }
 
     /**
@@ -557,33 +298,23 @@ public final class SpriteLab extends ScreenAdapter {
      * pattern covers the whole board.
      */
     private void drawDeath() {
-        if (DeathCinematic.flaring(deathElapsed) && killer != null) {
-            // The slot in the room, not the index in the 44-card deck: the deck
-            // index modulo four picked an unrelated card, so hovering the
-            // weapon flared the potion.
-            int slot = room().indexOf(killer);
-            if (slot < 0) {
-                slot = 0;
-            }
-            int x = CardArt.slotX(slot);
+        if (DeathCinematic.flaring(deathElapsed) && killerSlotX >= 0) {
             batch.setColor(0.55f, 0.18f, 0.13f, DeathCinematic.flareStrength(deathElapsed));
-            batch.draw(theme.whiteRegion(), x, CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H),
+            batch.draw(theme.whiteRegion(), killerSlotX,
+                    CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H),
                     CardArt.CARD_W, CardArt.CARD_H);
             batch.setColor(1f, 1f, 1f, 1f);
         }
-
         int level = DeathCinematic.ditherLevel(deathElapsed);
         if (level > 0) {
             // One tiled draw of a 4x4 pattern. Every pixel is either fully dark
             // or fully clear, so the board thins out rather than dimming.
-            batch.draw(effectArt.ditherAt(level, (int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
+            batch.draw(board.dither(level, (int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
                     0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         }
-
         if (DeathCinematic.titleShowing(deathElapsed)) {
             BitmapFont font = theme.pixelDisplayBold;
-            float scale = DeathCinematic.titleScale(deathElapsed) / 100f;
-            font.getData().setScale(scale);
+            font.getData().setScale(DeathCinematic.titleScale(deathElapsed) / 100f);
             font.setColor(Color.valueOf("8c2f22"));
             font.draw(batch, "YOU DIED", 0, Theme.WORLD_HEIGHT / 2f + 20,
                     Theme.WORLD_WIDTH, Align.center, false);
@@ -612,9 +343,7 @@ public final class SpriteLab extends ScreenAdapter {
 
     @Override
     public void dispose() {
-        endDrink();
-        effectArt.dispose();
-        pips.dispose();
+        board.dispose();
         batch.dispose();
     }
 }
