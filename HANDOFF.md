@@ -113,6 +113,23 @@ ever scale by 1, 2, 3, 4.
 **Every offset is a whole pixel.** The idle cycles move things by exactly 1px. Sub-pixel motion
 shimmers at this resolution. Round every computed position with `Math.round` before drawing.
 
+> **As built — both of those are only true if the board is drawn once.** The rules above govern
+> drawing into the 1280×720 design space. What reaches the screen is that space scaled to the
+> window, and at 1920×1080 the viewport fits at ×1.5 — where a single design pixel has no whole
+> number of screen pixels to occupy.
+>
+> Drawn straight to the window, every quad is scaled and rounded on its own, so identical features
+> disagree: the five identical 2px stems of the word AVOID measured 3, 2, 2, 3 and 2 screen pixels.
+> The board is therefore rendered onto a `PixelSurface` — an offscreen target exactly the design
+> size — and that one image is scaled to the window once. The same five stems now measure 3, 3, 3,
+> 3, 3.
+>
+> It cannot make ×1.5 pixel-perfect; nothing can. Features **one** design pixel across still land
+> on one screen pixel or two. What changes is that the choice is made once for the whole frame
+> instead of a few hundred times, which is the difference between a coarse image and a scruffy one.
+> Anything two design pixels or more — every bevel, the bar, the label and body faces — is exact.
+> That is also an argument for keeping text off the 8px face on the board.
+
 ---
 
 ## 5. Card size — the decision you asked about
@@ -326,6 +343,28 @@ Rank and type sit in a 26px header. The value numeral is 38px, cream `e8ddc7`, w
 > The rest of the board's furniture — the rail well, the slain chips, the degradation plate, the
 > potion marker, the feed and the depth line — was measured off the same render and lives in
 > `BoardArt`, pinned in `BoardArtTest`.
+>
+> **The suit pips are rasterised, and the diamond is not built like the others.** They come from
+> the mock's own circles and triangles, scaled from its 64-unit box into 12px and thresholded at
+> each pixel's centre — a hard test, because anti-aliasing a 12px glyph spends half its pixels on
+> grey edges and grey is not a colour this board has. The geometry is `PipMask`, which is pure and
+> checked row by row: at this size the shape *is* the artwork, and a wrong one is far easier to see
+> in a list of row widths than in a texture.
+>
+> The mock builds its diamond from two triangles meeting at the waist. That is fine at 64 units and
+> wrong at 12: it thresholded to four identical rows of eight through the middle — a straight
+> vertical side, so it read as a rounded blob. It is now stated as a taxicab rhombus
+> (`|dx| + |dy| <= r`), which steps exactly one pixel a row: `2,4,6,8,10,10,8,6,4,2`. That is 45°,
+> the only diagonal a pixel grid draws cleanly. The other three pips are unchanged and their row
+> widths are pinned so a diamond fix cannot reach them.
+
+> **The depth ticker is centred on the board, which the render is not.** `board.png` puts it at
+> 656–821, centred on nothing in particular — the mock's top strip is a three-item flex row and the
+> health group shoved the middle one right. It is now placed so the **lit** block sits on x=640:
+> the gold is what you actually read, and keeping it in the middle means the eye never has to
+> follow it. The cost is that the strip walks right as the dungeon drains, taking its dim tail
+> with it. `HudArt.tickerX(depth)`; the DEPTH line is anchored to the board's centre rather than to
+> the strip, which moves.
 
 ### Rail and held-item icons — read this before copying the mock
 
@@ -361,20 +400,89 @@ different game than one that steps.
 > **As built — three hops, and a stagger of one frame.** 0.18 s and 0.04 s are 2.2 and 0.5 frames
 > at 12 fps, so neither is on the grid. The deal is three hops of one frame each on a one-frame
 > stagger — the closest the grid allows to release 1's feel, and 0.5 s for a full room rather than
-> 0.30 s. A card that was already on the board **slides** to its new slot on the same clock instead
-> of growing, so a room closing up around a resolved card does not read as being re-dealt.
+> 0.30 s. A card that was already on the board **slides** to its new slot instead of growing, so a
+> room closing up around a resolved card does not read as being re-dealt.
+>
+> A slide, unlike a deal, does **not** stagger. Cards arriving out of the dungeon are four separate
+> events and read better one after another; the survivors shifting along are one row re-centring
+> itself, and cascading them made a resolved card look as though it had set off a second deal.
 
 | Avoid sweep | 800 ms | 0.20 s | Four cards hop into `TICKER` together; returned ticks flash 1 frame. |
 
-> **As built — the room empties left to right.** The table has all four cards hop together. They
-> now set off one frame apart, leftmost first, so the sweep reads as a sweep rather than the room
-> vanishing at once. Note this is *not* a restoration of release 1, whose avoid moved every card
-> simultaneously — the left-to-right stagger there belongs to the deal-in that follows it.
+> **As built — the whole room leaves at once, in 250 ms.** As the table says, and as release 1
+> did: one action per card with no delay between them. An earlier build staggered them left to
+> right; avoiding is a single decision about four cards, and emptying them one at a time made it
+> read as four — for a frame a card in extra cost. The 0.20 s hop is 2.4 frames, so it is three
+> hops of one frame.
 | Barehanded | 900 ms | 2 hits × 0.16 s, stagger 0.10 | Creature holds its **hurt frame** for the whole exchange. Two 8-point stars built from four bars — no AA spikes. Card shakes on a 4px grid; 2-frame bone flash under each hit. |
 | Weapon kill | 1400 ms | **rim 0.36 s, then slice 0.36 s** | Rim flashes cream with the sprite still on the card. Only then: card lifts 10px, slash bar crosses TR→BL, halves part and rise as they fade. **They never rotate** — a turned pixel is a blurred pixel. |
 | Equip | 800 ms | 0.24 s | Three hops to `RAIL`, scale 100 → 55 → 18%. Lands as the rail icon (§9 — 64px, not the mock's 72). |
 | Potion | 1600 ms | 0.30 s | Card collapses into the bottle over 2 frames, bottle hops to `HPBAR` in 4, then tips and pours; 3 drops fall as the bar fills. |
 | Death | 3200 ms | 0.4 / 0.8 / 1.2 / 0.5 | Red flare over the killer, board shakes 5 frames, screen dies by ordered 4×4 dither over 10 frames — **pattern, never alpha** — then YOU DIED grows in four scale steps. |
+
+> **As built — the death is the one thing that got slower, and it is now 5.5 s.** At the quoted
+> length the board was wiped inside half a second and the title was up before the loss had
+> registered, which made a death read as a page turn. The order is now: flare (2f), shake (3f),
+> then **ten frames in which nothing happens at all** — the board stands lit and unmoving with an
+> empty bar on it — then the torch gutters out over eighteen frames while the dither thins the
+> board underneath it, then the depth ticker alone in the dark, then two frames of nothing, then
+> the title. Skippable throughout with a click.
+>
+> The **torch guttering** uses the `light` parameter `Backdrop.render` already carried for exactly
+> this. It is a table of held values, not a ramp: a flame going out sinks, flares back, and sinks
+> further, where a smooth fade reads as a dimmer switch being turned.
+>
+> The **depth ticker is drawn over the dither**, so the dark takes the whole board and leaves the
+> one gauge that says how far you got — then takes that too, a beat before the title so the two do
+> not read as one movement. No new text was added; the widget was already there.
+>
+> The **fatal blow plays at half speed** and the dungeon deals nothing after it. The room closes
+> over the gap, but you are not being sent another card, because you are not playing on.
+>
+> **YOU DIED** is drawn from the **8 px** face at whole multiples 5× → 19×, one step per frame.
+> That is the opposite of the obvious choice and the reason is §4: whole multiples are the only
+> clean sizes there are, so the *smaller* the face, the more of them fit between "far away" and
+> "in your face". From the display face there were four sizes and the first jump was a third
+> larger in one go; from the small face there are fifteen and the first jump is a fifth. Held one
+> frame each, because at 12 fps any longer hold is a visible stutter.
+
+> **As built — every duration above was cut, most of them by half.** The quoted timings were tuned
+> in isolation, on a page that plays each effect on a loop. In the hand they are a different thing:
+> the outcome of a move is decided the moment you press the card, so every frame after it registers
+> is a frame spent waiting for the game to catch up. What ships:
+>
+> | effect | quoted | as built | |
+> |---|---|---|---|
+> | Deal in | 700 ms | **500 ms** | three hops, one-frame stagger |
+> | Avoid sweep | 800 ms | **250 ms** | three hops, no stagger |
+> | Barehanded | 900 ms | **333 ms** | blows on frames 0 and 1, inside one flash |
+> | Weapon kill | 1400 ms | **333 ms** | one-frame flash; slash and parting together |
+> | Equip | 800 ms | **250 ms** | three hops of one frame |
+> | Potion | 1600 ms | **667 ms** | the pour was ten frames over a filled bar; now three |
+> | Death | 3200 ms | **5500 ms** | the one that went the other way — see below |
+>
+> Nothing lost a beat; every beat holds for less. The floor is one frame a hop, and most of these
+> are now on it — further speed would mean removing hops, at which point they stop reading.
+>
+> Two orderings were compressed rather than shortened. The weapon kill's slash bar used to cross a
+> frame *before* the halves parted, so a blade hung over an uncut card; it now crosses as they come
+> apart. The rule that matters — the card is lifted **whole** for one frame, and nothing covers it
+> until the flash ends — is unchanged and still tested.
+
+> **As built — the room closes while the effect plays.** Resolving a card sets three things going,
+> and running them in sequence made one move take the best part of a second and read as three
+> events. The survivors re-centre *alongside* whatever is happening to the card that left; only the
+> deal waits, because a fresh card flying over the one being killed is a different thing entirely.
+> Two moves in three carry no refill, and those went from 833 ms to 333 ms. The four-case decision
+> is `RoomMotion`, pinned by its own test — "which clock is this card on" had been got wrong twice.
+
+> **As built — a wasted potion spills where it stood.** The second potion in a room heals nothing.
+> It used to play the full drink, flying to the health bar and tipping over it with nothing to
+> pour, which read as the heal being broken rather than as the potion being wasted. It now
+> collapses into the same bottle — drained to bone by `SpentMask`, which moves each pixel sideways
+> to the bone ramp at the step it already occupied rather than desaturating it, so every colour
+> stays inside the eighty — tips, and dribbles on the table. 500 ms, shorter than a real drink,
+> because nothing was gained by it. Release 1 made the same distinction.
 
 > **As built — the struck frame, not the outline alone.** The table above has the weapon kill
 > flash only the cream outline with the sprite otherwise untouched, while the bare-handed
@@ -575,6 +683,26 @@ Not a numbered step in the original plan, but the one that had to land between t
 the screens: the effects were built in the lab, and this is what moved them onto the real board.
 Three notes below.
 *Verify:* play a run — the room deals in, resolves, refills, and dies in the new grammar.
+
+**10c — Playing it.** *(done.)* Also not in the original plan, and the step the plan could not have
+contained: everything above was verified against a reference render, and this is what came back
+from a person playing it. It is worth recording that almost none of it was a porting mistake — the
+geometry was right and the effects matched the mock. What was wrong was the HUD believing the
+engine instead of the screen, and every duration being tuned in isolation.
+
+- **The HUD ran ahead of the board.** The engine settles a whole move on the press, so the depth
+  ticker extinguished before the cards had moved, the rail held a weapon whose card was still in
+  the air, and the health bar filled before the bottle had poured — then rewound and filled again.
+  Each is now held until what you can see agrees: `BoardView.rising`/`sweeping`/`railAhead`, and
+  `HealthReadout`'s fourth state, `HELD`.
+- **Every effect was too slow**, and the room re-centring after them rather than during made a
+  single move read as three events. See §10.
+- **The 8px face is off the board.** The HP tail, the depth line, the potion marker, the rail name
+  and chips, and the card's type stamp are all on the 12px face now. §4 explains why that also
+  matters at ×1.5.
+- **Two things were simply wrong and had been since the conversion:** the diamond pip rasterised
+  to four straight rows through its middle — a rounded blob, not a diamond (§9) — and a killing
+  blow printed `0` however far past zero it took you.
 
 **11 — The other screens.** §11, in this order: title, new game, ledger, trophies, run end,
 tutorial. The tutorial is last because it overlays a finished board.

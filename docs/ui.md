@@ -110,18 +110,38 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   safe, because the state underneath is already final. Each effect is a pure,
   unit-tested timeline quantised to a 12 fps grid — `CardFlight` (the deal, the
   avoid sweep, the equip carry), `Barehanded`, `WeaponKill`, `PotionDrink`,
-  `HpPulse`, `DeathCinematic` — and nothing tweens: every value holds for a whole
-  frame. A card that was already on the board slides to its new slot as the room
-  closes up; a fresh one comes out of the depth ticker, the dungeon made physical.
-  The heal from a potion waits for the bottle to actually pour, so the bar filling
-  always has a visible cause.
+  `PotionSpill`, `HpPulse`, `DeathCinematic` — and nothing tweens: every value
+  holds for a whole frame.
+
+  Resolving a card sets **three clocks** going, and they are not one thing:
+  what happens to the card that left, the survivors re-centring around the gap,
+  and whatever the dungeon sends up to replace it. The first two run *together* —
+  the room closes over the gap as the monster dies — while the deal waits, because
+  a fresh card flying over the one being killed is a different thing entirely.
+  `RoomMotion` is the four-case decision, and it has its own test because "which
+  clock is this card on" was got wrong twice.
+
+  A fresh card comes out of the depth ticker, the dungeon made physical, and the
+  ticker keeps counting it until it lands. The heal from a potion waits for the
+  bottle to actually pour, so the bar filling always has a visible cause — and a
+  *wasted* potion never goes near the bar at all, spilling grey where it stood.
 - **Death cinematic.** A losing blow withholds the end overlay until the
-  cinematic has run: a red flare over the card that killed you, a whole-pixel
-  board shake, then the screen going out by **ordered 4×4 dither — pattern,
-  never alpha**, so the board thins out rather than dimming, and YOU DIED grows
-  in over it in four held steps. A click fast-forwards straight to the settled
-  screen. Only losses animate — a win keeps the instant `DUNGEON CLEARED`
-  overlay, and the tutorial never dies.
+  cinematic has run, and at ~5.5s it is deliberately the slowest thing in the
+  game — every other effect was cut to get here, and this is what the time was
+  taken for. The fatal blow plays at **half speed**; the board is then left
+  **standing, lit and unmoving** for the best part of a second, long enough to
+  read the empty bar and the number under zero. Only then does the torch gutter
+  out over it — held values, not a ramp, because a dying flame flares back —
+  while the screen goes out by **ordered 4×4 dither: pattern, never alpha**, so
+  the board thins out rather than dimming.
+
+  The **depth ticker is drawn over the dither** and outlives everything else, so
+  the last thing on screen is the gauge that says how far you got; then it goes
+  too, a beat before YOU DIED grows in. The dungeon deals nothing after a fatal
+  blow — the room closes over the gap, but you are not being sent another card.
+  A click fast-forwards straight to the settled screen at any point. Only losses
+  animate — a win keeps the instant `DUNGEON CLEARED` overlay, and the tutorial
+  never dies.
 - **Navigation.** `ScoundrelGame` is the navigator: it owns the shared
   `Theme`, `RunLog`, and `AchievementStore`, exposes
   `showTitle`/`showGame`/`showRecords`/`showTrophies`, and disposes the
@@ -169,11 +189,11 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 
 ## Components on screen
 
-- **Top strip** — `HP` label, the charring health bar (bone fill lerping to
-  dried blood as health drops), health number; the **depth ticker** (one tick
-  per card of the deck, torchlight = still face-down, dark = gone; avoided
-  rooms visibly return ticks) with a `depth: N cards` caption and, beneath it, a
-  live **`TIME m:ss` run timer** — `RunRecorder.elapsedSeconds` off the recorder's
+- **Top strip** — the banded health bar with its reading beside it (`14 /20 HP`,
+  unclamped: a killing blow shows how far past zero it took you, and only the
+  bar's fill clamps); the **depth ticker** (one tick per card of the deck, gold =
+  still face-down, dark = gone) with a `DEPTH n · m:ss` caption under it carrying
+  a live run timer — `RunRecorder.elapsedSeconds` off the recorder's
   clock, ticked each `render`, frozen at the final time on game over (so it agrees
   with the recorded `RunRecord.seconds`), and formatted by the shared `ClockText`.
   The tutorial has no recorder, so it shows no timer. The **Avoid** button
@@ -190,19 +210,27 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   carries the rank, its suit pip and the type; the footer carries the value at
   38px with a hard 4px drop shadow. Plates come from the ramp system
   (`CardArt.paletteFor`): oxblood monster, slate weapon, moss potion.
-- **Chooser** — stone popup over the pressed card with one torchlight button
-  per legal move ("Use weapon" / "Barehanded"). Generic: a future card
-  offering three moves gets three buttons. It carries no padding, so its whole
-  area is button; a press *outside* it dismisses the chooser **and** resolves
-  the card it landed on, so the press is never spent merely closing the popup.
-- **Trophy rail** (bottom-left) — the equipped weapon as a big iron battleaxe
-  (`Theme.axeRegion`) with its value stamped inside the blades (no card frame —
-  it's what the equip flight lands as), then slain-monster chips in kill order
-  in the card panel colours so they read as miniatures of the cards they came
-  from, and the threshold plate: `slays anything` (fresh), `slays < N`, or
-  `spent` (slew a 2). Reads `Barehanded` when nothing is equipped.
-- **Potion marker** (bottom-right) — `potion ready` (dim) or
-  `• potion used this turn` (torchlight).
+- **Chooser** — a stack of the board's own gold plates over the pressed card,
+  one per legal move (`USE WEAPON` / `BAREHANDED`), drawn by the same
+  `BoardHud.drawPlate` the Avoid button is. Generic: a future card offering three
+  moves gets three plates. Every plate takes the widest label's width — a ragged
+  stack reads as two unrelated buttons rather than one choice. Geometry and hit
+  test are `ChooserArt`; a press *outside* it dismisses the chooser **and**
+  resolves the card it landed on, so the press is never spent merely closing it.
+- **Trophy rail** (bottom-left) — the equipped weapon's own sprite in a recessed
+  well, its name and value beside it, then slain-monster chips in kill order, and
+  the threshold plate: `SLAYS ANYTHING` (fresh), `SLAYS < N`, or `SPENT` (slew a
+  2). Reads `BAREHANDED` when nothing is equipped — the well is always there, so
+  equipping does not shift the strip sideways.
+
+  The rail **lags the engine deliberately**. A move settles the instant you press
+  the card, but a weapon still hopping down to the well has not arrived and a
+  monster still being cleaved has not died, so neither the icon nor the chip
+  beside it may appear yet: `BoardView.railAhead` holds the previous state until
+  what you can see agrees.
+- **Potion marker** (bottom-right) — the potion sprite in its well with
+  `POTION READY` or `POTION USED` beside it. Never dimmed: an alpha over the dark
+  board would make colours that are on no ramp, so the label carries the state.
 - **Fading feed** (top-right) — up to four lines, fading after ~4s:
   "Slew the Queen of clubs — took 6", "Fought … barehanded — took 12",
   "Drank the 7 of hearts — healed 5" / "— already full",
@@ -301,7 +329,14 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - `core/src/main/java/com/tomer/scoundrel/screens/BoardHud.java` /
   `CardFrame.java` / `CardFace.java` / `Pips.java` / `EffectArt.java` — the
   board's chrome, the card frame, the printing on a card, the four suit pips,
-  and the generated shapes the effects use.
+  and the generated shapes the effects use. `BoardHud.drawPlate` is the board's
+  one button shape: the Avoid button and every choice in the move chooser are
+  the same method, so they cannot drift apart.
+- `core/src/main/java/com/tomer/scoundrel/screens/PixelSurface.java` — the
+  offscreen target, exactly the design size, that the board is drawn onto so the
+  finished image is scaled to the window **once**. Without it every draw call is
+  scaled and rounded on its own, and at a fractional window scale identical
+  features disagree — see HANDOFF §4.
 - `core/src/main/java/com/tomer/scoundrel/screens/TitleScreen.java` /
   `ModeSelectScreen.java` / `RecordsScreen.java` / `TrophiesScreen.java` — the
   navigation anchor, the difficulty picker, THE LEDGER, and the achievement
@@ -319,10 +354,22 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   under this point" lookup, the flicker curve, the ember sim, the
   run-timer/duration formatting, the event-feed text and its stepped fade, the
   labels, the animation-routing decision, and every board measurement.
+- `core/src/main/java/com/tomer/scoundrel/screens/ChooserArt.java` /
+  `RoomMotion.java` / `HealthReadout.java` / `PipMask.java` — the same idea for
+  the decisions the board makes rather than the numbers it holds: where the move
+  chooser's plates go, which clock each card of the room is on, what the health
+  bar says (which is not always what the state says), and the four suit pip
+  shapes. Each of these was a branch inside a screen before it was a class, and
+  three of the four were extracted because that branch had a bug in it.
 - `core/src/main/java/com/tomer/scoundrel/screens/CardFlight.java` /
-  `WeaponKill.java` / `Barehanded.java` / `PotionDrink.java` / `HpPulse.java` /
-  `DeathCinematic.java` / `IdleCycle.java` — one pure timeline per effect, each
-  quantised to the 12 fps grid (6 for idles) and unit tested.
+  `WeaponKill.java` / `Barehanded.java` / `PotionDrink.java` / `PotionSpill.java` /
+  `HpPulse.java` / `DeathCinematic.java` / `IdleCycle.java` — one pure timeline
+  per effect, each quantised to the 12 fps grid (6 for idles) and unit tested.
+  `PotionSpill` is the wasted potion, which goes nowhere near the health bar.
+- `core/src/main/java/com/tomer/scoundrel/screens/SpentMask.java` /
+  `HurtMask.java` / `RimMask.java` — pixel transforms applied at load rather than
+  tints applied at draw, so no blend can land a colour between two ramp steps:
+  the drained bottle, the struck creature, and its outline.
 - `core/src/main/java/com/tomer/scoundrel/ScoundrelGame.java` — the navigator:
   creates the Theme, RunLog and AchievementStore, boots into `TitleScreen`,
   owns disposal.
