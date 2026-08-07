@@ -261,7 +261,7 @@ public final class GameScreen extends ScreenAdapter {
         viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);
         batch.begin();
-        batch.draw(surface.region(), 0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         batch.end();
 
         // The overlays are still Scene2D in the vector faces, which supersample

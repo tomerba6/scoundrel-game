@@ -113,12 +113,21 @@ class HudArtTest {
                 "an empty dungeon should not reach the Avoid plate");
     }
 
+    /**
+     * The whole button, frame included. These were 1143/26/111/41 — the plate
+     * and its bevel, but not the 2px recess around them, so the shipped button
+     * was the reference's interior. The render has 0f1410 at 1141-1142 before
+     * the bevel starts; unifying the board's button with the menu kit, where
+     * every widget carries a frame, is what turned that up.
+     */
     @Test
-    void theAvoidButtonMatchesTheReference() {
-        assertEquals(1143, HudArt.AVOID_X);
-        assertEquals(26, HudArt.AVOID_Y);
-        assertEquals(111, HudArt.AVOID_W);
-        assertEquals(41, HudArt.AVOID_H);
+    void theAvoidButtonMatchesTheReferenceIncludingItsFrame() {
+        assertEquals(1141, HudArt.AVOID_X);
+        assertEquals(24, HudArt.AVOID_Y);
+        assertEquals(115, HudArt.AVOID_W);
+        assertEquals(45, HudArt.AVOID_H);
+        // frame 2 + bevel 2, both sides, around the plate the render shows.
+        assertEquals(111, HudArt.AVOID_W - 2 * 2 * ScreenArt.THICK + 4);
     }
 
     /**

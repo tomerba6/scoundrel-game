@@ -22,6 +22,7 @@ final class BoardHud {
     private final TextureRegion pixel;
     private final BitmapFont font;
     private final Theme theme;
+    private final Chrome chrome;
     private final GlyphLayout layout = new GlyphLayout();
     private final Color tint = new Color();
 
@@ -29,6 +30,7 @@ final class BoardHud {
         this.theme = theme;
         this.pixel = theme.whiteRegion();
         this.font = theme.pixelBody;
+        this.chrome = new Chrome(theme);
     }
 
     /**
@@ -132,29 +134,13 @@ final class BoardHud {
     }
 
     /**
-     * The board's one button: a gold plate with a mitred bevel and a centred
-     * Silkscreen label. Avoid is one of these and so is every choice in the move
-     * chooser, which is the point — there is a single button shape on the board,
-     * and it cannot drift because there is a single method that draws it.
+     * The board's one button — and the game's. Avoid is one of these, so is
+     * every choice in the move chooser, and so is every button on every menu:
+     * {@link Chrome#plate} draws all of them, so they cannot drift apart.
      */
     void drawPlate(Batch batch, int x, int y, int w, int h, String text, boolean enabled) {
-        int plate = enabled ? HudArt.GOLD : HudArt.TICK_DIM;
-        int light = enabled ? HudArt.GOLD_LIGHT : HudArt.FRAME;
-        int dark = enabled ? HudArt.GOLD_DARK : HudArt.FRAME;
-        fill(batch, x, y, w, h, plate);
-        // Each pair stops short of the other's corner, so the bottom-left and
-        // top-right stay plate — the same mitre the card bevels use.
-        fill(batch, x, y, w - 2, 2, light);
-        fill(batch, x, y, 2, h - 2, light);
-        fill(batch, x + 2, y + h - 2, w - 2, 2, dark);
-        fill(batch, x + w - 2, y, 2, h, dark);
-
-        BitmapFont label = theme.pixelLabel;
-        layout.setText(label, text);
-        label.setColor(rgb(enabled ? HudArt.LABEL_DARK : BoardArt.NAME_COLOUR, 1f));
-        label.draw(batch, text, Math.round(x + (w - layout.width) / 2f),
-                CardArt.toWorldY(y + Math.round((h - layout.height) / 2f), 0));
-        label.setColor(Color.WHITE);
+        chrome.plate(batch, x, y, w, h, text,
+                enabled ? Chrome.Plate.GOLD : Chrome.Plate.SPENT);
     }
 
     /**

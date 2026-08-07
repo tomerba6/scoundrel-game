@@ -88,10 +88,17 @@ final class HudArt {
 
     // --- avoid button ------------------------------------------------------
 
-    static final int AVOID_X = 1143;
-    static final int AVOID_Y = 26;
-    static final int AVOID_W = 111;
-    static final int AVOID_H = 41;
+    /**
+     * The whole button, <b>frame included</b>. These were 1143/26/111/41 — the
+     * plate and its bevel but not the 2px recess around them, so the shipped
+     * button was the reference's interior and 4px smaller each way than the
+     * render. Unifying it with the menu kit is what turned that up: every widget
+     * carries the frame, and the button had been drawn without one.
+     */
+    static final int AVOID_X = 1141;
+    static final int AVOID_Y = 24;
+    static final int AVOID_W = 115;
+    static final int AVOID_H = 45;
 
     private HudArt() {
     }

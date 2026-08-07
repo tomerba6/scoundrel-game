@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -65,9 +66,26 @@ final class PixelSurface implements Disposable {
         return camera.combined;
     }
 
-    /** The finished image, to be drawn at world size exactly once. */
-    TextureRegion region() {
-        return region;
+    /**
+     * Draws the finished surface to the window, at world size, exactly once.
+     *
+     * <p><b>With blending off</b>, and that is not an optimisation. Ordinary
+     * blending applies to the alpha channel as well as to colour, so every
+     * translucent draw <em>into</em> the surface erodes the alpha it lands on:
+     * something drawn at 72% leaves the destination at 0.72² + 0.28 = 0.798
+     * rather than the 1 it started at. Blending the surface out again then
+     * multiplies its colour by that eroded alpha, and every translucent element
+     * in the frame comes out darker than it was drawn — measured at 0.55 for a
+     * 0.72 fill, over a black clear.
+     *
+     * <p>The surface is the whole frame and opaque by construction: it is
+     * cleared to an opaque colour and covers the viewport. There is nothing
+     * behind it to blend with, so it is copied rather than composited.
+     */
+    void draw(Batch batch, float width, float height) {
+        batch.disableBlending();
+        batch.draw(region, 0, 0, width, height);
+        batch.enableBlending();
     }
 
     @Override

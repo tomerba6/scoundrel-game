@@ -1,140 +1,262 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.Touchable;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
+import com.tomer.scoundrel.runs.HighScores;
+import com.tomer.scoundrel.runs.RunLog;
+import com.tomer.scoundrel.runs.RunRecord;
 
-import static com.tomer.scoundrel.screens.Widgets.dim;
-import static com.tomer.scoundrel.screens.Widgets.label;
-import static com.tomer.scoundrel.screens.Widgets.mutedButton;
-import static com.tomer.scoundrel.screens.Widgets.torchButton;
+import java.util.List;
+import java.util.OptionalInt;
 
 /**
- * The launch screen and navigation anchor: every future menu (achievements,
- * variants) hangs off this list of buttons.
+ * The launch screen and navigation anchor. Drawn in immediate mode from the
+ * menu kit ({@link Chrome}, {@link ScreenArt}) rather than laid out by Scene2D,
+ * for the same reason the board is: the art is specified as pixels at fixed
+ * positions, and a layout engine's job is to compute positions.
+ *
+ * <p>It is the only menu carrying a sprite — The Debt, idling at ×3 in its
+ * well. HANDOFF §11 is explicit that this is what makes the screen read as
+ * <em>this</em> game rather than a card game in general, so it is not
+ * decoration and should not be cut for tidiness.
  */
 public final class TitleScreen extends ScreenAdapter {
 
-    private final Stage stage;
+    private static final String WORDMARK = "SCOUNDREL";
+    private static final String EYEBROW = "FIFTY-TWO CARDS · ONE DESCENT";
+    private static final String CAPTION = "WHAT WAITS AT THE BOTTOM";
+    private static final String CREDIT =
+            "DESIGNED BY ZACH GAGE & KURT BIEG — AN UNOFFICIAL IMPLEMENTATION";
+    /**
+     * The Debt: the Ace, and the thing at the bottom of the dungeon. The clubs
+     * drawing, which is the red-coated one the reference render uses — the two
+     * suits are separate drawings, not a recolour.
+     */
+    private static final String PORTRAIT_STEM = "creature_14_the_debt_clubs_idle";
 
-    public TitleScreen(ScoundrelGame game, Theme theme) {
-        this(game, theme, false);
+    private final ScoundrelGame game;
+    private final Theme theme;
+    private final Sprites sprites;
+    private final RunLog runLog;
+
+    private final PixelViewport viewport;
+    private final SpriteBatch batch = new SpriteBatch();
+    private final PixelSurface surface;
+    private final Backdrop backdrop;
+    private final Chrome chrome;
+
+    private final List<Entry> menu;
+    private final String bestLine;
+    private float elapsed;
+    /** The one-time first-run prompt, over the menu. */
+    private boolean offeringTutorial;
+
+    /** One menu row: what it says and what it does. */
+    private record Entry(String label, Runnable action) {
+    }
+
+    public TitleScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog) {
+        this(game, theme, sprites, runLog, false);
     }
 
     /** {@code offerTutorial} pops the one-time first-run prompt over the menu. */
-    public TitleScreen(ScoundrelGame game, Theme theme, boolean offerTutorial) {
-        stage = new Stage(new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
-        stage.addActor(new Backdrop(theme));
-        Table root = new Table();
-        root.setFillParent(true);
-        stage.addActor(root);
-
-        root.add(label("SCOUNDREL", theme.display, Theme.BONE)).padBottom(56);
-        root.row();
-        TextButton newGame = torchButton(theme, "New game");
-        newGame.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showModeSelect();
-            }
-        });
-        root.add(newGame).width(240).padBottom(12);
-        root.row();
-        TextButton howToPlay = torchButton(theme, "How to play");
-        howToPlay.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTutorial();
-            }
-        });
-        root.add(howToPlay).width(240).padBottom(12);
-        root.row();
-        TextButton records = torchButton(theme, "Records");
-        records.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showRecords();
-            }
-        });
-        root.add(records).width(240).padBottom(12);
-        root.row();
-        TextButton trophies = torchButton(theme, "Trophies");
-        trophies.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTrophies();
-            }
-        });
-        root.add(trophies).width(240);
-        root.row();
-        root.add(label("Scoundrel was designed by Zach Gage & Kurt Bieg — an unofficial fan implementation",
-                theme.small, dim(Theme.BONE, 0.4f))).padTop(72);
-
-        if (offerTutorial) {
-            stage.addActor(firstRunPrompt(game, theme));
-        }
+    public TitleScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog,
+                       boolean offerTutorial) {
+        this.game = game;
+        this.theme = theme;
+        this.sprites = sprites;
+        this.runLog = runLog;
+        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        this.surface = new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
+        this.backdrop = new Backdrop(theme);
+        this.chrome = new Chrome(theme);
+        this.offeringTutorial = offerTutorial;
+        this.menu = List.of(
+                new Entry("NEW GAME", game::showModeSelect),
+                new Entry("HOW TO PLAY", game::showTutorial),
+                new Entry("THE LEDGER", game::showRecords),
+                new Entry("TROPHIES", game::showTrophies));
+        this.bestLine = readBestLine();
     }
 
     /**
-     * The one-time welcome: shown over the menu on the very first launch. Both
-     * choices mark the tutorial seen, so it never nags twice — Play jumps
-     * straight in, Maybe later dismisses to the menu.
+     * The line under the wordmark. Reading the log can fail on a corrupt file
+     * and a menu must still come up, so a failure simply says nothing rather
+     * than taking the screen down with it.
      */
-    private Actor firstRunPrompt(ScoundrelGame game, Theme theme) {
-        Table overlay = new Table();
-        overlay.setFillParent(true);
-        // Modal: a background alone does not block input on a childrenOnly Table.
-        overlay.setTouchable(Touchable.enabled);
-        overlay.setBackground(theme.solid(dim(Theme.SOOT, 0.85f)));
-        overlay.add(label("NEW HERE?", theme.title, Theme.TORCHLIGHT)).padBottom(10);
-        overlay.row();
-        Label blurb = label("Scoundrel has a few rules worth knowing — a short guided run walks "
-                + "through all of them. Take it now, or find it any time under \"How to play\".",
-                theme.body, Theme.BONE);
-        blurb.setWrap(true);
-        blurb.setAlignment(Align.center);
-        overlay.add(blurb).width(560).padBottom(26);
-        overlay.row();
-        TextButton play = torchButton(theme, "Play tutorial");
-        play.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTutorial();
+    private String readBestLine() {
+        try {
+            List<RunRecord> all = runLog.readAll();
+            if (all.isEmpty()) {
+                return "NO RUNS YET";
             }
-        });
-        overlay.add(play).padBottom(10);
-        overlay.row();
-        TextButton later = mutedButton(theme, "Maybe later");
-        later.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.markTutorialSeen();
-                overlay.remove();
-            }
-        });
-        overlay.add(later);
-        return overlay;
+            OptionalInt best = HighScores.best(all);
+            String runs = all.size() == 1 ? "1 RUN FINISHED" : all.size() + " RUNS FINISHED";
+            return best.isPresent() ? "BEST " + best.getAsInt() + " · " + runs : runs;
+        } catch (RuntimeException e) {
+            Gdx.app.error("scoundrel", "could not read the run log for the title", e);
+            return "";
+        }
     }
 
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(stage);
+        Gdx.input.setInputProcessor(new MenuInput());
+    }
+
+    /** The menu takes presses; the prompt, while it is up, takes them first. */
+    private final class MenuInput extends InputAdapter {
+        @Override
+        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            if (button != Input.Buttons.LEFT) {
+                return false;
+            }
+            Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+            if (offeringTutorial) {
+                int picked = ScreenArt.buttonAt(promptButtonX(), 2, point.x, point.y);
+                if (picked == 0) {
+                    game.showTutorial();
+                } else if (picked == 1) {
+                    game.markTutorialSeen();
+                    offeringTutorial = false;
+                }
+                return true; // modal: nothing behind it responds
+            }
+            int picked = ScreenArt.buttonAt(ScreenArt.COLUMN_X, menu.size(), point.x, point.y);
+            if (picked >= 0) {
+                menu.get(picked).action().run();
+                return true;
+            }
+            return false;
+        }
     }
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(Theme.SOOT);
-        stage.act(delta);
-        stage.draw();
+        elapsed += delta;
+        backdrop.advance(delta);
+
+        surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
+        batch.setProjectionMatrix(surface.projection());
+        batch.begin();
+        backdrop.render(batch, 1f);
+        drawPortrait();
+        drawColumn();
+        if (offeringTutorial) {
+            drawPrompt();
+        }
+        batch.end();
+        surface.end();
+
+        ScreenUtils.clear(Color.BLACK);
+        viewport.apply();
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+        batch.begin();
+        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        batch.end();
+    }
+
+    /** The Debt in its well, breathing on the same 6 fps clock the board uses. */
+    private void drawPortrait() {
+        chrome.frame(batch, ScreenArt.WELL_X, ScreenArt.WELL_Y,
+                ScreenArt.wellW(), ScreenArt.wellH());
+        chrome.face(batch, ScreenArt.fieldX(), ScreenArt.fieldY(),
+                ScreenArt.FIELD, ScreenArt.FIELD, ScreenArt.PORTRAIT_FIELD);
+        chrome.face(batch, ScreenArt.fieldX(), ScreenArt.captionY(),
+                ScreenArt.FIELD, ScreenArt.CAPTION_H, ScreenArt.FRAME);
+
+        Array<TextureRegion> frames = sprites.frames(PORTRAIT_STEM);
+        TextureRegion frame = frames.get(IdleCycle.frameIndex(elapsed, 0f, frames.size, true));
+        batch.draw(frame, ScreenArt.portraitX(),
+                CardArt.toWorldY(ScreenArt.portraitY(), ScreenArt.PORTRAIT),
+                ScreenArt.PORTRAIT, ScreenArt.PORTRAIT);
+
+        chrome.centredOn(batch, theme.pixelSmall, CAPTION,
+                ScreenArt.fieldX() + ScreenArt.FIELD / 2,
+                ScreenArt.captionY() + 6, ScreenArt.CAPTION, 1f);
+    }
+
+    private void drawColumn() {
+        int x = ScreenArt.COLUMN_X;
+        chrome.text(batch, theme.pixelLabel, EYEBROW, x, ScreenArt.EYEBROW_TOP,
+                ScreenArt.HEADING);
+
+        // 52px is the 26px face at x2 -- a whole multiple, so the wordmark is
+        // pixel-exact without a sixth font size. The shadow is the same glyphs
+        // moved down four whole pixels, not a blur.
+        theme.pixelTitle.getData().setScale(2f);
+        chrome.text(batch, theme.pixelTitle, WORDMARK, x,
+                ScreenArt.WORDMARK_TOP + ScreenArt.WORDMARK_SHADOW_DY,
+                ScreenArt.WORDMARK_SHADOW);
+        chrome.text(batch, theme.pixelTitle, WORDMARK, x, ScreenArt.WORDMARK_TOP,
+                ScreenArt.BODY);
+        theme.pixelTitle.getData().setScale(1f);
+
+        chrome.rule(batch, x, ScreenArt.TITLE_RULE_Y, ScreenArt.BUTTON_W,
+                ScreenArt.TITLE_RULE);
+        chrome.text(batch, theme.pixelLabel, bestLine, x, ScreenArt.BEST_TOP,
+                ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+
+        for (int i = 0; i < menu.size(); i++) {
+            // The first is gold, the rest dark: one thing to do, and three
+            // places to look at first.
+            chrome.plate(batch, x, ScreenArt.buttonY(i), ScreenArt.BUTTON_W,
+                    ScreenArt.BUTTON_H, menu.get(i).label(),
+                    i == 0 ? Chrome.Plate.GOLD : Chrome.Plate.DARK);
+        }
+
+        chrome.centredOn(batch, theme.pixelSmall, CREDIT, (int) (Theme.WORLD_WIDTH / 2),
+                ScreenArt.CREDIT_TOP, ScreenArt.BODY, ScreenArt.CREDIT_ALPHA);
+    }
+
+    // --- the first-run prompt ---
+
+    private static final int PROMPT_W = 600;
+    private static final int PROMPT_X = (int) (Theme.WORLD_WIDTH - PROMPT_W) / 2;
+    private static final int PROMPT_Y = 232;
+    private static final int PROMPT_H = 260;
+
+    private static int promptButtonX() {
+        return (int) (Theme.WORLD_WIDTH - ScreenArt.BUTTON_W) / 2;
+    }
+
+    /**
+     * The one-time welcome, shown over the menu on the very first launch. Both
+     * choices mark the tutorial seen, so it never nags twice.
+     *
+     * <p>It is not in the mock — the reference has no first run — so it is built
+     * from the same five parts as everything else rather than invented.
+     */
+    private void drawPrompt() {
+        chrome.frame(batch, PROMPT_X, PROMPT_Y, PROMPT_W, PROMPT_H);
+        chrome.face(batch, PROMPT_X + ScreenArt.THICK, PROMPT_Y + ScreenArt.THICK,
+                PROMPT_W - 2 * ScreenArt.THICK, PROMPT_H - 2 * ScreenArt.THICK,
+                ScreenArt.FACE_PANEL);
+        chrome.centredOn(batch, theme.pixelBody, "NEW HERE?",
+                (int) (Theme.WORLD_WIDTH / 2), PROMPT_Y + 28, ScreenArt.HEADING, 1f);
+        chrome.centredOn(batch, theme.pixelLabel,
+                "SCOUNDREL HAS A FEW RULES WORTH KNOWING.",
+                (int) (Theme.WORLD_WIDTH / 2), PROMPT_Y + 66,
+                ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+        chrome.centredOn(batch, theme.pixelLabel,
+                "A SHORT GUIDED RUN WALKS THROUGH ALL OF THEM.",
+                (int) (Theme.WORLD_WIDTH / 2), PROMPT_Y + 88,
+                ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+        // Reusing the menu's own button geometry, so the prompt's two choices
+        // are the same shape and pitch as the four behind them.
+        chrome.plate(batch, promptButtonX(), ScreenArt.buttonY(0), ScreenArt.BUTTON_W,
+                ScreenArt.BUTTON_H, "PLAY TUTORIAL", Chrome.Plate.GOLD);
+        chrome.plate(batch, promptButtonX(), ScreenArt.buttonY(1), ScreenArt.BUTTON_W,
+                ScreenArt.BUTTON_H, "MAYBE LATER", Chrome.Plate.DARK);
     }
 
     @Override
@@ -142,11 +264,12 @@ public final class TitleScreen extends ScreenAdapter {
         if (width <= 0 || height <= 0) {
             return;
         }
-        stage.getViewport().update(width, height, true);
+        viewport.update(width, height, true);
     }
 
     @Override
     public void dispose() {
-        stage.dispose();
+        surface.dispose();
+        batch.dispose();
     }
 }
