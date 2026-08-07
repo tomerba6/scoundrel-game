@@ -125,6 +125,23 @@ final class Chrome {
         centred(batch, theme.pixelLabel, text, x, y, w, h, label, labelAlpha);
     }
 
+    /**
+     * The band every screen but the title carries: the screen's name, a caption
+     * beside it on the same baseline, {@code ESC · BACK} on the right, and a
+     * rule along the foot. Four screens share it, so it is drawn once here.
+     */
+    void header(Batch batch, String name, String caption) {
+        text(batch, theme.pixelTitle, name, ScreenArt.HEADER_X,
+                ScreenArt.HEADER_TITLE_TOP, ScreenArt.BODY);
+        int after = ScreenArt.HEADER_X + width(theme.pixelTitle, name)
+                + ScreenArt.HEADER_CAPTION_GAP;
+        text(batch, theme.pixelLabel, caption, after, ScreenArt.HEADER_CAPTION_TOP,
+                ScreenArt.HEADER_CAPTION);
+        plate(batch, ScreenArt.BACK_X, ScreenArt.BACK_Y, ScreenArt.BACK_W,
+                ScreenArt.BACK_H, "ESC · BACK", Plate.DARK);
+        rule(batch, 0, ScreenArt.HEADER_H, (int) Theme.WORLD_WIDTH);
+    }
+
     // --- text --------------------------------------------------------------
 
     /** Text placed by its top, which is what a Batch draw takes. */

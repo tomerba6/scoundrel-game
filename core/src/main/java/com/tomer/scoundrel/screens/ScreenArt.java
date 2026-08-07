@@ -84,7 +84,85 @@ final class ScreenArt {
     static final int CREDIT_TOP = 680;
     static final float CREDIT_ALPHA = 0.22f;
 
+    // --- the header band, on every screen except the title -----------------
+
+    /** 88px of band with the rule at its foot, measured to 89 on the render. */
+    static final int HEADER_H = 89;
+    static final int HEADER_X = 40;
+    static final int HEADER_TITLE_TOP = 39;
+    /** The caption sits on the title's baseline, not its top. */
+    static final int HEADER_CAPTION_TOP = 48;
+    static final int HEADER_CAPTION_GAP = 20;
+    static final int HEADER_CAPTION = 0x9a8b70;
+    static final int BACK_X = 1111;
+    static final int BACK_Y = 27;
+    static final int BACK_W = 127;
+    static final int BACK_H = 36;
+
+    // --- new game ----------------------------------------------------------
+
+    static final int PANEL_X = 38;
+    static final int PANEL_W = 1200;
+    static final int PANEL_H = 89;
+    static final int PANEL_Y = 115;
+    /** 89 of panel and 14 of gap, as §11 says. */
+    static final int PANEL_PITCH = 103;
+
+    static final int WELL_DX = 20;
+    static final int WELL_DY = 18;
+    static final int WELL_SIZE = 24;
+    static final int NAME_DX = 59;
+    static final int NAME_DY = 26;
+    static final int BADGE_DY = 21;
+    static final int BADGE_H = 19;
+    static final int BADGE_GAP = 18;
+    static final int BADGE_PAD_X = 11;
+    static final int BADGE_ON = 0xd9a441;
+    static final int BADGE_OFF = 0x241d16;
+    /** The label on an unearned badge, and on an unselected panel's number. */
+    static final int BADGE_OFF_LABEL = 0x6b5f4c;
+    static final int WELL_DIGIT_OFF = 0x494336;
+    static final int START_DY = 27;
+    static final int START_INSET = 24;
+    static final int START_COLOUR = 0x74838f;
+    static final int DESC_DX = 20;
+    static final int DESC_DY = 58;
+
     private ScreenArt() {
+    }
+
+    static int panelY(int index) {
+        return PANEL_Y + index * PANEL_PITCH;
+    }
+
+    /** The right edge everything in a panel is right-aligned against. */
+    static int panelRight() {
+        return PANEL_X + PANEL_W;
+    }
+
+    /**
+     * Which mode panel a point in <b>world</b> coordinates is on, or -1. Same
+     * flip as everywhere else: the pointer arrives y-up, the panels are
+     * specified y-down.
+     */
+    static int panelAt(int count, float worldX, float worldY) {
+        if (worldX < PANEL_X || worldX >= PANEL_X + PANEL_W) {
+            return -1;
+        }
+        for (int i = 0; i < count; i++) {
+            float bottom = CardArt.toWorldY(panelY(i), PANEL_H);
+            if (worldY >= bottom && worldY < bottom + PANEL_H) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** And whether a point is on the header's back button. */
+    static boolean backContains(float worldX, float worldY) {
+        float bottom = CardArt.toWorldY(BACK_Y, BACK_H);
+        return worldX >= BACK_X && worldX < BACK_X + BACK_W
+                && worldY >= bottom && worldY < bottom + BACK_H;
     }
 
     static int fieldX() {
