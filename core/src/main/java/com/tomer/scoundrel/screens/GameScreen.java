@@ -7,6 +7,7 @@ import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
@@ -79,6 +80,7 @@ public final class GameScreen extends ScreenAdapter {
             (CardArt.BACKDROP << 8) | 0xff);
     /** Dried blood, the one colour YOU DIED is ever set in. */
     private static final Color DEATH_TITLE = new Color((0x8c2f22 << 8) | 0xff);
+    private static final String DEATH_TITLE_TEXT = "YOU DIED";
 
     private final ScoundrelGame game;
     private final Theme theme;
@@ -91,11 +93,20 @@ public final class GameScreen extends ScreenAdapter {
 
     private final PixelViewport viewport;
     private final SpriteBatch batch = new SpriteBatch();
+    /**
+     * The board is drawn onto this at 1:1 and scaled to the window once, so
+     * every element is resampled together rather than each draw rounding on its
+     * own — see {@link PixelSurface}.
+     */
+    private final PixelSurface surface =
+            new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
     private final Backdrop backdrop;
     private final BoardView board;
     private final BoardHud hud;
     private final Sprites sprites;
     private final Feed feed = new Feed();
+    /** Measures the death title, so it can be placed by its centre. */
+    private final GlyphLayout titleLayout = new GlyphLayout();
     /** Overlays only — everything with a button on it. */
     private final Stage stage;
 
@@ -107,19 +118,21 @@ public final class GameScreen extends ScreenAdapter {
     private List<Achievement> newlyUnlocked = List.of();
     private Actor endOverlay;
     private Actor tutorialLayer;
-    private Actor chooser;
+    /** The open move chooser: the moves offered, and the card they are about. */
+    private List<Move> chooserMoves = List.of();
+    private Card chooserCard;
+    private int chooserPlateW;
     /** The last potion drunk, which is what the marker shows once one has been. */
     private Card lastPotion;
+    /** What was in the rail before this move, for as long as the new one is in the air. */
+    private EquippedWeapon weaponBeforeMove;
 
     // --- what the health bar is doing, and the death ---
 
-    /** A hit draining the bar, or a drink filling it; -1 when neither. */
-    private float damageElapsed = -1f;
-    private float healElapsed = -1f;
-    private int barFrom;
-    private int barTo;
-    private int healthFrom;
-    private int healthTo;
+    /** What the health bar is doing, what it is doing it between, and since when. */
+    private HealthReadout.Phase barPhase = HealthReadout.Phase.REST;
+    private HealthReadout.Change barChange = HealthReadout.Change.NONE;
+    private float barElapsed;
     /** The death cinematic's clock and the slot the fatal blow landed in. */
     private float deathElapsed = -1f;
     private int killerSlotX = -1;
@@ -182,13 +195,27 @@ public final class GameScreen extends ScreenAdapter {
                 settleEnd();
                 return true;
             }
+            Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+            // An open chooser takes the press first. One that lands on a plate
+            // resolves it; one that lands anywhere else dismisses the chooser
+            // AND still resolves whatever card it hit, so a press is never
+            // spent merely closing the popup.
+            if (chooserCard != null) {
+                int picked = ChooserArt.indexAt(chooserSlotX(), chooserPlateW,
+                        chooserMoves.size(), point.x, point.y);
+                List<Move> offered = chooserMoves;
+                closeChooser();
+                if (picked >= 0) {
+                    applyMove(offered.get(picked));
+                    return true;
+                }
+            }
             if (board.isPlaying()) {
                 board.skip();
             }
             if (state.status() != Status.IN_PROGRESS) {
                 return false;
             }
-            Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
             if (HudArt.avoidContains(point.x, point.y) && avoidAllowed()) {
                 applyMove(new Move.AvoidRoom());
                 return true;
@@ -204,20 +231,22 @@ public final class GameScreen extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(BACKDROP);
         advance(delta);
 
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
+        // Everything at 1:1 on the surface's own grid first.
+        surface.begin(BACKDROP);
+        batch.setProjectionMatrix(surface.projection());
         batch.begin();
         // The death shakes the board but not the dark it happens in, so the
         // backdrop is drawn before the jolt is applied.
-        backdrop.render(batch, deathElapsed >= 0f ? 0.35f : 1f);
+        backdrop.render(batch,
+                deathElapsed >= 0f ? DeathCinematic.torchLight(deathElapsed) : 1f);
         int shake = deathElapsed >= 0f ? DeathCinematic.shakeX(deathElapsed) : 0;
         batch.getTransformMatrix().translate(shake, 0, 0);
         batch.setTransformMatrix(batch.getTransformMatrix());
         drawHud();
         board.draw(batch);
+        drawChooser();
         drawFeed();
         batch.getTransformMatrix().translate(-shake, 0, 0);
         batch.setTransformMatrix(batch.getTransformMatrix());
@@ -225,7 +254,18 @@ public final class GameScreen extends ScreenAdapter {
             drawDeath();
         }
         batch.end();
+        surface.end();
 
+        // Then that one image to the window, in one scale.
+        ScreenUtils.clear(Color.BLACK);
+        viewport.apply();
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+        batch.begin();
+        batch.draw(surface.region(), 0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        batch.end();
+
+        // The overlays are still Scene2D in the vector faces, which supersample
+        // and so want the window's own resolution rather than the surface's.
         stage.act(delta);
         stage.draw();
     }
@@ -236,18 +276,7 @@ public final class GameScreen extends ScreenAdapter {
         board.update(delta);
         feed.update(delta);
         board.setHovered(hoveredCard());
-        if (damageElapsed >= 0f) {
-            damageElapsed += delta;
-            if (HpPulse.damageFinished(barFrom, barTo, damageElapsed)) {
-                damageElapsed = -1f;
-            }
-        }
-        if (healElapsed >= 0f) {
-            healElapsed += delta;
-            if (HpPulse.healFinished(barFrom, barTo, healElapsed)) {
-                healElapsed = -1f;
-            }
-        }
+        advanceBar(delta);
         if (deathElapsed >= 0f) {
             deathElapsed += delta;
             if (DeathCinematic.finished(deathElapsed)) {
@@ -269,39 +298,60 @@ public final class GameScreen extends ScreenAdapter {
 
     private void drawHud() {
         drawHealth();
-        int depth = state.dungeon().size();
-        hud.drawTicker(batch, depth, rules.deck().cards().size());
-        hud.drawDepthLine(batch, depth, rules.deck().cards().size(),
-                tutorial == null ? ClockText.format(currentRunSeconds()) : null);
+        drawDepthGauge();
         hud.drawAvoid(batch, avoidAllowed());
         drawRail();
         hud.drawPotionMarker(batch, potionMarkerRegion(),
                 state.potionsUsedThisRoom() >= rules.potionsPerTurn());
     }
 
+    /** The ticks and the line under them — the one gauge of how far you got. */
+    private void drawDepthGauge() {
+        int depth = shownDepth();
+        hud.drawTicker(batch, depth, rules.deck().cards().size());
+        hud.drawDepthLine(batch, depth,
+                tutorial == null ? ClockText.format(currentRunSeconds()) : null);
+    }
+
     /**
-     * The bar, mid-change or at rest. A change repaints the whole fill and
-     * holds the reading it is moving toward off until it gets there, so the
-     * number and the bar always say the same thing.
+     * How deep the dungeon looks, which is not always how deep it is. The engine
+     * settles the whole move at once, so its count drops before a single card
+     * has moved; on screen a card is only back in the deck once it has flown
+     * there, and only out of it once it has landed on the table.
+     *
+     * <p>Both corrections are needed and they run in opposite directions, which
+     * is what makes an avoided room read properly: the strip grows by four as
+     * the old room goes in, then shrinks by four as the new one comes out, and
+     * ends exactly where the engine says it should.
      */
-    private void drawHealth() {
-        boolean healing = healElapsed >= 0f;
-        boolean bleeding = damageElapsed >= 0f;
-        int fill = HudArt.barFillWidth(state.health(), rules.healthCap());
-        int shown = state.health();
-        int offset = 0;
-        if (healing) {
-            fill = HpPulse.healWidth(barFrom, barTo, healElapsed);
-            shown = HpPulse.numberHealed(barFrom, barTo, healElapsed) ? healthTo : healthFrom;
-        } else if (bleeding) {
-            fill = HpPulse.damageWidth(barFrom, barTo, damageElapsed);
-            shown = HpPulse.numberBloodied(barFrom, barTo, damageElapsed) ? healthTo : healthFrom;
-            offset = HpPulse.barOffset(barFrom, barTo, damageElapsed);
+    private int shownDepth() {
+        return state.dungeon().size() + board.rising() - board.sweeping();
+    }
+
+    /**
+     * The bar's clock. Only a change runs one — a bar at rest, or one holding
+     * for a bottle that has not landed, has nothing to advance.
+     */
+    private void advanceBar(float delta) {
+        if (barPhase != HealthReadout.Phase.HEALING
+                && barPhase != HealthReadout.Phase.BLEEDING) {
+            return;
         }
-        hud.drawHealth(batch, shown, rules.healthCap(),
-                healing && HpPulse.numberHealed(barFrom, barTo, healElapsed),
-                bleeding && HpPulse.numberBloodied(barFrom, barTo, damageElapsed),
-                offset, fill);
+        barElapsed += delta;
+        boolean over = barPhase == HealthReadout.Phase.HEALING
+                ? HpPulse.healFinished(barChange.fromWidth(), barChange.toWidth(), barElapsed)
+                : HpPulse.damageFinished(barChange.fromWidth(), barChange.toWidth(), barElapsed);
+        if (over) {
+            barPhase = HealthReadout.Phase.REST;
+        }
+    }
+
+    /** The bar, mid-change, holding, or at rest — the decision is out in {@link HealthReadout}. */
+    private void drawHealth() {
+        HealthReadout readout = HealthReadout.of(
+                barPhase, state.health(), rules.healthCap(), barChange, barElapsed);
+        hud.drawHealth(batch, readout.number(), rules.healthCap(),
+                readout.healing(), readout.bleeding(), readout.offsetX(), readout.fill());
     }
 
     /**
@@ -323,11 +373,23 @@ public final class GameScreen extends ScreenAdapter {
             batch.draw(board.dither(level, (int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
                     0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         }
+        // Over the dither, not under it: the dark takes the whole board and
+        // leaves the gauge that says how close you got, until that goes too.
+        if (DeathCinematic.tickerShowing(deathElapsed)) {
+            drawDepthGauge();
+        }
         if (DeathCinematic.titleShowing(deathElapsed)) {
-            BitmapFont font = theme.pixelDisplayBold;
-            font.getData().setScale(DeathCinematic.titleScale(deathElapsed) / 100f);
+            // Whole multiples only, and placed by its own centre so it grows
+            // outward from a fixed line instead of downward from a fixed top.
+            // The smallest face in the game, blown up by a whole number. The
+            // multiples are the only clean sizes there are, so the smaller the
+            // face the more of them fit between "far away" and "in your face".
+            BitmapFont font = theme.pixelSmall;
+            font.getData().setScale(DeathCinematic.titleZoom(deathElapsed));
+            titleLayout.setText(font, DEATH_TITLE_TEXT);
+            int top = BoardArt.DEATH_TITLE_CENTRE_Y - Math.round(titleLayout.height / 2f);
             font.setColor(DEATH_TITLE);
-            font.draw(batch, "YOU DIED", 0, Theme.WORLD_HEIGHT / 2f + 20,
+            font.draw(batch, DEATH_TITLE_TEXT, 0, CardArt.toWorldY(top, 0),
                     Theme.WORLD_WIDTH, Align.center, false);
             font.getData().setScale(1f);
             font.setColor(Color.WHITE);
@@ -343,9 +405,15 @@ public final class GameScreen extends ScreenAdapter {
         }
     }
 
-    /** Equipped weapon, its slain stack, and how much bite it has left. */
+    /**
+     * Equipped weapon, its slain stack, and how much bite it has left — as the
+     * board shows it, not as the engine has already settled it. A weapon still
+     * hopping down to the well has not arrived, and a monster still being
+     * cleaved has not died, so neither the icon nor the chip beside it may
+     * appear yet.
+     */
     private void drawRail() {
-        EquippedWeapon weapon = state.weapon();
+        EquippedWeapon weapon = board.railAhead() ? weaponBeforeMove : state.weapon();
         if (weapon == null) {
             hud.drawRail(batch, null, "BAREHANDED", null, null);
             return;
@@ -388,6 +456,7 @@ public final class GameScreen extends ScreenAdapter {
     public void dispose() {
         stage.dispose();
         board.dispose();
+        surface.dispose();
         batch.dispose();
     }
 
@@ -398,6 +467,8 @@ public final class GameScreen extends ScreenAdapter {
      */
     private void syncBoard() {
         board.setRoom(state.room());
+        // The room it was anchored to has just changed under it.
+        closeChooser();
         if (endOverlay != null) {
             endOverlay.remove();
             endOverlay = null;
@@ -685,9 +756,6 @@ public final class GameScreen extends ScreenAdapter {
 
     /** One legal move plays immediately; two or more open the chooser. */
     private void onCardClicked(Card card) {
-        if (chooser != null) {
-            return; // the chooser's own catcher handles this press
-        }
         if (tutorial != null) {
             // In the tutorial only the highlighted card responds, and it makes
             // exactly the scripted move — no chooser to wander into.
@@ -709,55 +777,48 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     /**
-     * Button stack over the pressed card. A press outside it dismisses the
-     * chooser AND resolves whatever card it landed on, so the press is never
-     * spent merely closing the popup. The popup carries no padding, so its
-     * whole area is button: a press inside it can neither fall through to the
-     * catcher (which would just re-open the chooser) nor land on inert frame.
+     * A stack of the board's own gold plates over the pressed card, one per
+     * legal move. Every plate takes the widest label's width, measured once
+     * here rather than per frame — a ragged stack reads as two unrelated
+     * buttons instead of as a choice between two things.
      */
     private void showChooser(List<Move> moves, Card card) {
-        Group overlay = new Group();
-        Actor catcher = new Actor();
-        catcher.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        catcher.addListener(Widgets.pressListenerAt((stageX, stageY) -> {
-            closeChooser();
-            Card landed = board.cardAt(stageX, stageY);
-            if (landed != null) {
-                onCardClicked(landed);
-            }
-        }));
-        overlay.addActor(catcher);
-
-        Table popup = new Table();
-        popup.setBackground(theme.solid(Theme.STONE));
-        popup.pad(0);
-        popup.defaults().growX().space(0);
-        for (Move move : moves) {
-            TextButton button = torchButton(theme, Labels.move(move));
-            // Press, like the cards: the chooser sits on the hot path for every
-            // armed monster, so it must not drop a fast click either.
-            button.addListener(Widgets.pressListener(() -> {
-                closeChooser();
-                applyMove(move);
-            }));
-            popup.add(button);
-            popup.row();
+        chooserMoves = List.copyOf(moves);
+        chooserCard = card;
+        int widest = 0;
+        for (Move move : chooserMoves) {
+            widest = Math.max(widest, hud.labelWidth(chooserLabel(move)));
         }
-        popup.pack();
-        int index = state.room().indexOf(card);
-        float centreX = board.slotX(Math.max(0, index)) + CardArt.CARD_W / 2f;
-        float centreY = CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H) + CardArt.CARD_H / 2f;
-        popup.setPosition(centreX - popup.getWidth() / 2f, centreY - popup.getHeight() / 2f);
-        overlay.addActor(popup);
-        stage.addActor(overlay);
-        chooser = overlay;
+        chooserPlateW = ChooserArt.plateW(widest);
+    }
+
+    /** Uppercase, like every other label the pixel board sets. */
+    private static String chooserLabel(Move move) {
+        return Labels.move(move).toUpperCase(Locale.ROOT);
+    }
+
+    /** The slot the chooser is anchored to, following its card if the room moves. */
+    private int chooserSlotX() {
+        int index = state.room().indexOf(chooserCard);
+        return board.slotX(Math.max(0, index));
+    }
+
+    private void drawChooser() {
+        if (chooserCard == null) {
+            return;
+        }
+        int x = chooserSlotX();
+        for (int i = 0; i < chooserMoves.size(); i++) {
+            hud.drawPlate(batch, ChooserArt.plateX(x, chooserPlateW),
+                    ChooserArt.plateY(i, chooserMoves.size()),
+                    chooserPlateW, ChooserArt.PLATE_H,
+                    chooserLabel(chooserMoves.get(i)), true);
+        }
     }
 
     private void closeChooser() {
-        if (chooser != null) {
-            chooser.remove();
-            chooser = null;
-        }
+        chooserMoves = List.of();
+        chooserCard = null;
     }
 
     /** Fresh run. The tutorial plays its scripted deck and records nothing. */
@@ -772,7 +833,10 @@ public final class GameScreen extends ScreenAdapter {
         }
         endBestLine = null;
         lastPotion = null;
+        weaponBeforeMove = null;
         newlyUnlocked = List.of();
+        barPhase = HealthReadout.Phase.REST;
+        barChange = HealthReadout.Change.NONE;
     }
 
     /**
@@ -830,6 +894,7 @@ public final class GameScreen extends ScreenAdapter {
         }
         int healthBefore = state.health();
         List<Card> roomBefore = state.room();
+        weaponBeforeMove = state.weapon();
         board.beginMove();
 
         MoveResult result = engine.apply(state, move);
@@ -852,7 +917,7 @@ public final class GameScreen extends ScreenAdapter {
 
         boolean died = tutorial == null && state.status() == Status.LOST;
         board.setRoom(state.room());
-        playEffect(move, result, roomBefore);
+        playEffect(move, result, roomBefore, died);
         pulseHealth(healthBefore, ResolveEffect.damageTaken(result.events()),
                 ResolveEffect.healed(result.events()));
 
@@ -877,46 +942,56 @@ public final class GameScreen extends ScreenAdapter {
      * one of them ends by dealing the room back in, so a refill follows without
      * being asked for.
      */
-    private void playEffect(Move move, MoveResult result, List<Card> roomBefore) {
+    private void playEffect(Move move, MoveResult result, List<Card> roomBefore, boolean fatal) {
         switch (ResolveEffect.of(move)) {
             case AVOID -> board.playSweep(roomBefore);
-            case STRIKE -> board.playStrike(((Move.FightBarehanded) move).targetCard());
-            case SLICE -> board.playSlice(((Move.FightWithWeapon) move).targetCard());
+            case STRIKE -> board.playStrike(((Move.FightBarehanded) move).targetCard(), fatal);
+            case SLICE -> board.playSlice(((Move.FightWithWeapon) move).targetCard(), fatal);
             case EQUIP -> board.playEquip(((Move.TakeWeapon) move).targetCard());
             case POTION -> {
                 Card drunk = ((Move.TakePotion) move).targetCard();
                 boolean wasted = result.events().stream()
                         .anyMatch(e -> e instanceof GameEvent.PotionWasted);
-                // A wasted potion still travels; it just heals nothing when it lands.
-                board.playPotion(drunk, wasted ? null : this::startHeal);
+                // A wasted potion goes nowhere near the bar: it spills where it
+                // stood. Sending it to a bar that then does not move read as the
+                // heal being broken rather than as the potion being wasted.
+                if (wasted) {
+                    board.playSpill(drunk);
+                } else {
+                    board.playPotion(drunk, this::startHeal);
+                }
             }
         }
     }
 
     /**
      * Damage drains the bar straight away — the blow has already landed. A
-     * drink waits: {@link BoardView} calls back when the bottle actually
-     * pours, so the fill has a visible cause.
+     * drink does not: the bar holds its old reading until {@link BoardView}
+     * calls back to say the bottle has poured, so the fill has a visible cause
+     * and is only ever shown once.
      */
     private void pulseHealth(int before, int damage, int healed) {
-        damageElapsed = -1f;
-        healElapsed = -1f;
+        barElapsed = 0f;
         if (damage > 0) {
             setBarChange(before, state.health());
-            damageElapsed = 0f;
+            barPhase = HealthReadout.Phase.BLEEDING;
         } else if (healed > 0) {
-            setBarChange(before, state.health()); // held until the pour
+            setBarChange(before, state.health());
+            barPhase = HealthReadout.Phase.HELD;
+        } else {
+            barPhase = HealthReadout.Phase.REST;
         }
     }
 
     private void setBarChange(int from, int to) {
-        healthFrom = from;
-        healthTo = to;
-        barFrom = HudArt.barFillWidth(from, rules.healthCap());
-        barTo = HudArt.barFillWidth(to, rules.healthCap());
+        barChange = new HealthReadout.Change(
+                HudArt.barFillWidth(from, rules.healthCap()),
+                HudArt.barFillWidth(to, rules.healthCap()), from, to);
     }
 
+    /** The bottle has tipped: release the reading the bar has been holding. */
     private void startHeal() {
-        healElapsed = 0f;
+        barPhase = HealthReadout.Phase.HEALING;
+        barElapsed = 0f;
     }
 }

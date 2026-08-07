@@ -72,18 +72,45 @@ class HudArtTest {
     /** One tick per card left in the dungeon, so the ticker is a real gauge. */
     @Test
     void theDepthTickerIsOneTickPerCard() {
-        assertEquals(656, HudArt.TICKER_X);
         assertEquals(4, HudArt.TICK_PITCH);
         assertEquals(2, HudArt.TICK_W);
         assertEquals(27, HudArt.ticksLit(27));
         assertEquals(0, HudArt.ticksLit(0));
     }
 
+    /**
+     * The lit block is the thing you read, so it is what stays centred — not the
+     * whole strip. The dim tail runs off to the right and the strip's left edge
+     * walks right as the dungeon drains. That is a deliberate deviation from the
+     * reference render, which has the ticker off-centre entirely (656..821, a
+     * flex-row artefact of the mock's top strip).
+     */
+    @Test
+    void theLitTicksStayCentredAsTheDungeonDrains() {
+        for (int depth : new int[] {44, 27, 12, 1}) {
+            int left = HudArt.tickerX(depth);
+            int right = left + HudArt.tickerWidth(depth);
+            assertEquals(Theme.WORLD_WIDTH / 2f, (left + right) / 2f, 0.5f,
+                    "the lit block should be centred at depth " + depth);
+        }
+    }
+
+    @Test
+    void theStripWalksRightAsItDrains() {
+        assertTrue(HudArt.tickerX(20) > HudArt.tickerX(44),
+                "a shallower dungeon puts the strip further right");
+    }
+
     @Test
     void theTickerFitsTheWholeDungeonInsideTheStage() {
         int width = HudArt.tickerWidth(44);
         assertEquals(44 * 4 - 2, width);
-        assertTrue(HudArt.TICKER_X + width < 1280, "ticker should not run off the stage");
+        // Deepest is furthest left, shallowest furthest right; the whole strip
+        // is always drawn, so both ends have to clear the stage and the Avoid
+        // plate beyond it.
+        assertTrue(HudArt.tickerX(44) >= 0, "a full dungeon should not run off the left");
+        assertTrue(HudArt.tickerX(0) + width < HudArt.AVOID_X,
+                "an empty dungeon should not reach the Avoid plate");
     }
 
     @Test

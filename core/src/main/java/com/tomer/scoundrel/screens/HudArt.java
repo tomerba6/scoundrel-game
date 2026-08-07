@@ -80,7 +80,6 @@ final class HudArt {
 
     // --- depth ticker ------------------------------------------------------
 
-    static final int TICKER_X = 656;
     static final int TICKER_Y = 26;
     static final int TICKER_H = 20;
     static final int TICK_W = 2;
@@ -121,6 +120,21 @@ final class HudArt {
 
     static int tickerWidth(int deckSize) {
         return deckSize <= 0 ? 0 : deckSize * TICK_PITCH - (TICK_PITCH - TICK_W);
+    }
+
+    /**
+     * Where the ticker's first tick goes, for a dungeon this deep. The
+     * <b>lit</b> block is centred on the board rather than the whole strip: the
+     * gold is what you actually read, and keeping it in the middle means the eye
+     * never has to follow it. The cost is that the strip walks right as the
+     * dungeon drains, taking its dim tail with it.
+     *
+     * <p>This is a deliberate deviation from the reference render, where the
+     * ticker sits at 656 and is not centred on anything — the mock's top strip
+     * is a three-item flex row, and the health group pushed the middle one right.
+     */
+    static int tickerX(int depth) {
+        return Math.round((Theme.WORLD_WIDTH - tickerWidth(depth)) / 2f);
     }
 
     /**

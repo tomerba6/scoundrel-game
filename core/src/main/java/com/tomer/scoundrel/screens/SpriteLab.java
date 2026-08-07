@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
@@ -54,6 +55,9 @@ public final class SpriteLab extends ScreenAdapter {
     private View view = View.ROOM;
     /** S slows effects 8x. Sub-second animation cannot be screenshotted at speed. */
     private boolean slowMotion;
+    private final GlyphLayout titleLayout = new GlyphLayout();
+    private final PixelSurface surface =
+            new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
     /** A hit or a drink landing on the bar. */
     private float damageElapsed = -1f;
     private float healElapsed = -1f;
@@ -112,9 +116,11 @@ public final class SpriteLab extends ScreenAdapter {
             }
         }
 
-        ScreenUtils.clear(new Color((CardArt.BACKDROP << 8) | 0xff));
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
+        // Onto the same 1:1 surface the game uses, for the same reason: the lab
+        // is only a verification instrument while it shows literally what ships,
+        // and that has to include how the image is scaled to the window.
+        surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
+        batch.setProjectionMatrix(surface.projection());
         batch.begin();
 
         int shake = deathElapsed >= 0f ? DeathCinematic.shakeX(deathElapsed) : 0;
@@ -133,9 +139,17 @@ public final class SpriteLab extends ScreenAdapter {
 
         theme.pixelSmall.setColor(Theme.BONE);
         theme.pixelSmall.draw(batch,
-                "K KILL  B BARE  A AVOID  E EQUIP  P POTION  D HIT  H HEAL  X DEATH  S SLOW",
+                "K KILL  B BARE  A AVOID  E EQUIP  P POTION  W WASTED  D HIT  H HEAL  X DEATH  S SLOW",
                 40, 48);
         theme.pixelSmall.setColor(Color.WHITE);
+        batch.end();
+        surface.end();
+
+        ScreenUtils.clear(Color.BLACK);
+        viewport.apply();
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+        batch.begin();
+        batch.draw(surface.region(), 0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         batch.end();
     }
 
@@ -187,6 +201,9 @@ public final class SpriteLab extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) && hovered.type() == CardType.POTION) {
             without(hovered, () -> board.playPotion(hovered, () -> healElapsed = 0f));
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.W) && hovered.type() == CardType.POTION) {
+            without(hovered, () -> board.playSpill(hovered));
+        }
         return true;
     }
 
@@ -237,7 +254,7 @@ public final class SpriteLab extends ScreenAdapter {
                 hit && HpPulse.numberBloodied(HIT_FROM, HIT_TO, damageElapsed),
                 hit ? HpPulse.barOffset(HIT_FROM, HIT_TO, damageElapsed) : 0, fill);
         hud.drawTicker(batch, 27, 44);
-        hud.drawDepthLine(batch, 27, 44, "01:47");
+        hud.drawDepthLine(batch, 27, "01:47");
         hud.drawAvoid(batch, true);
         // The reference's rail and marker: a broadaxe that has taken a 10 and
         // an 8, and an unused draught.
@@ -313,10 +330,17 @@ public final class SpriteLab extends ScreenAdapter {
                     0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         }
         if (DeathCinematic.titleShowing(deathElapsed)) {
-            BitmapFont font = theme.pixelDisplayBold;
-            font.getData().setScale(DeathCinematic.titleScale(deathElapsed) / 100f);
+            // Placed exactly as the game places it — the lab is only a useful
+            // instrument while it shows literally what ships.
+            // The smallest face in the game, blown up by a whole number. The
+            // multiples are the only clean sizes there are, so the smaller the
+            // face the more of them fit between "far away" and "in your face".
+            BitmapFont font = theme.pixelSmall;
+            font.getData().setScale(DeathCinematic.titleZoom(deathElapsed));
+            titleLayout.setText(font, "YOU DIED");
+            int top = BoardArt.DEATH_TITLE_CENTRE_Y - Math.round(titleLayout.height / 2f);
             font.setColor(Color.valueOf("8c2f22"));
-            font.draw(batch, "YOU DIED", 0, Theme.WORLD_HEIGHT / 2f + 20,
+            font.draw(batch, "YOU DIED", 0, CardArt.toWorldY(top, 0),
                     Theme.WORLD_WIDTH, Align.center, false);
             font.getData().setScale(1f);
             font.setColor(Color.WHITE);
@@ -343,6 +367,7 @@ public final class SpriteLab extends ScreenAdapter {
 
     @Override
     public void dispose() {
+        surface.dispose();
         board.dispose();
         batch.dispose();
     }

@@ -86,6 +86,26 @@ final class Ramps {
         return RAMPS[found[0]][Math.min(STEPS - 1, found[1] + steps)];
     }
 
+    /**
+     * The same colour with the material drained out of it: the step it already
+     * occupies, taken from the bone ramp instead of its own.
+     *
+     * <p>Not a greyscale conversion. Averaging the channels would invent a
+     * colour that is nowhere in the art; moving sideways to bone at the same
+     * step keeps the pixel inside the eighty and preserves how light or dark it
+     * was, so a drained sprite still has all of its shading.
+     */
+    static int drain(int rgb) {
+        int[] found = LOOKUP.get(rgb);
+        if (found == null) {
+            found = nearest(rgb);
+        }
+        return RAMPS[BONE][found[1]];
+    }
+
+    /** The bone ramp's row in {@link #TABLE} — the near-neutral one. */
+    private static final int BONE = 2;
+
     /** Closest ramp entry by squared RGB distance. */
     private static int[] nearest(int rgb) {
         int r = (rgb >> 16) & 0xff;

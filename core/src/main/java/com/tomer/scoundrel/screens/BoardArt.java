@@ -101,6 +101,14 @@ final class BoardArt {
     static final int HP_SUFFIX_COLOUR = 0x6b5f4c;
     static final int HP_SUFFIX_GAP = 8;
 
+    /**
+     * The line YOU DIED grows outward from, above the middle of the screen.
+     * Drawing it by the top of its line instead — which is what a Batch draw
+     * takes — made it grow downward, so it read as being pushed rather than as
+     * arriving.
+     */
+    static final int DEATH_TITLE_CENTRE_Y = 300;
+
     private BoardArt() {
     }
 

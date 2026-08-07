@@ -57,7 +57,7 @@ final class CardFace {
 
         // The type is right-aligned against the far padding, in the card's own
         // label colour — the only place each ramp names itself.
-        BitmapFont typeFont = theme.pixelSmall;
+        BitmapFont typeFont = theme.pixelLabel;
         String type = Labels.cardType(card.type());
         layout.setText(typeFont, type);
         setColour(typeFont, palette.label());

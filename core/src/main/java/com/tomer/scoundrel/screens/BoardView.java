@@ -30,7 +30,16 @@ import java.util.Random;
 final class BoardView {
 
     /** What is happening to the room right now. */
-    private enum Kind { NONE, SWEEP, EQUIP, POTION, STRIKE, SLICE }
+    private enum Kind { NONE, SWEEP, EQUIP, POTION, SPILL, STRIKE, SLICE }
+
+    /**
+     * A deal's clock, with the anchors left at the origin. Every card of a deal
+     * aims somewhere different but they all run to the same timing, so anything
+     * that only asks <em>when</em> can share one flight.
+     */
+    private static final CardFlight.Flight DEAL_CLOCK = CardFlight.dealTo(0, 0);
+    /** And a slide's, which is the same length but never staggers. */
+    private static final CardFlight.Flight SLIDE_CLOCK = CardFlight.slideTo(0, 0);
 
     private final Theme theme;
     private final Sprites sprites;
@@ -51,8 +60,18 @@ final class BoardView {
 
     private Kind kind = Kind.NONE;
     private float effectElapsed;
+    /**
+     * How fast the effect's own clock runs. Always 1 except for the blow that
+     * kills you, which plays at half speed — the last thing to happen in a run
+     * should not go by at the same rate as the forty before it.
+     */
+    private float effectRate = 1f;
+    /** The dungeon sending cards up, which waits for the effect to finish. */
     private boolean dealing;
     private float dealElapsed;
+    /** The survivors re-centring, which does not — it runs alongside it. */
+    private boolean closing;
+    private float closeElapsed;
     /** The card the effect acts on: resolved, so no longer in the room. */
     private Card subject;
     /** The room that was swept away, still to be drawn on its way out. */
@@ -109,8 +128,16 @@ final class BoardView {
 
     void update(float delta) {
         elapsed += delta;
+        // The room closes on its own clock, alongside whatever is happening to
+        // the card that left rather than after it.
+        if (closing) {
+            closeElapsed += delta;
+            if (closeElapsed >= SLIDE_CLOCK.total()) {
+                closing = false;
+            }
+        }
         if (kind != Kind.NONE) {
-            effectElapsed += delta;
+            effectElapsed += delta * effectRate;
             if (kind == Kind.POTION && !poured && PotionDrink.pouring(effectElapsed)) {
                 poured = true;
                 if (onPour != null) {
@@ -135,6 +162,7 @@ final class BoardView {
             case SWEEP -> CardFlight.AVOID.totalFor(Math.max(1, outgoing.size()));
             case EQUIP -> CardFlight.EQUIP.total();
             case POTION -> PotionDrink.TOTAL;
+            case SPILL -> PotionSpill.TOTAL;
             case STRIKE -> Barehanded.TOTAL;
             case SLICE -> WeaponKill.TOTAL;
             case NONE -> 0f;
@@ -142,11 +170,65 @@ final class BoardView {
     }
 
     private float dealLength() {
-        return CardFlight.dealTo(0, 0).totalFor(room.size());
+        return DEAL_CLOCK.totalFor(room.size());
+    }
+
+    /**
+     * How many cards are still on their way up out of the dungeon. The engine
+     * gave them up the moment the move was applied, but on screen they are
+     * between the ticks and the table — so the depth ticker still counts them,
+     * and a tick goes out as its card lands rather than all four at once before
+     * anything has moved.
+     *
+     * <p>A card that was already on the board is sliding, not rising: it left
+     * the dungeon rooms ago and must not be counted again.
+     */
+    int rising() {
+        if (!dealing) {
+            return 0;
+        }
+        int count = 0;
+        for (int i = 0; i < room.size(); i++) {
+            if (previousX.containsKey(room.get(i).id())) {
+                continue;
+            }
+            if (!CardFlight.landed(DEAL_CLOCK, i, dealElapsed)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * And how many of an avoided room have not reached the dungeon yet. They
+     * have left the table but not arrived, so the ticker does not count them
+     * either — which is what makes the strip grow as the room goes in and shrink
+     * again as the next one comes out.
+     */
+    int sweeping() {
+        int count = 0;
+        for (int i = 0; i < outgoing.size(); i++) {
+            if (!CardFlight.landed(CardFlight.AVOID, i, effectElapsed)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     boolean isPlaying() {
-        return kind != Kind.NONE || dealing;
+        return kind != Kind.NONE || dealing || closing;
+    }
+
+    /**
+     * Whether the rail is still running ahead of the board. The engine settles
+     * the whole move the instant the card is pressed, so both of the rail's
+     * halves arrive early: a weapon sits in its well while its own card is
+     * still hopping down towards it, and a slain monster is stacked on it —
+     * chip, and a dulled threshold plate — while the creature is still being
+     * cleaved. Until what you can see agrees, the rail reports what was there.
+     */
+    boolean railAhead() {
+        return kind == Kind.EQUIP || kind == Kind.SLICE;
     }
 
     /** Ends whatever is playing at once. The state underneath is already final. */
@@ -159,6 +241,7 @@ final class BoardView {
         subject = null;
         outgoing = List.of();
         dealing = false;
+        closing = false;
     }
 
     // --- starting an effect ------------------------------------------------
@@ -173,14 +256,31 @@ final class BoardView {
         kind = Kind.NONE;
         subject = null;
         outgoing = List.of();
+        closing = false;
         setRoom(room);
         playDeal();
     }
 
-    /** The new room flies in; anything already out slides to its new slot. */
+    /**
+     * The new room flies in; anything already out slides to its new slot. The
+     * two run on separate clocks: the slide starts now, alongside the effect,
+     * and the deal waits until {@link #update} says the effect is over.
+     */
     void playDeal() {
-        dealing = true;
+        closing = !previousX.isEmpty();
+        closeElapsed = 0f;
+        dealing = hasUndealtCards();
         dealElapsed = 0f;
+    }
+
+    /** Whether the dungeon actually owes the room anything, or it merely shrank. */
+    private boolean hasUndealtCards() {
+        for (Card card : room) {
+            if (!previousX.containsKey(card.id())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -212,21 +312,66 @@ final class BoardView {
         playDeal();
     }
 
-    void playStrike(Card monster) {
-        start(Kind.STRIKE, monster);
+    /**
+     * A wasted potion: the same card, the same bottle, but drained and tipped
+     * out where it stood. It never reaches the bar, because nothing reaches
+     * you — that is the whole message of the effect.
+     */
+    void playSpill(Card potion) {
+        start(Kind.SPILL, potion);
         playDeal();
+    }
+
+    void playStrike(Card monster) {
+        playStrike(monster, false);
     }
 
     void playSlice(Card monster) {
-        start(Kind.SLICE, monster);
-        playDeal();
+        playSlice(monster, false);
+    }
+
+    /**
+     * A blow, and whether it is the one that kills you. A fatal blow runs at
+     * half speed and the dungeon sends nothing up after it — the room closes
+     * over the gap, but you are not being dealt another card, because you are
+     * not playing on.
+     */
+    void playStrike(Card monster, boolean fatal) {
+        start(Kind.STRIKE, monster, fatal);
+    }
+
+    void playSlice(Card monster, boolean fatal) {
+        start(Kind.SLICE, monster, fatal);
     }
 
     private void start(Kind kind, Card subject) {
+        start(kind, subject, 1f);
+        playDeal();
+    }
+
+    private void start(Kind kind, Card subject, boolean fatal) {
+        start(kind, subject, fatal ? 0.5f : 1f);
+        if (fatal) {
+            closeOnly();
+        } else {
+            playDeal();
+        }
+    }
+
+    private void start(Kind kind, Card subject, float rate) {
         this.kind = kind;
         this.subject = subject;
         this.effectElapsed = 0f;
+        this.effectRate = rate;
         this.onPour = null;
+    }
+
+    /** The room closes, but nothing comes up to replace what left. */
+    private void closeOnly() {
+        closing = !previousX.isEmpty();
+        closeElapsed = 0f;
+        dealing = false;
+        dealElapsed = 0f;
     }
 
     // --- input -------------------------------------------------------------
@@ -300,30 +445,24 @@ final class BoardView {
      */
     private void drawRoomCard(Batch batch, Card card, int index) {
         Integer from = previousX.get(card.id());
-        if (kind != Kind.NONE) {
-            if (from != null) {
-                drawCard(batch, card, from, CardArt.SLOT_Y);
-            }
-            return;
-        }
-        if (!dealing) {
-            drawCard(batch, card, slotX(index), CardArt.SLOT_Y);
-            return;
-        }
         // Flights are specified between centres, so the slot's left edge is not
         // the anchor — landing a card on it puts it half a card too far left.
         int toX = slotX(index) + CardArt.CARD_W / 2;
         int toY = CardArt.SLOT_Y + CardArt.CARD_H / 2;
-        CardFlight.Flight flight = from != null
-                ? CardFlight.slideTo(toX, toY)
-                : CardFlight.dealTo(toX, toY);
-        float t = CardFlight.localTime(flight, index, dealElapsed);
-        if (t < 0f) {
-            return; // still waiting its turn
+        switch (RoomMotion.of(from != null, kind != Kind.NONE, closing, dealing)) {
+            case RESTING -> drawCard(batch, card, slotX(index), CardArt.SLOT_Y);
+            case HIDDEN -> { }
+            case SLIDING -> drawFlying(batch, card, CardFlight.slideTo(toX, toY),
+                    from, CardArt.SLOT_Y, closeElapsed);
+            case DEALING -> {
+                CardFlight.Flight deal = CardFlight.dealTo(toX, toY);
+                float t = CardFlight.localTime(deal, index, dealElapsed);
+                if (t >= 0f) { // otherwise it is still waiting its turn
+                    drawFlying(batch, card, deal, CardFlight.TICKER_X - CardArt.CARD_W / 2,
+                            CardFlight.TICKER_Y - CardArt.CARD_H / 2, t);
+                }
+            }
         }
-        int fromX = from != null ? from : CardFlight.TICKER_X - CardArt.CARD_W / 2;
-        int fromY = from != null ? CardArt.SLOT_Y : CardFlight.TICKER_Y - CardArt.CARD_H / 2;
-        drawFlying(batch, card, flight, fromX, fromY, t);
     }
 
     /** A card of the avoided room, hopping up into the dungeon. */
@@ -349,6 +488,7 @@ final class BoardView {
             case EQUIP -> drawFlying(batch, subject, CardFlight.EQUIP,
                     slot, CardArt.SLOT_Y, effectElapsed);
             case POTION -> drawDrink(batch, slot);
+            case SPILL -> drawSpill(batch, slot);
             case STRIKE -> drawStruck(batch, slot, true);
             case SLICE -> drawStruck(batch, slot, false);
             default -> { }
@@ -511,6 +651,42 @@ final class BoardView {
                     ((HudArt.FILL_HEAL >>> 8) & 0xff) / 255f,
                     (HudArt.FILL_HEAL & 0xff) / 255f, 1f);
             batch.draw(theme.whiteRegion(), x + size / 2, CardArt.toWorldY(dy, 4), 4, 4);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+    }
+
+    /**
+     * A potion that heals nothing: the card folds into the same bottle, drained
+     * to bone, and it tips over and dribbles where it stood. Nothing travels —
+     * the bar is never involved, because nothing ever reaches it.
+     */
+    private void drawSpill(Batch batch, int slotX) {
+        int scale = PotionSpill.cardScale(effectElapsed);
+        if (scale > 0) {
+            int w = CardArt.CARD_W * scale / 100;
+            int h = CardArt.CARD_H * scale / 100;
+            cardFrame.draw(batch, subject.type(), slotX + (CardArt.CARD_W - w) / 2,
+                    CardArt.SLOT_Y + (CardArt.CARD_H - h) / 2, w, h);
+            return;
+        }
+        int size = EffectArt.BOTTLE_SIZE;
+        int x = CardArt.spriteLeft(slotX) + (CardArt.SPRITE - size) / 2;
+        int y = CardArt.spriteTop() + (CardArt.SPRITE - size) / 2 + PotionSpill.slump(effectElapsed);
+
+        // Rotated about its own centre, which is safe only because the texture
+        // is nearest filtered — see PotionDrink for why.
+        batch.draw(effectArt.spentBottle(), x, CardArt.toWorldY(y, size),
+                size / 2f, size / 2f, size, size, 1f, 1f,
+                PotionSpill.tiltDegrees(effectElapsed));
+
+        // The liquid, drained the same way the glass was, running out to the
+        // side the bottle has gone over rather than falling straight down.
+        int spilt = Ramps.drain(HudArt.FILL_HEAL);
+        for (int drop = 0; drop < PotionSpill.dropsFallen(effectElapsed); drop++) {
+            batch.setColor(((spilt >>> 16) & 0xff) / 255f, ((spilt >>> 8) & 0xff) / 255f,
+                    (spilt & 0xff) / 255f, 1f);
+            batch.draw(theme.whiteRegion(), x - 8 - drop * 6,
+                    CardArt.toWorldY(y + size - 6 + drop * 4, 4), 4, 4);
             batch.setColor(1f, 1f, 1f, 1f);
         }
     }

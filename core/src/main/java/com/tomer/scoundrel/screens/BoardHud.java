@@ -85,7 +85,10 @@ final class BoardHud {
         // holds it for as long as the bar is still changing.
         int colour = healing ? HudArt.FILL_HEAL
                 : bleeding ? HudArt.FILL_BLOOD : HudArt.NUMBER_REST;
-        String reading = String.valueOf(Math.max(0, health));
+        // Unclamped: how far past zero a killing blow took you is the whole
+        // story of that blow, and the death score charges you for it. Only the
+        // bar's fill clamps, because a bar cannot draw backwards.
+        String reading = String.valueOf(health);
         font.setColor(rgb(colour, 1f));
         font.draw(batch, reading, HudArt.NUMBER_X + offsetX,
                 CardArt.toWorldY(HudArt.NUMBER_BASELINE, 0));
@@ -94,7 +97,7 @@ final class BoardHud {
         // What the number is out of, dim and small behind it, so the reading
         // says "14 of 20" without a second widget.
         layout.setText(font, reading);
-        BitmapFont small = theme.pixelSmall;
+        BitmapFont small = theme.pixelLabel;
         small.setColor(rgb(BoardArt.HP_SUFFIX_COLOUR, 1f));
         small.draw(batch, "/" + maxHealth + " HP",
                 HudArt.NUMBER_X + offsetX + layout.width + BoardArt.HP_SUFFIX_GAP,
@@ -102,10 +105,15 @@ final class BoardHud {
         small.setColor(Color.WHITE);
     }
 
-    /** One tick per card still face-down; the rest of the dungeon sits dim. */
+    /**
+     * One tick per card still face-down; the rest of the dungeon sits dim. The
+     * strip is placed so the lit block stays centred, so it walks right as the
+     * dungeon drains rather than the gold shrinking away from the middle.
+     */
     void drawTicker(Batch batch, int depth, int deckSize) {
+        int left = HudArt.tickerX(depth);
         for (int i = 0; i < deckSize; i++) {
-            int x = HudArt.TICKER_X + i * HudArt.TICK_PITCH;
+            int x = left + i * HudArt.TICK_PITCH;
             fill(batch, x, HudArt.TICKER_Y, HudArt.TICK_W, HudArt.TICKER_H,
                     i < HudArt.ticksLit(depth) ? HudArt.GOLD : HudArt.TICK_DIM);
         }
@@ -113,10 +121,23 @@ final class BoardHud {
 
     /** The gold plate, bevelled light on top and dark below like every button. */
     void drawAvoid(Batch batch, boolean enabled) {
-        int x = HudArt.AVOID_X;
-        int y = HudArt.AVOID_Y;
-        int w = HudArt.AVOID_W;
-        int h = HudArt.AVOID_H;
+        drawPlate(batch, HudArt.AVOID_X, HudArt.AVOID_Y,
+                HudArt.AVOID_W, HudArt.AVOID_H, "AVOID", enabled);
+    }
+
+    /** How wide a label sets, so a plate can be sized around one. */
+    int labelWidth(String text) {
+        layout.setText(theme.pixelLabel, text);
+        return Math.round(layout.width);
+    }
+
+    /**
+     * The board's one button: a gold plate with a mitred bevel and a centred
+     * Silkscreen label. Avoid is one of these and so is every choice in the move
+     * chooser, which is the point — there is a single button shape on the board,
+     * and it cannot drift because there is a single method that draws it.
+     */
+    void drawPlate(Batch batch, int x, int y, int w, int h, String text, boolean enabled) {
         int plate = enabled ? HudArt.GOLD : HudArt.TICK_DIM;
         int light = enabled ? HudArt.GOLD_LIGHT : HudArt.FRAME;
         int dark = enabled ? HudArt.GOLD_DARK : HudArt.FRAME;
@@ -129,22 +150,24 @@ final class BoardHud {
         fill(batch, x + w - 2, y, 2, h, dark);
 
         BitmapFont label = theme.pixelLabel;
-        layout.setText(label, "AVOID");
+        layout.setText(label, text);
         label.setColor(rgb(enabled ? HudArt.LABEL_DARK : BoardArt.NAME_COLOUR, 1f));
-        label.draw(batch, "AVOID", Math.round(x + (w - layout.width) / 2f),
+        label.draw(batch, text, Math.round(x + (w - layout.width) / 2f),
                 CardArt.toWorldY(y + Math.round((h - layout.height) / 2f), 0));
         label.setColor(Color.WHITE);
     }
 
     /**
-     * How deep the dungeon still is and how long the run has taken, centred
-     * under the ticks they describe.
+     * How deep the dungeon still is and how long the run has taken, on the same
+     * centre line the lit ticks keep. Anchored to the board rather than to the
+     * strip, which moves — a caption that slid about under a gauge would read as
+     * the caption being loose.
      */
-    void drawDepthLine(Batch batch, int depth, int deckSize, String time) {
-        BitmapFont small = theme.pixelSmall;
+    void drawDepthLine(Batch batch, int depth, String time) {
+        BitmapFont small = theme.pixelLabel;
         String text = time == null ? "DEPTH " + depth : "DEPTH " + depth + "  ·  " + time;
         layout.setText(small, text);
-        int centre = HudArt.TICKER_X + HudArt.tickerWidth(deckSize) / 2;
+        int centre = Math.round(Theme.WORLD_WIDTH / 2f);
         small.setColor(rgb(BoardArt.DEPTH_COLOUR, 1f));
         small.draw(batch, text, Math.round(centre - layout.width / 2f),
                 CardArt.toWorldY(BoardArt.DEPTH_TOP, 0));
@@ -174,7 +197,7 @@ final class BoardHud {
                     BoardArt.RAIL_ICON, BoardArt.RAIL_ICON);
         }
 
-        BitmapFont small = theme.pixelSmall;
+        BitmapFont small = theme.pixelLabel;
         small.setColor(rgb(BoardArt.NAME_COLOUR, 1f));
         small.draw(batch, name, BoardArt.COLUMN_X, CardArt.toWorldY(BoardArt.NAME_TOP, 0));
         small.setColor(Color.WHITE);
@@ -225,7 +248,7 @@ final class BoardHud {
                     CardArt.toWorldY(BoardArt.markerIconY(), BoardArt.MARKER_ICON),
                     BoardArt.MARKER_ICON, BoardArt.MARKER_ICON);
         }
-        BitmapFont small = theme.pixelSmall;
+        BitmapFont small = theme.pixelLabel;
         small.setColor(rgb(used ? BoardArt.MARKER_USED : BoardArt.MARKER_READY, 1f));
         small.draw(batch, used ? "POTION USED" : "POTION READY", BoardArt.MARKER_LABEL_X,
                 CardArt.toWorldY(BoardArt.MARKER_LABEL_TOP, 0));

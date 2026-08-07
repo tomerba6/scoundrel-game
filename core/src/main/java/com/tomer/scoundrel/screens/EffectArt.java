@@ -55,6 +55,7 @@ final class EffectArt implements Disposable {
     private final Texture barTexture;
     private final Texture starTexture;
     private final Texture bottleTexture;
+    private final Texture spentTexture;
     private final int[] bottlePixels;
 
     private final TextureRegion upper;
@@ -62,6 +63,7 @@ final class EffectArt implements Disposable {
     private final TextureRegion bar;
     private final TextureRegion star;
     private final TextureRegion bottle;
+    private final TextureRegion spent;
 
     EffectArt(int cardWidth, int cardHeight) {
         upperTexture = triangle(cardWidth, cardHeight, true);
@@ -70,11 +72,17 @@ final class EffectArt implements Disposable {
         starTexture = burst(Barehanded.STAR_BOX);
         bottlePixels = flaskPixels(BOTTLE_SIZE);
         bottleTexture = Sprites.textureFrom(bottlePixels, BOTTLE_SIZE, BOTTLE_SIZE);
+        // The wasted bottle is the same pixels drained to bone, generated here
+        // rather than tinted at draw time — a multiply blend would land colours
+        // between the ramp steps.
+        spentTexture = Sprites.textureFrom(
+                SpentMask.generate(bottlePixels), BOTTLE_SIZE, BOTTLE_SIZE);
         upper = new TextureRegion(upperTexture);
         lower = new TextureRegion(lowerTexture);
         bar = new TextureRegion(barTexture);
         star = new TextureRegion(starTexture);
         bottle = new TextureRegion(bottleTexture);
+        spent = new TextureRegion(spentTexture);
 
         // One 4x4 tile per level, wrapped so a single draw covers the screen.
         ditherTextures = new Texture[DeathCinematic.DITHER_LEVELS + 1];
@@ -137,9 +145,9 @@ final class EffectArt implements Disposable {
         return bottle;
     }
 
-    /** Its pixels, so it can be tipped without rotating anything. */
-    int[] bottlePixels() {
-        return bottlePixels.clone();
+    /** The same bottle with the colour drained out, for a potion that is wasted. */
+    TextureRegion spentBottle() {
+        return spent;
     }
 
     /**
@@ -285,6 +293,7 @@ final class EffectArt implements Disposable {
         barTexture.dispose();
         starTexture.dispose();
         bottleTexture.dispose();
+        spentTexture.dispose();
         for (Texture texture : ditherTextures) {
             texture.dispose();
         }
