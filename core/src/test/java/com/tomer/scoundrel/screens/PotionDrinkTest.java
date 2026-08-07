@@ -95,7 +95,7 @@ class PotionDrinkTest {
 
     @Test
     void everyValueHoldsForAWholeFrame() {
-        for (int frame = 0; frame < 19; frame++) {
+        for (int frame = 0; frame < 8; frame++) {
             Set<String> seen = new LinkedHashSet<>();
             for (float within = 0f; within < FRAME - 1e-4f; within += 0.004f) {
                 float t = frame * FRAME + within;
@@ -106,11 +106,17 @@ class PotionDrinkTest {
         }
     }
 
+    /**
+     * The quoted 1600ms made the drink the longest thing in the game — a third
+     * of it was the bottle sitting tipped over a bar that had already filled.
+     * Eight frames keeps every phase: the pour is shorter, and the bottle turns
+     * over in a single held step rather than two. Nothing here tweens anyway,
+     * so one step and two look equally deliberate — one is just quicker.
+     */
     @Test
-    void theDrinkLastsAboutAdvertised() {
-        // 1600ms quoted; quantised onto the 12fps grid.
-        assertTrue(PotionDrink.TOTAL > 1.4f && PotionDrink.TOTAL < 1.7f,
-                "expected ~1600ms, was " + PotionDrink.TOTAL);
+    void theDrinkIsOverInTwoThirdsOfASecond() {
+        assertTrue(PotionDrink.TOTAL > 0.62f && PotionDrink.TOTAL < 0.72f,
+                "expected ~667ms, was " + PotionDrink.TOTAL);
         assertTrue(PotionDrink.finished(PotionDrink.TOTAL));
         assertFalse(PotionDrink.finished(PotionDrink.TOTAL - 0.01f));
     }

@@ -49,24 +49,33 @@ final class CardFlight {
     }
 
     /**
-     * Four cards hop into the ticker together. The art direction quotes 0.20s
-     * a hop, which is 2.4 frames at 12fps — not on the grid — so it is the 2
-     * frames it was tuned for and the sweep finishes at 667ms rather than the
-     * quoted 800. A hop ending mid-frame would slide instead of stepping.
+     * The whole room hops into the ticker together, as release 1's did — one
+     * parallel action per card with no delay between them. Avoiding is a single
+     * decision about four cards, and emptying them left to right made it read
+     * as four; it also cost a frame a card for the privilege.
+     *
+     * <p>The art direction quotes 0.20s a hop, which is 2.4 frames at 12fps —
+     * not on the grid — and at the 2 frames it was rounded to, a room you had
+     * already decided to be rid of took two thirds of a second to leave. Three
+     * hops of one frame: the room is gone in 250ms, release 1's beat.
      */
-    static final Flight AVOID = new Flight(TICKER_X, TICKER_Y, 2 * FRAME, FRAME,
-            new int[] {100, 72, 44, 16});
+    static final Flight AVOID = new Flight(TICKER_X, TICKER_Y, FRAME, 0f,
+            new int[] {100, 58, 16});
 
-    /** Three hops to the rail, shrinking to the icon it becomes. */
-    /** One card, so nothing to stagger against. */
-    static final Flight EQUIP = new Flight(RAIL_X, RAIL_Y, 3 * FRAME, 0f,
+    /**
+     * Three hops to the rail, shrinking to the icon it becomes. One card, so
+     * nothing to stagger against. The quoted 0.24s a hop put three quarters of
+     * a second between taking a weapon and being able to use it.
+     */
+    static final Flight EQUIP = new Flight(RAIL_X, RAIL_Y, FRAME, 0f,
             new int[] {100, 55, 18});
 
     /**
-     * A card arriving in the room, growing as it comes. Release 1 dealt in
-     * 0.18s on a 0.04s stagger; a frame is 0.083s, so the closest the grid
-     * allows is three hops of one frame on a one-frame stagger — a shade
-     * slower, and stepping rather than sliding.
+     * A card arriving in the room, growing as it comes, three hops of one
+     * frame. Release 1 dealt on a 0.04s stagger, which at 12fps rounds to
+     * nothing — but dealt with no stagger at all the room lands as one event
+     * rather than as four cards. So it is a whole frame between cards: the
+     * smallest gap this grid can express, and enough to see each one land.
      */
     static Flight dealTo(int toX, int toY) {
         return new Flight(toX, toY, FRAME, FRAME, new int[] {28, 64, 100});
@@ -74,20 +83,25 @@ final class CardFlight {
 
     /**
      * A card that was already on the board moving to its new slot as the room
-     * closes up around a resolved card. Same clock as a deal so a mixed room
-     * lands together, but it never changes size — it is already the right one.
+     * closes up around a resolved card. It never changes size — it is already
+     * the right one — and, unlike a deal, it does not stagger.
+     *
+     * <p>That difference is deliberate. Cards coming up out of the dungeon are
+     * four separate events and read better one after another. The survivors
+     * shifting along are one row re-centring itself, and cascading them made a
+     * resolved card look as though it had set off a second deal.
      */
     static Flight slideTo(int toX, int toY) {
-        return new Flight(toX, toY, FRAME, FRAME, new int[] {100, 100, 100});
+        return new Flight(toX, toY, FRAME, 0f, new int[] {100, 100, 100});
     }
 
     private CardFlight() {
     }
 
     /**
-     * A card's own clock. The room empties left to right rather than all at
-     * once, so each card sets off a stagger after the one before it and sits in
-     * its slot until then.
+     * A card's own clock. On a staggered flight each card sets off after the one
+     * before it and sits where it was until then; on an unstaggered one every
+     * card shares the same clock and they move together.
      */
     static float localTime(Flight flight, int index, float elapsed) {
         return elapsed - index * flight.staggerTime();
@@ -96,6 +110,16 @@ final class CardFlight {
     /** Whether this card has set off yet. */
     static boolean started(Flight flight, int index, float elapsed) {
         return localTime(flight, index, elapsed) >= 0f;
+    }
+
+    /**
+     * Whether this card has arrived. The depth ticker asks it of every card
+     * still on its way up out of the dungeon — the engine gave the card up when
+     * the move was applied, but until it lands it is still between the ticks and
+     * the table, and its tick has to stay lit.
+     */
+    static boolean landed(Flight flight, int index, float elapsed) {
+        return localTime(flight, index, elapsed) >= flight.total();
     }
 
     /** Which hop is showing, clamped to the last one once the flight is over. */

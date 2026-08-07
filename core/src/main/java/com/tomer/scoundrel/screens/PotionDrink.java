@@ -22,19 +22,28 @@ final class PotionDrink {
     /** The card folding down into the bottle it contained. */
     static final int COLLAPSE_FRAMES = 2;
     /** The bottle's hops to the bar. */
-    private static final int FLIGHT_FRAMES = 4;
-    /** Turning over, one step a frame. */
-    static final int TIP_STEPS = 3;
+    private static final int FLIGHT_FRAMES = 2;
+    /**
+     * Turning over, one step a frame. A single step: nothing in this art tweens,
+     * so the bottle holds upright and then holds poured, and one held angle
+     * reads exactly as deliberate as two while costing a frame less.
+     */
+    static final int TIP_STEPS = 1;
     private static final int TIP_FRAMES = TIP_STEPS;
     /** How far the bottle ends up turned, matching the reference. */
     private static final float POURED_DEGREES = -62f;
-    /** And pouring, long enough for the bar to fill under it. */
-    private static final int POUR_FRAMES = 10;
+    /**
+     * And pouring. The quoted 1600ms drink spent ten frames here, most of them
+     * over a bar that had already finished filling — the bottle sat tipped with
+     * nothing left to do. Three is enough to read as a pour; the bar's own fill
+     * runs on its own clock and finishes in its own time either way.
+     */
+    private static final int POUR_FRAMES = 3;
 
     /** When the bottle is tipped far enough for anything to come out. */
     static final float POUR_START = (COLLAPSE_FRAMES + FLIGHT_FRAMES + TIP_FRAMES) * FRAME;
 
-    /** ~1600ms, quantised onto the effect grid. */
+    /** ~667ms, quantised onto the effect grid. */
     static final float TOTAL =
             (COLLAPSE_FRAMES + FLIGHT_FRAMES + TIP_FRAMES + POUR_FRAMES) * FRAME;
 

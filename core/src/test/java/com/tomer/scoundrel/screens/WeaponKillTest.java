@@ -23,12 +23,11 @@ class WeaponKillTest {
 
     @Test
     void theFlashHoldsBeforeAnythingElseHappens() {
-        // The spec quotes 0.36s, which is 4.32 frames at 12fps -- not a frame
-        // boundary. Held literally the phase change would land mid-frame and
-        // the effect would slide, so it is the 4 frames it was tuned for.
-        assertEquals(4 * WeaponKill.FRAME, WeaponKill.RIM_TIME, 1e-6f);
-        assertTrue(WeaponKill.RIM_TIME < 0.36f && WeaponKill.RIM_TIME > 0.32f,
-                "should stay within a frame of the quoted 0.36s");
+        // The spec quotes 0.36s. That is 4.32 frames at 12fps -- not a frame
+        // boundary to begin with -- and at the four frames it was rounded to,
+        // the creature stood lit for a third of a second before the blade
+        // moved. Two frames still reads as a held blow and gets on with it.
+        assertEquals(WeaponKill.FRAME, WeaponKill.RIM_TIME, 1e-6f);
         assertTrue(WeaponKill.rimShowing(0f));
         assertTrue(WeaponKill.rimShowing(WeaponKill.RIM_TIME - 0.01f));
         assertFalse(WeaponKill.rimShowing(WeaponKill.RIM_TIME));
@@ -56,20 +55,27 @@ class WeaponKillTest {
         assertEquals(10, WeaponKill.cardLift(t), "the blow should pick the card up 10px");
     }
 
+    /**
+     * The card is lifted whole for a frame, and only then does anything cover
+     * it — that ordering is the effect and does not change. What has gone is
+     * the frame that separated the slash from the parting: the bar now crosses
+     * as the halves come apart, which is what a blade actually does.
+     */
     @Test
-    void theSlashCrossesAfterTheLiftAndTheHalvesFollowIt() {
-        // 1 frame lift, then the bar, then the halves — never the other way round.
-        assertFalse(WeaponKill.slashShowing(WeaponKill.RIM_TIME));
+    void theCardIsLiftedWholeBeforeAnythingCoversIt() {
+        assertTrue(WeaponKill.cardCut(WeaponKill.RIM_TIME), "the blade lands");
+        assertFalse(WeaponKill.slashShowing(WeaponKill.RIM_TIME), "nothing covers it yet");
+        assertFalse(WeaponKill.halvesShowing(WeaponKill.RIM_TIME));
+        // Then the bar and the parting together, on the next frame.
         assertTrue(WeaponKill.slashShowing(WeaponKill.RIM_TIME + WeaponKill.FRAME));
-        assertFalse(WeaponKill.halvesShowing(WeaponKill.RIM_TIME + WeaponKill.FRAME));
-        assertTrue(WeaponKill.halvesShowing(WeaponKill.RIM_TIME + 2 * WeaponKill.FRAME));
+        assertTrue(WeaponKill.halvesShowing(WeaponKill.RIM_TIME + WeaponKill.FRAME));
     }
 
     @Test
     void theHalvesPartAndRiseWithoutEverRotating() {
         // Whole-pixel offsets only. There is no rotation in the API at all --
         // a turned pixel is a blurred pixel, so it is not expressible.
-        float start = WeaponKill.RIM_TIME + 2 * WeaponKill.FRAME;
+        float start = WeaponKill.RIM_TIME + WeaponKill.FRAME;
         int previousUpper = 0;
         int previousLower = 0;
         for (int step = 0; step < 3; step++) {
@@ -89,7 +95,7 @@ class WeaponKillTest {
 
     @Test
     void theHalvesFadeOut() {
-        float start = WeaponKill.RIM_TIME + 2 * WeaponKill.FRAME;
+        float start = WeaponKill.RIM_TIME + WeaponKill.FRAME;
         assertTrue(WeaponKill.halfAlpha(start) > WeaponKill.halfAlpha(start + 2 * WeaponKill.FRAME));
         assertEquals(0f, WeaponKill.halfAlpha(WeaponKill.TOTAL), 1e-6f);
     }
@@ -100,7 +106,7 @@ class WeaponKillTest {
      */
     @Test
     void everyValueHoldsForAWholeFrame() {
-        for (int frame = 0; frame < 10; frame++) {
+        for (int frame = 0; frame < 4; frame++) {
             Set<String> seen = new LinkedHashSet<>();
             for (float within = 0f; within < WeaponKill.FRAME - 1e-4f; within += 0.004f) {
                 float t = frame * WeaponKill.FRAME + within;
@@ -118,8 +124,9 @@ class WeaponKillTest {
         assertFalse(WeaponKill.finished(WeaponKill.TOTAL - 0.01f));
         assertTrue(WeaponKill.finished(WeaponKill.TOTAL));
         assertTrue(WeaponKill.finished(99f));
-        // Rim and slice together, as specified.
-        assertEquals(WeaponKill.RIM_TIME + 5 * WeaponKill.FRAME, WeaponKill.TOTAL, 1e-6f);
+        // Flash then blade: the whole kill inside a third of a second.
+        assertEquals(WeaponKill.RIM_TIME + 3 * WeaponKill.FRAME, WeaponKill.TOTAL, 1e-6f);
+        assertEquals(4 * WeaponKill.FRAME, WeaponKill.TOTAL, 1e-6f);
     }
 
     @Test

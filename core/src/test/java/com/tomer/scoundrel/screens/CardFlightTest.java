@@ -70,53 +70,61 @@ class CardFlightTest {
         }
     }
 
+    /**
+     * The quoted hops — 0.20s and 0.24s — are 2.4 and 2.88 frames at 12fps, so
+     * neither landed on the grid to begin with. Rounded up they made a sweep
+     * take two thirds of a second and a carry three quarters, which is a long
+     * time to watch a card you have finished with. Both are cut; what is
+     * asserted here is the constraint that actually matters, that a hop is a
+     * whole number of frames. A hop ending mid-frame would slide instead of
+     * stepping.
+     *
+     * <p>Asserted as "a whole number of frames" rather than with a modulo:
+     * float remainder returns the divisor rather than zero when the division
+     * lands a hair under an integer.
+     */
     @Test
-    void theTimingsMatchTheSpecifiedDurations() {
-        assertEquals(4, CardFlight.AVOID.hops());
+    void everyHopIsAWholeNumberOfFramesAndNoneOutstaysItsWelcome() {
+        assertEquals(3, CardFlight.AVOID.hops());
         assertEquals(3, CardFlight.EQUIP.hops());
-        // The quoted hops -- 0.20s and 0.24s -- are 2.4 and 2.88 frames at
-        // 12fps, so neither lands on the grid. Each is rounded to whole frames,
-        // which is the constraint that actually matters: a hop that ended
-        // mid-frame would slide instead of stepping.
-        // Asserted as "the hop is a whole number of frames" rather than with a
-        // modulo: float remainder returns the divisor rather than zero when the
-        // division lands a hair under an integer.
         float frame = 1f / 12f;
         for (CardFlight.Flight flight : new CardFlight.Flight[] {CardFlight.AVOID, CardFlight.EQUIP}) {
             float frames = flight.hopTime() / frame;
             assertEquals(Math.round(frames), frames, 1e-3f,
                     "hop is " + frames + " frames, which would end mid-frame");
         }
-        // And each stays within one frame of the duration it was tuned for.
-        assertTrue(Math.abs(CardFlight.AVOID.hopTime() - 0.20f) < frame,
-                "avoid hop drifted from 0.20s: " + CardFlight.AVOID.hopTime());
-        assertTrue(Math.abs(CardFlight.EQUIP.hopTime() - 0.24f) < frame,
-                "equip hop drifted from 0.24s: " + CardFlight.EQUIP.hopTime());
+        // A hop a frame is the floor: anything faster is not on the grid.
+        assertEquals(frame, CardFlight.AVOID.hopTime(), 1e-5f);
+        assertEquals(frame, CardFlight.EQUIP.hopTime(), 1e-5f);
+        assertTrue(CardFlight.EQUIP.total() <= 0.25f + 1e-5f,
+                "the carry to the rail should be a quarter second, was "
+                        + CardFlight.EQUIP.total());
     }
 
     /**
-     * The room empties left to right, not all at once: each card waits for the
-     * one before it, so the sweep reads as a sweep.
+     * The whole room leaves together, as release 1's did — one parallel action
+     * per card, no delay between them. You scooped four cards; four cards go.
+     * Emptying them left to right made the avoid read as four separate
+     * decisions rather than the one you actually took, and cost a frame a card
+     * for the privilege.
      */
     @Test
-    void theSweepLeavesOneCardAfterAnother() {
-        assertTrue(CardFlight.started(CardFlight.AVOID, 0, 0f), "the leftmost card goes first");
-        assertFalse(CardFlight.started(CardFlight.AVOID, 1, 0f), "its neighbour should still wait");
-        assertFalse(CardFlight.started(CardFlight.AVOID, 3, 2 * CardFlight.AVOID.staggerTime()));
-        assertTrue(CardFlight.started(CardFlight.AVOID, 3, 3 * CardFlight.AVOID.staggerTime()));
+    void theWholeAvoidedRoomLeavesAtOnce() {
+        assertEquals(0f, CardFlight.AVOID.staggerTime(), 1e-6f);
+        for (int i = 0; i < 4; i++) {
+            assertTrue(CardFlight.started(CardFlight.AVOID, i, 0f),
+                    "card " + i + " should set off with the rest");
+            assertTrue(CardFlight.landed(CardFlight.AVOID, i, CardFlight.AVOID.total()),
+                    "card " + i + " should arrive with the rest");
+        }
     }
 
     @Test
-    void theStaggerIsAWholeFrameSoNoCardStartsMidFrame() {
-        float frames = CardFlight.AVOID.staggerTime() / (1f / 12f);
-        assertEquals(Math.round(frames), frames, 1e-3f);
-    }
-
-    @Test
-    void theSweepIsOverOnlyWhenTheLastCardHasLanded() {
-        float four = CardFlight.AVOID.totalFor(4);
-        assertTrue(four > CardFlight.AVOID.total(), "four staggered cards take longer than one");
-        assertEquals(CardFlight.AVOID.total() + 3 * CardFlight.AVOID.staggerTime(), four, 1e-5f);
+    void aSweepTakesNoLongerForAFullRoomThanForOneCard() {
+        assertEquals(CardFlight.AVOID.total(), CardFlight.AVOID.totalFor(4), 1e-5f);
+        // Release 1 swept in 0.20s; three hops of one frame is the nearest this
+        // grid gets, and it is the same beat.
+        assertEquals(0.25f, CardFlight.AVOID.totalFor(4), 1e-5f);
     }
 
     @Test
@@ -164,17 +172,88 @@ class CardFlightTest {
         assertEquals(252, CardFlight.x(slide, 452, slide.total()));
     }
 
-    /** Both arrive on the same clock, so a mixed room lands together. */
+    /**
+     * One card's journey takes the same time either way, so a mixed room reads
+     * as one movement rather than two overlapping ones. Only the stagger
+     * differs — see {@link #aSlideMovesTheWholeRowAtOnceUnlikeADeal}.
+     */
     @Test
     void aDealAndASlideRunToTheSameLength() {
         assertEquals(CardFlight.dealTo(0, 0).total(), CardFlight.slideTo(0, 0).total(), 1e-5f);
-        assertEquals(CardFlight.dealTo(0, 0).staggerTime(),
-                CardFlight.slideTo(0, 0).staggerTime(), 1e-5f);
+        assertEquals(CardFlight.dealTo(0, 0).hopTime(),
+                CardFlight.slideTo(0, 0).hopTime(), 1e-5f);
     }
 
     @Test
     void everyDealHopIsAWholeFrame() {
         float frames = CardFlight.dealTo(0, 0).hopTime() / (1f / 12f);
         assertEquals(Math.round(frames), frames, 1e-3f);
+    }
+
+    /**
+     * Whether a card has arrived. The depth ticker asks this of every card still
+     * on its way up out of the dungeon: the engine gave the card up the instant
+     * the move was applied, but on screen it is between the ticks and the table,
+     * so its tick must stay lit until it lands.
+     */
+    @Test
+    void aCardHasLandedOnlyOnceItsOwnFlightIsOver() {
+        // On a staggered flight each card lands its own stagger later. The deal
+        // is the only one that staggers; a sweep goes as one room.
+        CardFlight.Flight deal = CardFlight.dealTo(452, CardArt.SLOT_Y);
+        assertFalse(CardFlight.landed(deal, 0, 0f));
+        assertTrue(CardFlight.landed(deal, 0, deal.total()));
+        assertFalse(CardFlight.landed(deal, 2, deal.total()));
+        assertTrue(CardFlight.landed(deal, 2, deal.total() + 2 * deal.staggerTime()));
+    }
+
+    @Test
+    void theWholeRoomIsDownExactlyWhenTheDealIsOver() {
+        CardFlight.Flight deal = CardFlight.dealTo(452, CardArt.SLOT_Y);
+        float end = deal.totalFor(4);
+        for (int i = 0; i < 4; i++) {
+            assertTrue(CardFlight.landed(deal, i, end), "card " + i + " should be down");
+        }
+        assertFalse(CardFlight.landed(deal, 3, end - 0.001f),
+                "the last card is still in the air one tick before the end");
+    }
+
+    /**
+     * The room lands one card at a time. Release 1 dealt on a 0.04s stagger,
+     * which at 12fps rounds to nothing — but a room that arrives all at once
+     * reads as a single event rather than as four cards being dealt, so the
+     * stagger is a whole frame: the smallest gap this grid can express, and
+     * enough to see each card land.
+     */
+    @Test
+    void aDealStaggersSoTheCardsLandOneAfterAnother() {
+        CardFlight.Flight deal = CardFlight.dealTo(452, CardArt.SLOT_Y);
+        assertEquals(1f / 12f, deal.staggerTime(), 1e-6f);
+        // Each card is down a frame after the one to its left, and no two share
+        // a landing — that is what makes the deal read as four separate cards.
+        for (int i = 1; i < 4; i++) {
+            float previousLanded = deal.total() + (i - 1) * deal.staggerTime();
+            assertTrue(CardFlight.landed(deal, i - 1, previousLanded));
+            assertFalse(CardFlight.landed(deal, i, previousLanded),
+                    "card " + i + " landed with the one before it");
+        }
+        assertEquals(0.5f, deal.totalFor(4), 1e-5f);
+    }
+
+    /**
+     * A slide does <b>not</b> stagger, and that is the difference between the
+     * two. Cards arriving out of the dungeon are four separate events and read
+     * better one after another; cards already on the table shifting up as the
+     * room closes are one row adjusting, and staggering them made a resolved
+     * card look like it had triggered a second deal.
+     */
+    @Test
+    void aSlideMovesTheWholeRowAtOnceUnlikeADeal() {
+        CardFlight.Flight slide = CardFlight.slideTo(252, CardArt.SLOT_Y);
+        assertEquals(0f, slide.staggerTime(), 1e-6f);
+        assertEquals(slide.total(), slide.totalFor(4), 1e-6f,
+                "every survivor should settle at the same moment");
+        assertTrue(slide.staggerTime() < CardFlight.dealTo(0, 0).staggerTime(),
+                "a slide must not inherit the deal's cascade");
     }
 }

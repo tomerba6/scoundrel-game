@@ -29,20 +29,27 @@ final class WeaponKill {
 
     /**
      * The flash holds this long before the blade lands. The art direction
-     * quotes 0.36s, but 0.36 x 12 is 4.32 frames — not a frame boundary — so
-     * holding it literally would step the phase change mid-frame and make the
-     * effect slide. Quantised to the 4 frames it was chosen to land on, which
-     * is 27ms shorter and indistinguishable.
+     * quotes 0.36s, which is 4.32 frames at 12fps — not a frame boundary, and
+     * at the 4 frames it was rounded to the creature stood lit for a third of a
+     * second while nothing happened. One frame is a flash, which is what a
+     * blade landing actually is.
      */
-    static final float RIM_TIME = 4 * FRAME;
+    static final float RIM_TIME = FRAME;
 
+    /**
+     * The bar crosses as the halves come apart, not a frame before them. The
+     * ordering that matters is that the card is lifted <em>whole</em> for one
+     * frame first — nothing may cover it until the flash has finished — and
+     * that still holds. Separating the slash from the parting only added a
+     * frame in which a blade hung over an uncut card.
+     */
     private static final float SLASH_START = RIM_TIME + FRAME;
     private static final float SLASH_TIME = 2 * FRAME;
-    private static final float HALVES_START = RIM_TIME + 2 * FRAME;
-    private static final float HALVES_STEPS = 3;
+    private static final float HALVES_START = RIM_TIME + FRAME;
+    private static final float HALVES_STEPS = 2;
 
-    /** Lift, slash, then three frames of parting: 5 frames after the flash. */
-    static final float TOTAL = RIM_TIME + 5 * FRAME;
+    /** Lift, then two frames of slash and parting together: 3 after the flash. */
+    static final float TOTAL = RIM_TIME + 3 * FRAME;
 
     private static final int LIFT_PX = 10;
     // Where each half has drifted to by the end, from the reference mock.
@@ -118,9 +125,9 @@ final class WeaponKill {
     }
 
     /**
-     * How far through the parting we are, in three discrete steps. The last one
-     * lands on 1 so the halves finish fully separated and fully faded rather
-     * than snapping out while still visible.
+     * How far through the parting we are, in discrete steps. The last one lands
+     * on 1 so the halves finish fully separated and fully faded rather than
+     * snapping out while still visible.
      */
     private static float progress(float elapsed) {
         if (elapsed < HALVES_START) {

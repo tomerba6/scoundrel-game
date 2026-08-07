@@ -15,12 +15,18 @@ final class Barehanded {
     /** One effect frame. Effects run at 12fps. */
     static final float FRAME = 1f / 12f;
 
-    /** ~900ms, rounded to the effect grid. */
-    static final float TOTAL = 11 * FRAME;
+    /**
+     * ~333ms. The art direction quoted 900, and at that length the exchange
+     * read as a pause rather than a blow — the outcome is already decided, so
+     * every frame after it registers is a frame spent waiting. Four frames is
+     * the floor: two blows a frame apart, each star growing through its three
+     * held sizes, and the last one gone exactly as the effect ends.
+     */
+    static final float TOTAL = 4 * FRAME;
 
-    /** The blows land on frames 0 and 3 — the second a quarter-second behind. */
+    /** The blows land on frames 0 and 1 — as fast as this grid can strike twice. */
     private static final int HIT_LENGTH = 2;
-    private static final int[] HIT_FRAMES = {0, 3};
+    private static final int[] HIT_FRAMES = {0, 1};
 
     /** The star box before scaling, and its three discrete sizes. */
     static final int STAR_BOX = 80;
@@ -29,8 +35,8 @@ final class Barehanded {
     private static final int[][] STAR_OFFSET = {{-26, -18}, {22, 24}};
 
     /** Whole-pixel shake, one entry per frame, settling back to rest. */
-    private static final int[] SHAKE_X = {-8, 8, -4, 4, -4, 0, 0, 0, 0, 0, 0};
-    private static final int[] SHAKE_Y = {4, -4, 4, 0, 0, 0, 0, 0, 0, 0, 0};
+    private static final int[] SHAKE_X = {-8, 8, -4, 0};
+    private static final int[] SHAKE_Y = {4, -4, 4, 0};
 
     private Barehanded() {
     }
@@ -117,9 +123,10 @@ final class Barehanded {
     }
 
     /**
-     * The gold wash over the board: 80% alpha decaying over two frames, and
-     * only on the first blow. Flashing again a quarter of a second later reads
-     * as a strobe rather than a hit, so the second blow carries its star alone.
+     * The gold wash over the board: 80% alpha decaying over two frames, keyed
+     * to the first blow alone. The second lands inside it, so one wash covers
+     * the whole exchange — which is the point. A second flash would read as a
+     * strobe rather than as a hit.
      */
     static float flashAlpha(float elapsed) {
         int offset = frameOf(elapsed) - HIT_FRAMES[0];
