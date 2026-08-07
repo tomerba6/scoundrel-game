@@ -37,12 +37,22 @@ public final class ModeSelectScreen extends ScreenAdapter {
 
     private final List<GameMode> modes = GameModes.all();
     /**
-     * Which panel wears the gold frame. It starts on the first — which is the
-     * state the reference render shows — and follows the pointer, so the frame
-     * is doing the work a hover glow would do elsewhere. §11 forbids the glow,
-     * not the feedback.
+     * Which panel wears the gold frame. It starts on the first — the state the
+     * reference render shows — and thereafter stays wherever the pointer last
+     * put it, so the frame is doing the work a hover glow would do elsewhere.
+     * §11 forbids the glow, not the feedback.
      */
     private int selected;
+    /**
+     * Where the pointer was when this screen opened, and whether it has moved
+     * since. The click that opens this screen is the title's NEW GAME button,
+     * which sits at a point that lands inside the third panel — so without
+     * this the screen opens with Frail lit for no reason the player can see.
+     * The pointer has to actually move before it means anything.
+     */
+    private int restingX = -1;
+    private int restingY = -1;
+    private boolean pointerMoved;
 
     public ModeSelectScreen(ScoundrelGame game, Theme theme) {
         this.game = game;
@@ -118,16 +128,28 @@ public final class ModeSelectScreen extends ScreenAdapter {
     }
 
     /**
-     * The gold frame follows the pointer, and falls back to the first panel
-     * when it is over none of them — which is the state the reference render
-     * shows, and stops the selection being wherever the click that opened this
-     * screen happened to leave the cursor.
+     * The gold frame follows the pointer and stays where it was left — moving
+     * off the panels does not reset it, because the last thing you looked at is
+     * still the thing you were considering.
      */
     private void followPointer() {
-        Vector2 point = viewport.unproject(
-                new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+        int x = Gdx.input.getX();
+        int y = Gdx.input.getY();
+        if (!pointerMoved) {
+            if (restingX < 0) {
+                restingX = x;
+                restingY = y;
+            }
+            if (x == restingX && y == restingY) {
+                return; // still sitting where the opening click left it
+            }
+            pointerMoved = true;
+        }
+        Vector2 point = viewport.unproject(new Vector2(x, y));
         int over = ScreenArt.panelAt(modes.size(), point.x, point.y);
-        selected = Math.max(over, 0);
+        if (over >= 0) {
+            selected = over;
+        }
     }
 
     /**
