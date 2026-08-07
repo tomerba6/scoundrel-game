@@ -14,6 +14,7 @@ import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.runs.HighScores;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.runs.RunRecord;
+import com.tomer.scoundrel.runs.RunTotals;
 
 import java.util.List;
 import java.util.OptionalInt;
@@ -32,7 +33,14 @@ import java.util.OptionalInt;
 public final class TitleScreen extends ScreenAdapter {
 
     private static final String WORDMARK = "SCOUNDREL";
-    private static final String EYEBROW = "FIFTY-TWO CARDS · ONE DESCENT";
+    /**
+     * Forty-four, not the mock's fifty-two. The reference render assumes a
+     * standard deck; this game removes the six red face cards and the two red
+     * aces from one, leaving 44 — asserted by
+     * {@code StandardDeckTest.deckHasExactly44Cards}. A title screen that
+     * miscounts its own deck is the first thing a player would catch.
+     */
+    private static final String EYEBROW = "FORTY-FOUR CARDS · ONE DESCENT";
     private static final String CAPTION = "WHAT WAITS AT THE BOTTOM";
     private static final String CREDIT =
             "DESIGNED BY ZACH GAGE & KURT BIEG — AN UNOFFICIAL IMPLEMENTATION";
@@ -99,8 +107,12 @@ public final class TitleScreen extends ScreenAdapter {
             if (all.isEmpty()) {
                 return "NO RUNS YET";
             }
+            // Cleared, not finished. Finishing a run is not an achievement —
+            // every run finishes, most of them by dying — so counting them
+            // flatters the number and says nothing. Getting out says something.
+            int cleared = RunTotals.of(all).wins();
             OptionalInt best = HighScores.best(all);
-            String runs = all.size() == 1 ? "1 RUN FINISHED" : all.size() + " RUNS FINISHED";
+            String runs = cleared == 1 ? "1 RUN CLEARED" : cleared + " RUNS CLEARED";
             return best.isPresent() ? "BEST " + best.getAsInt() + " · " + runs : runs;
         } catch (RuntimeException e) {
             Gdx.app.error("scoundrel", "could not read the run log for the title", e);
