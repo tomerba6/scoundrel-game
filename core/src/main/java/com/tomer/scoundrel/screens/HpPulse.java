@@ -21,6 +21,17 @@ final class HpPulse {
     private static final int JOLT_FRAMES = 2;
     private static final int BLOOD_FRAMES = 3;
 
+    /**
+     * How much the fill moves in a frame, filling and draining. A heal climbs
+     * three times as fast as a hit drains: the two used to share one rate, and
+     * a large drink then took the best part of a second to register — long
+     * after the bottle had finished pouring, so the cause and the effect came
+     * apart. The drain keeps the slower rate because it is the beat the whole
+     * hit is built around; the bar shakes for exactly as long as it lasts.
+     */
+    private static final int HEAL_STEP = 3 * HudArt.SEGMENT_PITCH;
+    private static final int DRAIN_STEP = HudArt.SEGMENT_PITCH;
+
     /** The shortest a hit can register for, when nothing is actually lost. */
     static final float JOLT_TOTAL = BLOOD_FRAMES * FRAME;
 
@@ -47,7 +58,7 @@ final class HpPulse {
     /** However long the drain takes, but never fewer than the two-frame floor. */
     private static int shakeFrames(int fromWidth, int toWidth) {
         int lost = Math.max(0, fromWidth - Math.max(toWidth, 0));
-        int drainFrames = (lost + HudArt.SEGMENT_PITCH - 1) / HudArt.SEGMENT_PITCH;
+        int drainFrames = (lost + DRAIN_STEP - 1) / DRAIN_STEP;
         return Math.max(JOLT_FRAMES, drainFrames);
     }
 
@@ -71,7 +82,7 @@ final class HpPulse {
     }
 
     /**
-     * How wide the fill is partway through a drain: it recedes one segment per
+     * How wide the fill is partway through a drain: it recedes a segment per
      * frame and stops exactly on {@code toWidth}, so a partial last segment
      * lands on the right number rather than undershooting. Never negative — a
      * killing blow empties the bar and stops there.
@@ -80,7 +91,7 @@ final class HpPulse {
         if (toWidth >= fromWidth) {
             return toWidth;
         }
-        int drained = fromWidth - Math.max(0, frameOf(elapsed)) * HudArt.SEGMENT_PITCH;
+        int drained = fromWidth - Math.max(0, frameOf(elapsed)) * DRAIN_STEP;
         return Math.max(Math.max(toWidth, 0), drained);
     }
 
@@ -95,16 +106,16 @@ final class HpPulse {
     }
 
     /**
-     * How wide the fill is partway through a heal: it grows one segment per
-     * frame from {@code fromWidth} and stops exactly on {@code toWidth}, so a
-     * partial last segment still lands on the right number rather than
+     * How wide the fill is partway through a heal: it grows {@link #HEAL_STEP}
+     * a frame from {@code fromWidth} and stops exactly on {@code toWidth}, so a
+     * partial last step still lands on the right number rather than
      * overshooting and snapping back.
      */
     static int healWidth(int fromWidth, int toWidth, float elapsed) {
         if (toWidth <= fromWidth) {
             return toWidth;
         }
-        int grown = fromWidth + Math.max(0, frameOf(elapsed)) * HudArt.SEGMENT_PITCH;
+        int grown = fromWidth + Math.max(0, frameOf(elapsed)) * HEAL_STEP;
         return Math.min(toWidth, grown);
     }
 

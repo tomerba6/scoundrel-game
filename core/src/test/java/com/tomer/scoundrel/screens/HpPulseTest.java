@@ -73,27 +73,45 @@ class HpPulseTest {
 
     @Test
     void theNumberStaysGreenForTheWholeFill() {
+        // 0 to 120 is four frames at thirty pixels a frame.
         for (int frame = 0; frame < 4; frame++) {
-            assertTrue(HpPulse.numberHealed(100, 140, frame * FRAME),
+            assertTrue(HpPulse.numberHealed(0, 120, frame * FRAME),
                     "number stopped being green at frame " + frame + ", still filling");
         }
-        assertFalse(HpPulse.numberHealed(100, 140, 4 * FRAME));
+        assertFalse(HpPulse.numberHealed(0, 120, 4 * FRAME));
         assertFalse(HpPulse.numberHealed(120, 120, 0f), "nothing gained, nothing green");
     }
 
+    /**
+     * A heal climbs three segments a frame. It used to run at one, the same
+     * rate as the drain, which made a big drink take the best part of a second
+     * to register — long after the bottle had finished pouring. A drain earns
+     * its time because it is the dramatic beat; a heal is just good news.
+     */
     @Test
-    void aHealGrowsOneSegmentPerFrame() {
-        // From 100px to 140px is four segments, so four frames.
-        assertEquals(100, HpPulse.healWidth(100, 140, 0f));
-        assertEquals(110, HpPulse.healWidth(100, 140, FRAME));
-        assertEquals(120, HpPulse.healWidth(100, 140, 2 * FRAME));
-        assertEquals(140, HpPulse.healWidth(100, 140, 4 * FRAME));
+    void aHealGrowsThreeSegmentsPerFrame() {
+        // From 100px to 160px is two frames at thirty pixels a frame.
+        assertEquals(100, HpPulse.healWidth(100, 160, 0f));
+        assertEquals(130, HpPulse.healWidth(100, 160, FRAME));
+        assertEquals(160, HpPulse.healWidth(100, 160, 2 * FRAME));
+    }
+
+    /** The full bar, the longest heal there is, inside half a second. */
+    @Test
+    void evenAFullBarFillsPromptly() {
+        int full = HudArt.barInteriorWidth();
+        int frames = 0;
+        while (!HpPulse.healFinished(0, full, frames * FRAME)) {
+            frames++;
+            assertTrue(frames < 30, "the heal never finished");
+        }
+        assertTrue(frames <= 8, "a full heal took " + frames + " frames");
     }
 
     @Test
     void aHealNeverOvershootsItsTarget() {
         assertEquals(140, HpPulse.healWidth(100, 140, 99f));
-        // A partial last segment still lands exactly on the target.
+        // A partial last step still lands exactly on the target.
         assertEquals(135, HpPulse.healWidth(100, 135, 99f));
         assertEquals(135, HpPulse.healWidth(100, 135, 4 * FRAME));
     }
@@ -102,9 +120,9 @@ class HpPulseTest {
     void aHealHoldsEachStepForAWholeFrame() {
         Set<Integer> widths = new LinkedHashSet<>();
         for (float t = 0f; t < 5 * FRAME; t += 0.004f) {
-            widths.add(HpPulse.healWidth(100, 140, t));
+            widths.add(HpPulse.healWidth(100, 190, t));
         }
-        assertEquals(5, widths.size(), "expected one width per frame, got " + widths);
+        assertEquals(4, widths.size(), "expected one width per frame, got " + widths);
     }
 
     @Test
@@ -165,7 +183,7 @@ class HpPulseTest {
     void bothPulsesEnd() {
         assertTrue(HpPulse.damageFinished(120, 120, HpPulse.JOLT_TOTAL));
         assertFalse(HpPulse.damageFinished(120, 120, HpPulse.JOLT_TOTAL - 0.01f));
-        assertTrue(HpPulse.healFinished(100, 140, 4 * FRAME));
-        assertFalse(HpPulse.healFinished(100, 140, 3 * FRAME));
+        assertTrue(HpPulse.healFinished(100, 160, 2 * FRAME));
+        assertFalse(HpPulse.healFinished(100, 160, FRAME));
     }
 }
