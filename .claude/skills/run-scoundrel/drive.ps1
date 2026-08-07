@@ -175,6 +175,12 @@ function Resize([int]$targetW, [int]$targetH) {
 
 function Key([string]$name) {
   $n = $name.ToUpper()
+  # Any single letter is its own virtual-key code, so the table only has to
+  # carry the named keys. It used to list the letters too, and adding a lab
+  # binding then meant editing this file before the key would do anything.
+  if ((-not $VK.ContainsKey($n)) -and $n -match '^[A-Z0-9]$') {
+    $VK[$n] = [int][char]$n
+  }
   if (-not $VK.ContainsKey($n)) { Write-Output ("UNKNOWN KEY {0}" -f $name); return }
   $code = [byte]$VK[$n]
   # Send the real scan code rather than 0. GLFW does map a zero scancode back

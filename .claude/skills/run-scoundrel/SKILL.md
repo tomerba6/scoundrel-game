@@ -67,16 +67,17 @@ Then **look at the PNG** with the Read tool. A blank frame means it never came u
 Actions are comma-separated and run in order: `click:<x>:<y>`, `key:<name>`,
 `wait:<ms>`, `shot:<path>`.
 
-`key:` takes `ESC`, `ENTER`, `SPACE`, a letter, or `F1`-`F12` — the bindings the
-game polls per frame rather than through Scene2D: **F11** toggles fullscreen,
-**F9** opens the developer sprite inspector (`SpriteLab`), **Esc** leaves it.
+`key:` takes `ESC`, `ENTER`, `SPACE`, `TAB`, any single letter or digit, or
+`F1`-`F12` — the bindings the game polls per frame rather than through Scene2D:
+**F11** toggles fullscreen, **F9** opens the developer sprite inspector
+(`SpriteLab`), **Esc** leaves it.
 
 Inside the lab, one key per effect, acting on whatever card the pointer is over:
 **K** weapon kill, **B** barehanded, **A** avoid sweep, **E** equip, **P** potion,
-**D** hit, **H** heal, **X** death, **Tab** the all-sprites sheet, **S** slow
-motion (÷8). Sub-second effects cannot be frame-grabbed at their own speed —
-turn **S** on first, then trigger, and pace the `shot:`s at eight times the
-timing you are checking.
+**W** wasted potion, **D** hit, **H** heal, **X** death, **Tab** the all-sprites
+sheet, **S** slow motion (÷8). Sub-second effects cannot be frame-grabbed at
+their own speed — turn **S** on first, then trigger, and pace the `shot:`s at
+eight times the timing you are checking.
 
 ```powershell
 & powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 `
