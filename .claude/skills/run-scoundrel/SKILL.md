@@ -201,10 +201,15 @@ These all cost real time in this container.
   fullscreen change with **one** shot taken right after entering fullscreen, do
   the navigating windowed, and `md5sum` the PNGs before believing a sequence of
   them. Windowed capture is unaffected.
-- **`key:F11` fires two resizes and the second one is the real size.** An
-  undecorated window is clamped by Windows to the *work area*, so asking for a
-  1920x1080 desktop yields 1920x1050 (the taskbar's 30px). Anything measured off
-  a shot taken between the two is measuring a size the game does not keep.
+- **Leaving fullscreen draws one frame at the wrong scale.** *Entering* is a
+  single clean resize to the display mode. *Leaving* is two, because
+  `setUndecorated(false)` puts the caption bar back while the window is still
+  full width — traced as `1920x1080 scale=1.5` on the way in, then
+  `1920x1050 scale=1.0` and `1280x720 scale=1.0` on the way out. That middle
+  line is one frame of a 1280x720 image with 320px bars, and it is easy to
+  screenshot by accident and read as the settled state. It is not: verify
+  fullscreen scaling on a shot taken *while still fullscreen*, and confirm it
+  against a `bars=0,0` reading rather than against a PNG.
 
 ## Troubleshooting
 
