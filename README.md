@@ -102,7 +102,7 @@ Three difficulty modes ship: **Standard**, **Relentless** (avoiding is forbidden
 |---|---|
 | **Language** | Java 21 (records, sealed types, pattern matching for `switch`) |
 | **Framework** | [libGDX](https://libgdx.com/) 1.14 with the LWJGL3 desktop backend |
-| **UI** | Scene2D, with a backdrop built from `Pixmap`-generated textures at load — no image assets |
+| **UI** | Immediate-mode pixel art over a `Pixmap`-generated backdrop; hand-drawn sprites packed into an atlas at build time. Scene2D remains on the last two overlays |
 | **Build** | Gradle 9 multi-module, wrapper committed |
 | **Testing** | JUnit 5, JaCoCo coverage gate |
 | **CI/CD** | GitHub Actions — checks on every PR, tag-triggered release builds |
@@ -166,7 +166,7 @@ Full design notes, including the locked edge-case decisions and Mermaid diagrams
 
 ## Testing
 
-260 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
+531 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
 JaCoCo gate of **90% line / 75% branch on every pure package** — the build fails below it.
 
 | Package | Line | Branch |
@@ -191,7 +191,7 @@ the rules.
 ## Development
 
 ```sh
-./gradlew core:test        # 260 tests, headless, ~1s of execution
+./gradlew core:test        # 531 tests, headless, ~1s of execution
 ./gradlew core:check       # tests + the JaCoCo gate; HTML report at
                            #   core/build/reports/jacoco/test/html/
 ./gradlew lwjgl3:run       # play the current working tree

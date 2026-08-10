@@ -723,6 +723,18 @@ engine instead of the screen, and every duration being tuned in isolation.
 tutorial. The tutorial is last because it overlays a finished board.
 *Verify:* each against the mock's SCREENS tab. No rounded corner, no fade, no hover glow anywhere.
 
+> **Four of the six are done** — title, new game, ledger, trophies. Run end and tutorial are
+> still Scene2D overlays on the board. Three things the first four settled, which the last two
+> should follow rather than re-decide:
+> - **Menus act on release, not press** (`PressGesture`), and a held plate is drawn pressed.
+>   Cards keep press-to-act; that exception is §10's, not an oversight.
+> - **A modal overlay dims what is behind it** with `Chrome.dim` — the 4×4 ordered dither at
+>   82% this section already specifies for the tutorial, never an alpha scrim.
+> - **Nothing is set below 12px.** Silkscreen's strokes are 1px, and at the ×1.5 a 1920×1080
+>   display gets, an 8px glyph loses half its strokes to rounding. The mock's smaller sizes do
+>   not survive the viewport; its copy is also placeholder and shorter than the real strings,
+>   so expect to wrap and to grow rows rather than shrink type.
+
 **12 — Quantise.** One place that floors time to 1/12 s for effects, 1/6 s for idles.
 *Verify:* pause on any frame and every element is on a whole pixel.
 

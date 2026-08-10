@@ -17,9 +17,10 @@ visual tokens, the architecture, and every component on screen. It complements
 > Everything below still describes the board accurately as **behaviour** —
 > what a press does, when Avoid is live, what the feed says, why a click is
 > never swallowed. Where it describes Scene2D *mechanics* for the board, read
-> it as history. The five other screens (title, mode picker, records,
-> trophies, end and tutorial overlays) are still Scene2D exactly as written,
-> and are converted in the next pass; this document is rewritten when they land.
+> it as history. The title, mode picker, ledger and trophies screens have since
+> been converted and are described as they now are. Only the **run end and
+> tutorial overlays** are still Scene2D exactly as written; they are the last
+> pass, and this document is rewritten when they land.
 >
 > **Where the look stands.** The board is a torchlit dungeon: a procedural
 > backdrop (warm glow with a live flicker over a vignette, drifting embers) and
@@ -121,6 +122,21 @@ both SIL OFL, licenses bundled):
 
 Neither face has suit glyphs, so ♠♥♦♣ are drawn as pixmap shapes in `Theme`
 and tinted at use; feed copy writes names out ("the Queen of clubs").
+
+Both faces are on their way out. **Silkscreen** replaces them screen by screen
+as the pixel-art conversion lands (`HANDOFF` §5); the board, title, new game,
+ledger and trophies are already on it, and the two remaining Scene2D overlays
+still hold the old pair. Its sizes are the only ones anything may ask for, and
+they live in `PixelType`: 8, 12, 14, 26, 38. All even, because the viewport
+snaps to half-steps and an odd size lands on a half pixel at ×1.5.
+
+**Nothing below 12 for anything a player reads.** Silkscreen's strokes are 1px,
+so at the ×1.5 a 1920×1080 display gets, each stroke lands on either one screen
+pixel or two depending where it falls. On a 12px glyph that is coarse; on an 8px
+one it is the difference between a letter and a smudge. `SMALL` (8) survives for
+incidental furniture only — a portrait caption, a credit line. When a string
+does not fit at 12, wrap it and grow the row (`TextWrap`) rather than dropping
+to 8.
 
 ## Architecture
 
@@ -361,7 +377,16 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 ## Files
 
 - `core/src/main/java/com/tomer/scoundrel/screens/Theme.java` — tokens
-  (palette, motion timings, card size), fonts, drawables, suit shapes.
+  (palette, motion timings, card size), fonts, drawables, suit shapes, and the
+  4×4 dither tile every modal overlay dims through. The tile lives here rather
+  than on `Chrome` because `Theme` is the one shared, disposed object; a texture
+  on `Chrome` would leak once per screen.
+- `core/src/main/java/com/tomer/scoundrel/screens/Chrome.java` /
+  `ScreenArt.java` — the menu kit: the five parts every screen outside the board
+  is assembled from (frame, face, bevel, label, rule), plus `plate` — the one
+  button shape, at every size, raised or held down — `header` for the band four
+  screens share, and `dim` for a modal. All the arithmetic is in `ScreenArt`
+  where it is tested; `Chrome` only turns measurements into draw calls.
 - `core/src/main/java/com/tomer/scoundrel/screens/GameScreen.java` — the one
   screen: layout builders, interaction, feed, overlay, run recording, and
   (given a `TutorialGuide`) the guided-tutorial mode — glow outline, callout,
@@ -399,7 +424,7 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   `Feed.java` / `Labels.java` / `ResolveEffect.java` / `BoardArt.java` /
   `CardArt.java` / `HudArt.java` / `PixelScale.java` / `PixelType.java` /
   `PressGesture.java` / `LedgerRow.java` / `LedgerTotals.java` /
-  `TrophyEntry.java` — the
+  `TrophyEntry.java` / `TextWrap.java` — the
   pure, headlessly unit-tested logic behind the screens: the "which card is
   under this point" lookup, the flicker curve, the ember sim, the
   run-timer/duration formatting, the event-feed text and its stepped fade, the

@@ -9,6 +9,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - Pixel-art creature, weapon and potion sprites, packed into a texture atlas at build time.
+- The title, new game, THE LEDGER and TROPHIES screens rebuilt on the pixel kit — framed
+  plates, panels and tables drawn in immediate mode at a fixed 1280×720, in Silkscreen.
+- **Menu buttons act on release rather than press**, and only where the press began, so a
+  press can be taken back by sliding off — including `ERASE EVERYTHING` on the destructive
+  confirmation. A held plate is drawn pressed: the bevel inverts, the face drops to its
+  shadowed step and the label travels into the recess. Cards keep press-to-act.
+- A modal overlay now dims the screen behind it with a 4×4 ordered dither, matching the death
+  wipe and the tutorial rather than adding an alpha scrim.
+
+### Changed
+- THE LEDGER's totals panel reports figures the game actually keeps. The reference render asked
+  for "weapons broken"; weapons degrade in Scoundrel and never break.
+- TROPHIES rows are taller and their descriptions wrap, so the real achievement copy fits at a
+  legible size.
+- Nothing on the converted screens is set below 12px. Silkscreen strokes are 1px, and at the
+  ×1.5 scale a 1920×1080 display gets, an 8px glyph loses half of them to rounding.
+
+### Removed
+- The Scene2D `dangerButton` style, whose only caller was the old ledger.
 
 ## [1.0.0] - 2026-08-05
 
