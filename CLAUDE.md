@@ -130,6 +130,28 @@ browser — ask the user to compare against it; you can't render it yourself.
   rendering, which can't be unit-tested, is the exception: verify it by screenshot instead.
   Cover the tricky rules below especially, and get tests green before touching the UI.
 - Keep commits small and focused; commit after each working piece.
+- **Verify, don't recall — and never quote a number you did not just measure.**
+  The docs in this repo *lag the code by design*: the UI revamp is mid-flight, so
+  `README.md`, `docs/ui.md` and `HANDOFF.md` each hold a mix of what shipped, what is
+  being replaced, and what is only planned. A figure in a doc was true when written and
+  is evidence of nothing today. If a claim is checkable by reading a file or running a
+  command, check it **before** stating it — the check is seconds and being wrong costs
+  the user their trust in everything else you said.
+    - test count → `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`
+    - coverage → `./gradlew core:test` (it refreshes the report), then parse
+      `core/build/reports/jacoco/test/jacocoTestReport.xml` per package. Read the
+      `screens` package as two halves — the extracted pure helpers *stay in that
+      package*, so its number climbs as the GL classes are hollowed out, and the
+      pure-vs-GL split is the meaningful reading rather than the aggregate.
+    - purity boundary → `grep -rl 'com.badlogic.gdx' core/src/main/java/com/tomer/scoundrel/{model,rules,runs,achievements,tutorial}` must be empty
+    - what a class or screen does → open it. Its entry in `docs/ui.md` may describe the
+      version it replaced.
+    - runtime behaviour (window size, viewport scale, input routing) → log it from
+      inside the running game and read the log. Do not reason about what the platform
+      "should" do, and do not trust a screenshot to prove it — see the fullscreen-capture
+      traps in `.claude/skills/run-scoundrel/SKILL.md`.
+  When a doc figure turns out to be stale, fix the doc in the same change rather than
+  working around it.
 
 ---
 

@@ -169,6 +169,11 @@ Full design notes, including the locked edge-case decisions and Mermaid diagrams
 531 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
 JaCoCo gate of **90% line / 75% branch on every pure package** — the build fails below it.
 
+> Every figure in this section is a measurement, not a claim, and the branch moves fast enough that
+> they go stale. Re-derive rather than repeat: the count is
+> `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`, and the ratios come from
+> `core/build/reports/jacoco/test/jacocoTestReport.xml`, which `./gradlew core:test` refreshes.
+
 | Package | Line | Branch |
 |---|---|---|
 | `model` | 100.0% | 100.0% |
