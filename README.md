@@ -177,11 +177,23 @@ JaCoCo gate of **90% line / 75% branch on every pure package** — the build fai
 | `achievements` | 98.3% | 97.5% |
 | `tutorial` | 97.5% | 86.4% |
 
-`screens` is deliberately **excluded** from the gate and sits near 8%. It is GL-bound — it needs a
-window, a GPU and real pixels — so it is verified by driving the actual game and screenshotting it
-instead. Gating it would enforce a meaningless number and reward writing tests that assert nothing.
-The badge above therefore reports coverage of the *gated* packages, not the whole repository, which
-is the figure the build actually holds itself to.
+`screens` is deliberately **excluded** from the gate. It is GL-bound — it needs a window, a GPU and
+real pixels — so it is verified by driving the actual game and screenshotting it instead. Gating it
+would enforce a meaningless number and reward writing tests that assert nothing. The badge above
+therefore reports coverage of the *gated* packages, not the whole repository, which is the figure
+the build actually holds itself to.
+
+That said, the number is not meaningless as a *progress* signal, because the pure helpers extracted
+out of the GL classes stay in the same package. `screens` splits cleanly in two:
+
+| Inside `screens` | Lines | Line coverage |
+|---|---|---|
+| extracted pure helpers (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Feed`, …) | 671 | 97.8% |
+| GL classes (`GameScreen`, `BoardView`, `Theme`, the screens themselves) | 2,426 | 1.2% |
+
+The package reads 22.1% overall, up from 8% at v1.0.0 — that rise is the extraction, not new tests
+against rendering. The ratio is the useful reading: it says how much of the UI layer has stopped
+being untestable.
 
 The engine's determinism is used deliberately: the tutorial's scripted run, for instance, is proven
 by playing every one of its moves through the real engine in a test and asserting the narration's
