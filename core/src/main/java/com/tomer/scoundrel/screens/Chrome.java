@@ -151,6 +151,11 @@ final class Chrome {
      * rule along the foot. Four screens share it, so it is drawn once here.
      */
     void header(Batch batch, String name, String caption) {
+        header(batch, name, caption, false);
+    }
+
+    /** As above, with the back plate held down. */
+    void header(Batch batch, String name, String caption, boolean backPressed) {
         text(batch, theme.pixelTitle, name, ScreenArt.HEADER_X,
                 ScreenArt.HEADER_TITLE_TOP, ScreenArt.BODY);
         int after = ScreenArt.HEADER_X + width(theme.pixelTitle, name)
@@ -158,7 +163,7 @@ final class Chrome {
         text(batch, theme.pixelLabel, caption, after, ScreenArt.HEADER_CAPTION_TOP,
                 ScreenArt.HEADER_CAPTION);
         plate(batch, ScreenArt.BACK_X, ScreenArt.BACK_Y, ScreenArt.BACK_W,
-                ScreenArt.BACK_H, "ESC · BACK", Plate.DARK);
+                ScreenArt.BACK_H, "ESC · BACK", Plate.DARK, backPressed);
         rule(batch, 0, ScreenArt.HEADER_H, (int) Theme.WORLD_WIDTH);
     }
 

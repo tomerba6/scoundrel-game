@@ -107,8 +107,8 @@ Client pixels, origin **top-left**, window 1280x720.
 |---|---|---|
 | Title (pixel) | New game / How to play / The ledger / Trophies | 731,349 / 731,405 / 731,461 / 731,517 |
 | Title (pixel) | First-run prompt: Play tutorial / Maybe later | 640,349 / 640,405 |
-| Mode picker | Standard / Relentless / Frail | 176,153 / 176,204 / 176,255 |
-| Mode picker | Back | 92,680 |
+| Mode picker (pixel) | Standard / Relentless / Frail | 638,159 / 638,262 / 638,365 |
+| Mode picker (pixel) | `ESC · BACK` in the header band | 1174,45 |
 | Game board | Avoid button | 1198,46 |
 | Game board | card centres, y = 342 | see formula below |
 | End overlay | New game / Main menu / Trophies / Records | 639,423 / 639,464 / 639,505 / 639,546 |

@@ -53,6 +53,8 @@ public final class ModeSelectScreen extends ScreenAdapter {
     private int restingX = -1;
     private int restingY = -1;
     private boolean pointerMoved;
+    /** Which panel or plate is held, and when a release has earned the right to act. */
+    private final PressGesture press = new PressGesture();
 
     public ModeSelectScreen(ScoundrelGame game, Theme theme) {
         this.game = game;
@@ -68,23 +70,54 @@ public final class ModeSelectScreen extends ScreenAdapter {
         Gdx.input.setInputProcessor(new PickerInput());
     }
 
+    /**
+     * What a window-space point is on: a panel by index, the header's back plate
+     * as {@link ScreenArt#BACK}, or nothing. One id space, because the gesture
+     * matches a release against a press by equality.
+     */
+    private int hit(int screenX, int screenY) {
+        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+        if (ScreenArt.backContains(point.x, point.y)) {
+            return ScreenArt.BACK;
+        }
+        return ScreenArt.panelAt(modes.size(), point.x, point.y);
+    }
+
+    /** What a released target does. Only reached once its press has been seen. */
+    private void activate(int target) {
+        if (target == ScreenArt.BACK) {
+            game.showTitle();
+            return;
+        }
+        game.showGame(modes.get(target));
+    }
+
+    /**
+     * Panels and the back plate act on release, and only where the press began —
+     * see {@link PressGesture}. The keys do not: a key has no travel to slide
+     * off, so there is nothing to take back.
+     */
     private final class PickerInput extends InputAdapter {
         @Override
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
             if (button != Input.Buttons.LEFT) {
                 return false;
             }
-            Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
-            if (ScreenArt.backContains(point.x, point.y)) {
-                game.showTitle();
-                return true;
-            }
-            int picked = ScreenArt.panelAt(modes.size(), point.x, point.y);
-            if (picked >= 0) {
-                game.showGame(modes.get(picked));
-                return true;
-            }
+            return press.press(hit(screenX, screenY));
+        }
+
+        @Override
+        public boolean touchDragged(int screenX, int screenY, int pointer) {
+            press.moveOver(hit(screenX, screenY));
             return false;
+        }
+
+        @Override
+        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+            if (button != Input.Buttons.LEFT) {
+                return false;
+            }
+            return press.release(hit(screenX, screenY));
         }
 
         @Override
@@ -106,13 +139,26 @@ public final class ModeSelectScreen extends ScreenAdapter {
     @Override
     public void render(float delta) {
         backdrop.advance(delta);
+
+        // A target acts here rather than the instant it comes up, once it has
+        // been down long enough to have been seen. Both of them navigate, and
+        // navigating disposes this screen along with its batch and surface — so
+        // nothing may be drawn afterwards.
+        int fired = press.advance(delta);
+        if (fired != PressGesture.NONE) {
+            activate(fired);
+            if (game.getScreen() != this) {
+                return;
+            }
+        }
         followPointer();
 
         surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
         batch.setProjectionMatrix(surface.projection());
         batch.begin();
         backdrop.render(batch, 1f);
-        chrome.header(batch, "NEW GAME", "CHOOSE YOUR DESCENT");
+        chrome.header(batch, "NEW GAME", "CHOOSE YOUR DESCENT",
+                press.sunk() == ScreenArt.BACK);
         for (int i = 0; i < modes.size(); i++) {
             drawPanel(modes.get(i), i);
         }
@@ -161,8 +207,19 @@ public final class ModeSelectScreen extends ScreenAdapter {
         int y = ScreenArt.panelY(index);
         int x = ScreenArt.PANEL_X;
         boolean on = index == selected;
+        boolean down = press.sunk() == index;
+        // A panel is the button here, so it takes the plate's press treatment:
+        // the face on its shadowed step, the bevel inverted inside the frame,
+        // and everything written on it travelling one bevel into the recess.
+        // The frame itself does not move — 1200px of panel shifting bodily would
+        // eat the 14px gap to the one below and read as a layout fault rather
+        // than a press.
+        int travel = down ? ScreenArt.SINK : 0;
+        int cx = x + travel;
+        int cy = y + travel;
 
-        chrome.face(batch, x, y, ScreenArt.PANEL_W, ScreenArt.PANEL_H, ScreenArt.FACE_PANEL);
+        chrome.face(batch, x, y, ScreenArt.PANEL_W, ScreenArt.PANEL_H,
+                down ? ScreenArt.DARK_PRESSED : ScreenArt.FACE_PANEL);
         if (on) {
             chrome.rule(batch, x, y, ScreenArt.PANEL_W, ScreenArt.GOLD);
             chrome.rule(batch, x, y + ScreenArt.PANEL_H - ScreenArt.THICK,
@@ -173,10 +230,17 @@ public final class ModeSelectScreen extends ScreenAdapter {
         } else {
             chrome.frame(batch, x, y, ScreenArt.PANEL_W, ScreenArt.PANEL_H);
         }
+        if (down) {
+            // Inside the frame, so a selected panel keeps its gold edge and
+            // gains the recess rather than choosing between them.
+            int t = ScreenArt.THICK;
+            chrome.bevel(batch, x + t, y + t, ScreenArt.PANEL_W - 2 * t,
+                    ScreenArt.PANEL_H - 2 * t, ScreenArt.DARK_DARK, ScreenArt.DARK_LIGHT);
+        }
 
         // The number key, in its own well.
-        int wellX = x + ScreenArt.WELL_DX;
-        int wellY = y + ScreenArt.WELL_DY;
+        int wellX = cx + ScreenArt.WELL_DX;
+        int wellY = cy + ScreenArt.WELL_DY;
         chrome.face(batch, wellX, wellY, ScreenArt.WELL_SIZE, ScreenArt.WELL_SIZE,
                 ScreenArt.FRAME);
         chrome.centred(batch, theme.pixelLabel, String.valueOf(index + 1), wellX, wellY,
@@ -184,8 +248,8 @@ public final class ModeSelectScreen extends ScreenAdapter {
                 on ? ScreenArt.GOLD : ScreenArt.WELL_DIGIT_OFF, 1f);
 
         String name = mode.title().toUpperCase(Locale.ROOT);
-        int nameX = x + ScreenArt.NAME_DX;
-        chrome.text(batch, theme.pixelBody, name, nameX, y + ScreenArt.NAME_DY,
+        int nameX = cx + ScreenArt.NAME_DX;
+        chrome.text(batch, theme.pixelBody, name, nameX, cy + ScreenArt.NAME_DY,
                 ScreenArt.BODY);
 
         // Achievements are Standard-only; say so where the choice is made.
@@ -193,19 +257,19 @@ public final class ModeSelectScreen extends ScreenAdapter {
         String badge = trophies ? "TROPHIES COUNT" : "NO TROPHIES";
         int badgeX = nameX + chrome.width(theme.pixelBody, name) + ScreenArt.BADGE_GAP;
         int badgeW = chrome.width(theme.pixelLabel, badge) + 2 * ScreenArt.BADGE_PAD_X;
-        chrome.face(batch, badgeX, y + ScreenArt.BADGE_DY, badgeW, ScreenArt.BADGE_H,
+        chrome.face(batch, badgeX, cy + ScreenArt.BADGE_DY, badgeW, ScreenArt.BADGE_H,
                 trophies ? ScreenArt.BADGE_ON : ScreenArt.BADGE_OFF);
-        chrome.centred(batch, theme.pixelLabel, badge, badgeX, y + ScreenArt.BADGE_DY,
+        chrome.centred(batch, theme.pixelLabel, badge, badgeX, cy + ScreenArt.BADGE_DY,
                 badgeW, ScreenArt.BADGE_H,
                 trophies ? ScreenArt.GOLD_LABEL : ScreenArt.BADGE_OFF_LABEL, 1f);
 
         chrome.textRight(batch, theme.pixelLabel,
                 "START " + mode.ruleset().startingHealth(),
-                ScreenArt.panelRight() - ScreenArt.START_INSET, y + ScreenArt.START_DY,
-                ScreenArt.START_COLOUR, 1f);
+                ScreenArt.panelRight() - ScreenArt.START_INSET + travel,
+                cy + ScreenArt.START_DY, ScreenArt.START_COLOUR, 1f);
 
         chrome.text(batch, theme.pixelLabel, mode.description().toUpperCase(Locale.ROOT),
-                x + ScreenArt.DESC_DX, y + ScreenArt.DESC_DY,
+                cx + ScreenArt.DESC_DX, cy + ScreenArt.DESC_DY,
                 ScreenArt.BODY, ScreenArt.BODY_ALPHA);
     }
 

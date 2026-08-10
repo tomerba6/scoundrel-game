@@ -180,6 +180,47 @@ class ScreenArtTest {
         assertEquals(-1, ScreenArt.buttonAt(x, 4, x + ScreenArt.BUTTON_W, middleY), "right of it");
     }
 
+    /**
+     * A screen with two kinds of target — three mode panels and the header's
+     * back plate — hit-tests into <b>one</b> id space, because
+     * {@link PressGesture} compares a press against a release by equality and
+     * cannot know which family an index came from. Indices are their own value,
+     * −1 is nothing, so the chrome takes the negatives below that.
+     */
+    @Test
+    void theBackPlateIsItsOwnHitIdAndNotNothing() {
+        assertNotEquals(PressGesture.NONE, ScreenArt.BACK);
+        assertTrue(ScreenArt.BACK < PressGesture.NONE, "a chrome id must not collide with a panel");
+    }
+
+    /**
+     * And the two families cannot overlap on screen, or one point would have two
+     * answers and which one won would come down to the order of the ifs.
+     */
+    @Test
+    void theBackPlateCannotBeConfusedWithAPanel() {
+        assertTrue(ScreenArt.BACK_Y + ScreenArt.BACK_H <= ScreenArt.HEADER_H,
+                "the back plate hangs out of the header band");
+        assertTrue(ScreenArt.HEADER_H <= ScreenArt.PANEL_Y,
+                "the header band overlaps the first panel");
+        float backX = ScreenArt.BACK_X + ScreenArt.BACK_W / 2f;
+        float backY = CardArt.toWorldY(ScreenArt.BACK_Y, ScreenArt.BACK_H) + ScreenArt.BACK_H / 2f;
+        assertTrue(ScreenArt.backContains(backX, backY));
+        assertEquals(-1, ScreenArt.panelAt(3, backX, backY), "the back plate answered as a panel");
+    }
+
+    /** And the reverse: a point on a panel must not answer as the back plate. */
+    @Test
+    void aPanelCannotBeConfusedWithTheBackPlate() {
+        for (int i = 0; i < 3; i++) {
+            float middleY = CardArt.toWorldY(ScreenArt.panelY(i), ScreenArt.PANEL_H)
+                    + ScreenArt.PANEL_H / 2f;
+            float x = ScreenArt.PANEL_X + ScreenArt.PANEL_W / 2f;
+            assertEquals(i, ScreenArt.panelAt(3, x, middleY));
+            assertFalse(ScreenArt.backContains(x, middleY));
+        }
+    }
+
     /** A shorter menu must not answer for buttons it does not draw. */
     @Test
     void aShorterColumnDoesNotAnswerForMissingButtons() {

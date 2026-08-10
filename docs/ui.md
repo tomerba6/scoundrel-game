@@ -63,8 +63,19 @@ visual tokens, the architecture, and every component on screen. It complements
   2. A held plate is drawn **pressed** — the bevel inverted, the face on its
      shadowed step, the label travelled 2px down and right into the recess
      (`Chrome.plate`). Release semantics without this read as a button that did
-     not work.
-  3. **The action fires from `render`, not from the release.** A click is often
+     not work. A mode panel is the button on its own screen, so it takes the
+     same treatment; its *frame* stays put, because 1200px of panel shifting
+     bodily would eat the 14px gap below it and read as a layout fault. The
+     recess is drawn inside the frame, so a selected panel keeps its gold edge
+     and gains the press rather than choosing between them.
+  3. A screen with more than one kind of target hit-tests into **one id space**,
+     because the gesture matches a release against a press by equality and
+     cannot know which family an index came from. Panels and buttons are their
+     own index, −1 is nothing, and shared chrome takes the negatives below that
+     (`ScreenArt.BACK`). The two families must not overlap on screen either, or
+     a point would have two answers and which won would come down to the order
+     of the ifs — pinned by `ScreenArtTest`.
+  4. **The action fires from `render`, not from the release.** A click is often
      shorter than four frames and every menu button navigates, so acting the
      instant the button came up cut to the next screen before the sunk plate had
      been drawn once — release semantics that felt *less* responsive than the

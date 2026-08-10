@@ -114,6 +114,15 @@ final class ScreenArt {
     static final int HEADER_CAPTION_TOP = 48;
     static final int HEADER_CAPTION_GAP = 20;
     static final int HEADER_CAPTION = 0x9a8b70;
+    /**
+     * The back plate, as a hit-test id. A screen with more than one kind of
+     * target hit-tests into one id space — {@link PressGesture} matches a
+     * release against a press by equality and cannot know which family an index
+     * came from. Panels and buttons are their own index and −1 is nothing, so
+     * shared chrome takes the negatives below that.
+     */
+    static final int BACK = -2;
+
     static final int BACK_X = 1111;
     static final int BACK_Y = 27;
     static final int BACK_W = 127;
