@@ -194,6 +194,17 @@ These all cost real time in this container.
   floating above the window lands in the PNG - a desktop notification toast
   occluded the bottom-right corner during this skill's own verification run. If
   a region looks wrong, re-take the shot before believing it.
+- **In borderless fullscreen, `CopyFromScreen` goes stale.** Four shots across
+  three `drive.ps1` calls came back **byte-identical** while the game was
+  demonstrably navigating between screens — it ended on a screen none of them
+  showed. It reads exactly like input being ignored, and it is not. Verify a
+  fullscreen change with **one** shot taken right after entering fullscreen, do
+  the navigating windowed, and `md5sum` the PNGs before believing a sequence of
+  them. Windowed capture is unaffected.
+- **`key:F11` fires two resizes and the second one is the real size.** An
+  undecorated window is clamped by Windows to the *work area*, so asking for a
+  1920x1080 desktop yields 1920x1050 (the taskbar's 30px). Anything measured off
+  a shot taken between the two is measuring a size the game does not keep.
 
 ## Troubleshooting
 

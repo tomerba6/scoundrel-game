@@ -264,11 +264,11 @@ public final class RecordsScreen extends ScreenAdapter {
     private static final float HEADING_ALPHA = 0.75f;
 
     private void label(String text, int x, int y, int h) {
-        chrome.textInRow(batch, theme.pixelSmall, text, x, y, h, ScreenArt.HEADING, HEADING_ALPHA);
+        chrome.textInRow(batch, theme.pixelLabel, text, x, y, h, ScreenArt.HEADING, HEADING_ALPHA);
     }
 
     private void labelRight(String text, int right, int y, int h) {
-        chrome.textRightInRow(batch, theme.pixelSmall, text, right, y, h,
+        chrome.textRightInRow(batch, theme.pixelLabel, text, right, y, h,
                 ScreenArt.HEADING, HEADING_ALPHA);
     }
 
@@ -283,15 +283,15 @@ public final class RecordsScreen extends ScreenAdapter {
                 ScreenArt.CELL_QUIET, 1f);
         chrome.textRightInRow(batch, theme.pixelBody, row.score(), ScreenArt.COL_SCORE_RIGHT,
                 y, h, row.scoreColour(), 1f);
-        chrome.textInRow(batch, theme.pixelSmall, row.outcome(), ScreenArt.COL_OUTCOME, y, h,
+        chrome.textInRow(batch, theme.pixelLabel, row.outcome(), ScreenArt.COL_OUTCOME, y, h,
                 row.outcomeColour(), 1f);
-        chrome.textInRow(batch, theme.pixelSmall, row.mode(), ScreenArt.COL_MODE, y, h,
+        chrome.textInRow(batch, theme.pixelLabel, row.mode(), ScreenArt.COL_MODE, y, h,
                 ScreenArt.CELL_QUIET, 1f);
-        chrome.textInRow(batch, theme.pixelSmall, row.date(), ScreenArt.COL_DATE, y, h,
+        chrome.textInRow(batch, theme.pixelLabel, row.date(), ScreenArt.COL_DATE, y, h,
                 ScreenArt.CELL_QUIET, 1f);
-        chrome.textInRow(batch, theme.pixelSmall, row.time(), ScreenArt.COL_TIME, y, h,
+        chrome.textInRow(batch, theme.pixelLabel, row.time(), ScreenArt.COL_TIME, y, h,
                 ScreenArt.CELL_QUIET, 1f);
-        chrome.textRightInRow(batch, theme.pixelSmall, row.slain(), ScreenArt.COL_SLAIN_RIGHT,
+        chrome.textRightInRow(batch, theme.pixelLabel, row.slain(), ScreenArt.COL_SLAIN_RIGHT,
                 y, h, ScreenArt.CELL_QUIET, 1f);
     }
 
@@ -303,13 +303,13 @@ public final class RecordsScreen extends ScreenAdapter {
                 ScreenArt.TABLE_Y + ScreenArt.THICK,
                 ScreenArt.TOTALS_W - 2 * ScreenArt.THICK,
                 ScreenArt.TOTALS_H - 2 * ScreenArt.THICK, ScreenArt.FACE_TABLE);
-        chrome.text(batch, theme.pixelSmall, "ACROSS ALL RUNS", ScreenArt.TOTALS_LABEL_X,
+        chrome.text(batch, theme.pixelLabel, "ACROSS ALL RUNS", ScreenArt.TOTALS_LABEL_X,
                 ScreenArt.TOTALS_HEADING_TOP, ScreenArt.HEADING);
 
         for (int i = 0; i < totals.size(); i++) {
             LedgerTotals.Stat stat = totals.get(i);
             int y = ScreenArt.totalsRowY(i);
-            chrome.textInRow(batch, theme.pixelSmall, stat.label(), ScreenArt.TOTALS_LABEL_X,
+            chrome.textInRow(batch, theme.pixelLabel, stat.label(), ScreenArt.TOTALS_LABEL_X,
                     y, ScreenArt.TOTALS_ROW_H, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
             chrome.textRightInRow(batch, theme.pixelLabelBold, stat.value(),
                     ScreenArt.TOTALS_VALUE_RIGHT, y, ScreenArt.TOTALS_ROW_H,
@@ -369,9 +369,9 @@ public final class RecordsScreen extends ScreenAdapter {
                 "THIS CLEARS " + runs + " RECORDED " + plural(runs, "RUN", "RUNS")
                         + " AND " + trophies + " " + plural(trophies, "TROPHY", "TROPHIES") + ".",
                 centre, DIALOG_Y + 70, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
-        chrome.centredOn(batch, theme.pixelSmall,
-                "A BACKUP IS KEPT ON DISK, BUT THE GAME WILL NOT RESTORE IT FOR YOU.",
-                centre, DIALOG_Y + 96, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+        chrome.centredOn(batch, theme.pixelLabel,
+                "A BACKUP IS KEPT ON DISK. THE GAME WILL NOT RESTORE IT.",
+                centre, DIALOG_Y + 100, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
 
         int sunk = press.sunk();
         chrome.plate(batch, dialogButtonX(0), DIALOG_BUTTON_Y, DIALOG_BUTTON_W,

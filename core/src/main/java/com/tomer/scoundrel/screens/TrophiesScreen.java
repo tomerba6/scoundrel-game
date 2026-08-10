@@ -43,6 +43,8 @@ public final class TrophiesScreen extends ScreenAdapter {
     private final PressGesture press = new PressGesture();
 
     private final List<TrophyEntry> entries;
+    /** Each entry's description, already broken into the lines its row holds. */
+    private final List<List<String>> descriptions;
     private final int earned;
 
     public TrophiesScreen(ScoundrelGame game, Theme theme, AchievementStore store) {
@@ -55,10 +57,17 @@ public final class TrophiesScreen extends ScreenAdapter {
 
         Map<String, Instant> unlocked = readSafely(store);
         List<TrophyEntry> built = new ArrayList<>();
+        List<List<String>> wrapped = new ArrayList<>();
         for (Achievement achievement : Achievements.all()) {
-            built.add(TrophyEntry.of(achievement, unlocked.get(achievement.id())));
+            TrophyEntry entry = TrophyEntry.of(achievement, unlocked.get(achievement.id()));
+            built.add(entry);
+            // Wrapped once here rather than per frame: the measuring needs a
+            // font, but the text never changes while the screen is up.
+            wrapped.add(TextWrap.wrap(entry.description(), ScreenArt.trophyTextWidth(),
+                    ScreenArt.TROPHY_DESC_LINES, s -> chrome.width(theme.pixelLabel, s)));
         }
         this.entries = List.copyOf(built);
+        this.descriptions = List.copyOf(wrapped);
         this.earned = (int) entries.stream().filter(TrophyEntry::earned).count();
     }
 
@@ -191,7 +200,7 @@ public final class TrophiesScreen extends ScreenAdapter {
                     ScreenArt.FRAME, ScreenArt.PROGRESS_SEGMENT_ALPHA);
         }
 
-        chrome.textInRow(batch, theme.pixelSmall, earned + " OF " + entries.size() + " EARNED",
+        chrome.textInRow(batch, theme.pixelLabel, earned + " OF " + entries.size() + " EARNED",
                 x + ScreenArt.PROGRESS_W + 22, y, ScreenArt.PROGRESS_H,
                 ScreenArt.HEADER_CAPTION, 1f);
     }
@@ -205,13 +214,16 @@ public final class TrophiesScreen extends ScreenAdapter {
                 ScreenArt.SEAL_SIZE, ScreenArt.SEAL_SIZE, entry.sealColour());
 
         int textX = x + ScreenArt.TROPHY_TEXT_DX;
-        chrome.text(batch, theme.pixelLabel, entry.title(), textX,
+        chrome.text(batch, theme.pixelBody, entry.title(), textX,
                 y + ScreenArt.TROPHY_TITLE_DY, entry.textColour());
-        chrome.text(batch, theme.pixelSmall, entry.description(), textX,
-                y + ScreenArt.TROPHY_DESC_DY,
-                entry.earned() ? ScreenArt.BODY : ScreenArt.TROPHY_LOCKED_TEXT,
-                entry.earned() ? ScreenArt.BODY_ALPHA : 1f);
-        chrome.textRight(batch, theme.pixelSmall, entry.status(),
+        List<String> lines = descriptions.get(index);
+        for (int line = 0; line < lines.size(); line++) {
+            chrome.text(batch, theme.pixelLabel, lines.get(line), textX,
+                    y + ScreenArt.TROPHY_DESC_DY + line * ScreenArt.TROPHY_LINE_H,
+                    entry.earned() ? ScreenArt.BODY : ScreenArt.TROPHY_LOCKED_TEXT,
+                    entry.earned() ? ScreenArt.BODY_ALPHA : 1f);
+        }
+        chrome.textRight(batch, theme.pixelLabel, entry.status(),
                 x + ScreenArt.TROPHY_W - ScreenArt.TROPHY_STATUS_INSET,
                 y + ScreenArt.TROPHY_TITLE_DY,
                 entry.earned() ? ScreenArt.CELL_QUIET : ScreenArt.TROPHY_LOCKED_TEXT, 1f);

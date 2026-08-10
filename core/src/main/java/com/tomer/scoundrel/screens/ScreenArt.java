@@ -216,21 +216,32 @@ final class ScreenArt {
 
     // --- trophies ----------------------------------------------------------
 
-    /** Ten entries, five to a column, filled down then across. */
+    /**
+     * Ten entries, five to a column, filled down then across.
+     *
+     * <p>Rows are taller than the render's 55 and sit on an 82 pitch rather than
+     * 69. The render's copy is placeholder — its longest description is 26
+     * characters against the real catalog's 85 — so at a size that survives a
+     * ×1.5 viewport the real descriptions need two lines, and the row has to
+     * have somewhere to put the second. There is empty screen below either way.
+     */
     static final int TROPHY_X = 37;
     static final int TROPHY_Y = 113;
     static final int TROPHY_W = 582;
-    static final int TROPHY_H = 55;
-    static final int TROPHY_PITCH = 69;
+    static final int TROPHY_H = 68;
+    static final int TROPHY_PITCH = 82;
     static final int TROPHY_COLUMN_PITCH = 614;
     static final int TROPHY_PER_COLUMN = 5;
+    /** Two lines of description, and what one line of it may be. */
+    static final int TROPHY_DESC_LINES = 2;
+    static final int TROPHY_LINE_H = 16;
 
     static final int SEAL_DX = 13;
-    static final int SEAL_DY = 15;
+    static final int SEAL_DY = 21;
     static final int SEAL_SIZE = 26;
     static final int TROPHY_TEXT_DX = 52;
-    static final int TROPHY_TITLE_DY = 15;
-    static final int TROPHY_DESC_DY = 34;
+    static final int TROPHY_TITLE_DY = 12;
+    static final int TROPHY_DESC_DY = 32;
     static final int TROPHY_STATUS_INSET = 16;
 
     static final int ROW_EARNED = 0x191513;
@@ -296,6 +307,11 @@ final class ScreenArt {
 
     static int trophyY(int index) {
         return TROPHY_Y + (index % TROPHY_PER_COLUMN) * TROPHY_PITCH;
+    }
+
+    /** How wide a description line may be before the row's right inset. */
+    static int trophyTextWidth() {
+        return TROPHY_W - TROPHY_TEXT_DX - TROPHY_STATUS_INSET;
     }
 
     /** How much of the progress bar is filled, in whole pixels of its interior. */

@@ -288,8 +288,25 @@ class ScreenArtTest {
         assertEquals(651, ScreenArt.trophyX(5), "the second column starts at the sixth");
         assertEquals(651, ScreenArt.trophyX(9));
         assertEquals(113, ScreenArt.trophyY(0));
-        assertEquals(389, ScreenArt.trophyY(4));
+        assertEquals(441, ScreenArt.trophyY(4));
         assertEquals(113, ScreenArt.trophyY(5), "the second column starts at the top again");
+    }
+
+    /**
+     * A trophy row has to hold a title and both description lines. The render's
+     * 55px row does not, because its copy is placeholder — 26 characters against
+     * the real catalog's 85 — so the row grew rather than the type shrinking.
+     */
+    @Test
+    void aTrophyRowHasRoomForBothDescriptionLines() {
+        int lastLineBottom = ScreenArt.TROPHY_DESC_DY
+                + (ScreenArt.TROPHY_DESC_LINES - 1) * ScreenArt.TROPHY_LINE_H
+                + ScreenArt.TROPHY_LINE_H;
+        assertTrue(lastLineBottom <= ScreenArt.TROPHY_H,
+                "the second description line hangs out of its row");
+        assertTrue(ScreenArt.TROPHY_TITLE_DY < ScreenArt.TROPHY_DESC_DY);
+        assertTrue(ScreenArt.SEAL_DY + ScreenArt.SEAL_SIZE <= ScreenArt.TROPHY_H);
+        assertTrue(ScreenArt.trophyTextWidth() > 0);
     }
 
     @Test
