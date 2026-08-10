@@ -37,6 +37,18 @@ final class ScreenArt {
     static final int DARK_LABEL = 0xe8ddc7;
     static final float DARK_LABEL_ALPHA = 0.72f;
 
+    /**
+     * The two plate faces with the light off them, for a plate held down.
+     * Inverting the bevel alone moves the highlight but leaves 12,000 pixels of
+     * face at full brightness, so the plate reads as relit rather than pushed
+     * in. Both are the wood ramp's own steps — the accent row the gold lives on
+     * is a row of accents, not a ramp, so there is no darker gold in it; wood is
+     * the material next door and its top step is that colour in shadow. Nothing
+     * outside the eighty, per the palette rule.
+     */
+    static final int GOLD_PRESSED = 0xa67f4a;
+    static final int DARK_PRESSED = 0x100a07;
+
     /** Section headings. */
     static final int HEADING = 0xd9a441;
     /** Descriptions and secondary readings. */
@@ -56,6 +68,14 @@ final class ScreenArt {
     static final int BUTTON_W = 268;
     static final int BUTTON_H = 46;
     static final int BUTTON_PITCH = 56;
+
+    /**
+     * How far a pressed plate's label travels, down and to the right — the
+     * bevel's own thickness, so the label lands exactly where the recess puts
+     * it. The mock has no pressed state; see {@link Chrome#plate} for why one
+     * exists anyway and why it is not the hover glow §11 forbids.
+     */
+    static final int SINK = THICK;
 
     // --- the title ---------------------------------------------------------
 

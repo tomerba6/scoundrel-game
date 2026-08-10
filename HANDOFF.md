@@ -612,6 +612,15 @@ No hover glows, no fades between screens, no drop shadows on panels, no rounded 
 gradients except the three-band fills. A screen transition is a **cut** — one frame, old screen
 gone, new screen up. Anything softer reads as a web page.
 
+> **One state was added that the mock does not have: a pressed plate.** The mock renders one
+> still frame per screen, so it has nothing to say about held buttons — but the menus act on
+> release, and a button that can be taken back by sliding off has to show what it is about to
+> act on or it reads as broken. It is not the hover glow ruled out above: nothing lights up,
+> nothing scales, and every colour is on the eighty. The bevel inverts, the face drops to its
+> shadowed step (`a67f4a` for gold, `100a07` for dark — wood-ramp steps, since the accent row
+> the gold lives on is a row of accents and has no darker gold in it), and the label travels
+> 2px down and right. One frame, no tween. `Chrome.plate` draws it; `PressGesture` decides when.
+
 ---
 
 ## 12. Order of work

@@ -143,6 +143,29 @@ function Click([int]$x, [int]$y) {
   Write-Output ("CLICK {0},{1}" -f $x, $y)
 }
 
+# The two halves of a click, separately, so a held button can be screenshotted.
+# Menu buttons act on release and draw themselves sunk while held, and a whole
+# Click is over long before a Shot could catch that. Pair them with move: to
+# drive a press that slides off its button and is taken back.
+function Down([int]$x, [int]$y) {
+  [void][W]::SetCursorPos($origin.X + $x, $origin.Y + $y)
+  Start-Sleep -Milliseconds 150
+  [W]::mouse_event(0x0002, 0, 0, 0, [IntPtr]::Zero)   # LEFTDOWN
+  Start-Sleep -Milliseconds 120
+  Write-Output ("DOWN {0},{1}" -f $x, $y)
+}
+
+# A negative x means release where the pointer already is.
+function Up([int]$x, [int]$y) {
+  if ($x -ge 0) {
+    [void][W]::SetCursorPos($origin.X + $x, $origin.Y + $y)
+    Start-Sleep -Milliseconds 150
+  }
+  [W]::mouse_event(0x0004, 0, 0, 0, [IntPtr]::Zero)   # LEFTUP
+  Start-Sleep -Milliseconds 120
+  Write-Output ("UP {0},{1}" -f $x, $y)
+}
+
 # Debug and view-toggle bindings are polled per frame by the game (F11 fullscreen,
 # F9 the sprite inspector, Esc to leave a screen), so they need real key events
 # rather than clicks. Named rather than numeric so actions stay readable.
@@ -203,6 +226,14 @@ foreach ($a in $Actions.Split(",")) {
   } elseif ($a.StartsWith("click:")) {
     $c = $a.Substring(6).Split(":")
     Click ([int]$c[0]) ([int]$c[1])
+  } elseif ($a.StartsWith("down:")) {
+    $d = $a.Substring(5).Split(":")
+    Down ([int]$d[0]) ([int]$d[1])
+  } elseif ($a -eq "up") {
+    Up -1 -1
+  } elseif ($a.StartsWith("up:")) {
+    $u = $a.Substring(3).Split(":")
+    Up ([int]$u[0]) ([int]$u[1])
   } elseif ($a.StartsWith("move:")) {
     # Cursor move with no button, for hover states.
     $m = $a.Substring(5).Split(":")

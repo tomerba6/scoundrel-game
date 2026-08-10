@@ -52,6 +52,26 @@ visual tokens, the architecture, and every component on screen. It complements
      mouse is already travelling to the next card as the button comes up —
      silently lost clicks. Real buttons (Avoid, New game, Records) keep
      release semantics, so a press can still be cancelled by sliding off.
+- **Menu buttons act on release, and show the press while they wait**
+  (`PressGesture`, added 2026-08-10). The pixel menus hit-test their own
+  rectangles, so they get none of Scene2D's button behaviour for free and had
+  been acting on the press instead. Three parts, and the third is the one that
+  is easy to miss:
+  1. The release only counts where the press began. Sliding off lifts the plate
+     and cancels; sliding back on re-arms it, because a wobble on the way to a
+     click is not a change of mind.
+  2. A held plate is drawn **pressed** — the bevel inverted, the face on its
+     shadowed step, the label travelled 2px down and right into the recess
+     (`Chrome.plate`). Release semantics without this read as a button that did
+     not work.
+  3. **The action fires from `render`, not from the release.** A click is often
+     shorter than four frames and every menu button navigates, so acting the
+     instant the button came up cut to the next screen before the sunk plate had
+     been drawn once — release semantics that felt *less* responsive than the
+     press-to-act they replaced. The release arms; `PressGesture.advance` fires
+     once the plate has actually been on screen for 60ms. Note the hazard that
+     goes with it: navigating disposes the calling screen, so `render` must
+     `return` immediately after — see the death-cinematic note below.
 - **Event log: fading feed.** The last few events float top-right and fade;
   no permanent log panel.
 - **Flow (revised 2026-07-07):** launch lands on a tiny **title screen** —

@@ -64,8 +64,17 @@ Then **look at the PNG** with the Read tool. A blank frame means it never came u
 
 ### 3. Click and screenshot
 
-Actions are comma-separated and run in order: `click:<x>:<y>`, `key:<name>`,
-`wait:<ms>`, `shot:<path>`.
+Actions are comma-separated and run in order: `click:<x>:<y>`, `move:<x>:<y>`,
+`down:<x>:<y>`, `up` / `up:<x>:<y>`, `key:<name>`, `wait:<ms>`, `shot:<path>`,
+`resize:<w>:<h>`.
+
+`down:`/`up:` are the two halves of a click, so a **held** button can be
+screenshotted — `click:` is over long before a `shot:` could catch it. Menu
+buttons draw themselves sunk while held and act on release, so a press that
+slides off and is taken back is driven as
+`down:731:349,shot:...,move:250:650,shot:...,up:250:650`. Bare `up` releases
+wherever the pointer already is. Always pair them in one chain: a `down:` with
+no `up:` leaves the OS mouse button stuck down for whatever runs next.
 
 `key:` takes `ESC`, `ENTER`, `SPACE`, `TAB`, any single letter or digit, or
 `F1`-`F12` — the bindings the game polls per frame rather than through Scene2D:
@@ -96,8 +105,8 @@ Client pixels, origin **top-left**, window 1280x720.
 
 | Screen | Target | x, y |
 |---|---|---|
-| Title (3 buttons) | New game / Records / Trophies | 640,346 / 640,390 / 640,434 |
-| Title (4 buttons, tutorial seen) | New game / How to play / Records / Trophies | 640,324 / 640,367 / 640,410 / 640,453 |
+| Title (pixel) | New game / How to play / The ledger / Trophies | 731,349 / 731,405 / 731,461 / 731,517 |
+| Title (pixel) | First-run prompt: Play tutorial / Maybe later | 640,349 / 640,405 |
 | Mode picker | Standard / Relentless / Frail | 176,153 / 176,204 / 176,255 |
 | Mode picker | Back | 92,680 |
 | Game board | Avoid button | 1198,46 |
@@ -162,8 +171,11 @@ These all cost real time in this container.
   matching `MainWindowTitle` over the process list.
 - **Scene2D world Y points up, client Y points down**: `client_y = 720 - world_y`
   when converting a coordinate read off the UI code.
-- **Cards resolve on _press_, buttons on _release_** (`Widgets.pressListener`).
-  The driver sends a full down+up, which satisfies both.
+- **Cards resolve on _press_, buttons on _release_** (`Widgets.pressListener`,
+  `PressGesture`). The driver's `click:` sends a full down+up, which satisfies
+  both. A menu button also holds its sunk plate for 60ms before acting, so a
+  `shot:` taken within ~100ms of a `click:` catches the button still down rather
+  than the screen it navigates to — `wait:` at least 300ms after clicking a menu.
 - **A card with more than one legal move opens a chooser popup** centred on that
   card (e.g. "Barehanded" / "Use weapon" for a monster while armed). Scripted
   play needs a second click to pick one.

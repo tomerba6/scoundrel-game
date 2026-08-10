@@ -67,6 +67,8 @@ public final class TitleScreen extends ScreenAdapter {
     private float elapsed;
     /** The one-time first-run prompt, over the menu. */
     private boolean offeringTutorial;
+    /** Which button is held, and when a release has earned the right to act. */
+    private final PressGesture press = new PressGesture();
 
     /** One menu row: what it says and what it does. */
     private record Entry(String label, Runnable action) {
@@ -125,37 +127,79 @@ public final class TitleScreen extends ScreenAdapter {
         Gdx.input.setInputProcessor(new MenuInput());
     }
 
-    /** The menu takes presses; the prompt, while it is up, takes them first. */
+    /**
+     * Which button a window-space point is on, in whichever column is live —
+     * the prompt is modal, so it is the only one that answers while it is up.
+     * The two columns therefore share one index space.
+     */
+    private int hit(int screenX, int screenY) {
+        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+        return offeringTutorial
+                ? ScreenArt.buttonAt(promptButtonX(), 2, point.x, point.y)
+                : ScreenArt.buttonAt(ScreenArt.COLUMN_X, menu.size(), point.x, point.y);
+    }
+
+    /**
+     * The menu acts on release, and only where the press began — see
+     * {@link PressGesture}. All three events feed the same gesture; what it
+     * decides is read back in {@link #render} and in the draws.
+     */
     private final class MenuInput extends InputAdapter {
         @Override
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
             if (button != Input.Buttons.LEFT) {
                 return false;
             }
-            Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
-            if (offeringTutorial) {
-                int picked = ScreenArt.buttonAt(promptButtonX(), 2, point.x, point.y);
-                if (picked == 0) {
-                    game.showTutorial();
-                } else if (picked == 1) {
-                    game.markTutorialSeen();
-                    offeringTutorial = false;
-                }
-                return true; // modal: nothing behind it responds
-            }
-            int picked = ScreenArt.buttonAt(ScreenArt.COLUMN_X, menu.size(), point.x, point.y);
-            if (picked >= 0) {
-                menu.get(picked).action().run();
-                return true;
-            }
+            // Modal: while the prompt is up, nothing behind it responds — to a
+            // press that misses its two buttons either.
+            return press.press(hit(screenX, screenY)) || offeringTutorial;
+        }
+
+        @Override
+        public boolean touchDragged(int screenX, int screenY, int pointer) {
+            press.moveOver(hit(screenX, screenY));
             return false;
         }
+
+        @Override
+        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+            if (button != Input.Buttons.LEFT) {
+                return false;
+            }
+            return press.release(hit(screenX, screenY)) || offeringTutorial;
+        }
+    }
+
+    /** What a released button does. Only reached once its press has been seen. */
+    private void activate(int index) {
+        if (offeringTutorial) {
+            if (index == 0) {
+                game.showTutorial();
+            } else {
+                game.markTutorialSeen();
+                offeringTutorial = false;
+            }
+            return;
+        }
+        menu.get(index).action().run();
     }
 
     @Override
     public void render(float delta) {
         elapsed += delta;
         backdrop.advance(delta);
+
+        // A button acts here rather than the instant it comes up, once its plate
+        // has been down long enough to have been seen. Acting navigates, and
+        // navigating disposes this screen along with its batch and surface — so
+        // nothing may be drawn afterwards.
+        int fired = press.advance(delta);
+        if (fired != PressGesture.NONE) {
+            activate(fired);
+            if (game.getScreen() != this) {
+                return;
+            }
+        }
 
         surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
         batch.setProjectionMatrix(surface.projection());
@@ -218,12 +262,15 @@ public final class TitleScreen extends ScreenAdapter {
         chrome.text(batch, theme.pixelLabel, bestLine, x, ScreenArt.BEST_TOP,
                 ScreenArt.BODY, ScreenArt.BODY_ALPHA);
 
+        // The prompt owns the press while it is up, and the two columns share an
+        // index space, so the menu behind it must not sink a button of its own.
+        int sunk = offeringTutorial ? PressGesture.NONE : press.sunk();
         for (int i = 0; i < menu.size(); i++) {
             // The first is gold, the rest dark: one thing to do, and three
             // places to look at first.
             chrome.plate(batch, x, ScreenArt.buttonY(i), ScreenArt.BUTTON_W,
                     ScreenArt.BUTTON_H, menu.get(i).label(),
-                    i == 0 ? Chrome.Plate.GOLD : Chrome.Plate.DARK);
+                    i == 0 ? Chrome.Plate.GOLD : Chrome.Plate.DARK, i == sunk);
         }
 
         chrome.centredOn(batch, theme.pixelSmall, CREDIT, (int) (Theme.WORLD_WIDTH / 2),
@@ -265,10 +312,11 @@ public final class TitleScreen extends ScreenAdapter {
                 ScreenArt.BODY, ScreenArt.BODY_ALPHA);
         // Reusing the menu's own button geometry, so the prompt's two choices
         // are the same shape and pitch as the four behind them.
+        int sunk = press.sunk();
         chrome.plate(batch, promptButtonX(), ScreenArt.buttonY(0), ScreenArt.BUTTON_W,
-                ScreenArt.BUTTON_H, "PLAY TUTORIAL", Chrome.Plate.GOLD);
+                ScreenArt.BUTTON_H, "PLAY TUTORIAL", Chrome.Plate.GOLD, sunk == 0);
         chrome.plate(batch, promptButtonX(), ScreenArt.buttonY(1), ScreenArt.BUTTON_W,
-                ScreenArt.BUTTON_H, "MAYBE LATER", Chrome.Plate.DARK);
+                ScreenArt.BUTTON_H, "MAYBE LATER", Chrome.Plate.DARK, sunk == 1);
     }
 
     @Override

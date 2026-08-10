@@ -91,6 +91,24 @@ final class Chrome {
      * one place that draws it, so they cannot drift apart.
      */
     void plate(Batch batch, int x, int y, int w, int h, String text, Plate style) {
+        plate(batch, x, y, w, h, text, style, false);
+    }
+
+    /**
+     * The same plate, held down. The mock has no pressed state — it renders one
+     * still frame per screen — but a menu that acts on release has to show what
+     * it is about to act on, or a press that gets taken back by sliding off
+     * looks like a button that did not work.
+     *
+     * <p>It is not the hover glow §11 rules out: nothing lights up, nothing
+     * scales, and every colour is on the eighty. The bevel inverts — the dark
+     * tone along the top and left, the light along the bottom and right — so the
+     * same four colours read as a recess instead of a raise; the face drops to
+     * its shadowed step; and the label travels {@link ScreenArt#SINK} down and
+     * right into the well. Whole pixels, one frame, no tween.
+     */
+    void plate(Batch batch, int x, int y, int w, int h, String text, Plate style,
+               boolean pressed) {
         int face;
         int light;
         int dark;
@@ -98,13 +116,13 @@ final class Chrome {
         float labelAlpha = 1f;
         switch (style) {
             case GOLD -> {
-                face = ScreenArt.GOLD;
+                face = pressed ? ScreenArt.GOLD_PRESSED : ScreenArt.GOLD;
                 light = ScreenArt.GOLD_LIGHT;
                 dark = ScreenArt.GOLD_DARK;
                 label = ScreenArt.GOLD_LABEL;
             }
             case DARK -> {
-                face = ScreenArt.DARK;
+                face = pressed ? ScreenArt.DARK_PRESSED : ScreenArt.DARK;
                 light = ScreenArt.DARK_LIGHT;
                 dark = ScreenArt.DARK_DARK;
                 label = ScreenArt.DARK_LABEL;
@@ -119,10 +137,12 @@ final class Chrome {
             }
         }
         int t = ScreenArt.THICK;
+        int travel = pressed ? ScreenArt.SINK : 0;
         frame(batch, x, y, w, h);
         face(batch, x + t, y + t, w - 2 * t, h - 2 * t, face);
-        bevel(batch, x + t, y + t, w - 2 * t, h - 2 * t, light, dark);
-        centred(batch, theme.pixelLabel, text, x, y, w, h, label, labelAlpha);
+        bevel(batch, x + t, y + t, w - 2 * t, h - 2 * t,
+                pressed ? dark : light, pressed ? light : dark);
+        centred(batch, theme.pixelLabel, text, x + travel, y + travel, w, h, label, labelAlpha);
     }
 
     /**

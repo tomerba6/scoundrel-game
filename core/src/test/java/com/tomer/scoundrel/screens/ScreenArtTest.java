@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -37,7 +38,8 @@ class ScreenArtTest {
     @Test
     void theAccentsAreOnThePalette() {
         for (int rgb : new int[] {ScreenArt.GOLD, ScreenArt.GOLD_LIGHT, ScreenArt.GOLD_DARK,
-                                  ScreenArt.BODY, ScreenArt.HEADING}) {
+                                  ScreenArt.BODY, ScreenArt.HEADING,
+                                  ScreenArt.GOLD_PRESSED, ScreenArt.DARK_PRESSED}) {
             assertTrue(Ramps.contains(rgb),
                     "accent #" + Integer.toHexString(rgb) + " is off the palette");
         }
@@ -73,6 +75,35 @@ class ScreenArtTest {
         assertEquals(326, ScreenArt.buttonY(0));
         assertEquals(382, ScreenArt.buttonY(1), "measured off the title render");
         assertEquals(494, ScreenArt.buttonY(3));
+    }
+
+    /**
+     * A pressed plate's label travels exactly one bevel. Any other number and
+     * the label stops somewhere the recess does not explain — and a fractional
+     * one would put the Silkscreen glyphs off the pixel grid.
+     */
+    @Test
+    void aPressedPlateTravelsExactlyOneBevel() {
+        assertEquals(ScreenArt.THICK, ScreenArt.SINK);
+        assertTrue(ScreenArt.SINK * 2 < ScreenArt.BUTTON_H, "the label would sink out of the plate");
+    }
+
+    /**
+     * A held plate's face must be darker than its resting one and must not
+     * collide with the bevel tone drawn over it — either way round the recess
+     * stops reading, and a plate that gets <em>brighter</em> when pushed in is
+     * the one bug this state can have.
+     */
+    @Test
+    void aHeldPlateGoesDarkerWithoutSwallowingItsBevel() {
+        assertTrue(luma(ScreenArt.GOLD_PRESSED) < luma(ScreenArt.GOLD));
+        assertTrue(luma(ScreenArt.DARK_PRESSED) < luma(ScreenArt.DARK));
+        assertNotEquals(ScreenArt.GOLD_PRESSED, ScreenArt.GOLD_DARK);
+        assertNotEquals(ScreenArt.DARK_PRESSED, ScreenArt.DARK_DARK);
+    }
+
+    private static int luma(int rgb) {
+        return 2 * (rgb >>> 16 & 0xff) + 5 * (rgb >>> 8 & 0xff) + (rgb & 0xff);
     }
 
     /**
