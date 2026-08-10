@@ -81,6 +81,8 @@ public final class Theme implements Disposable {
     private final Texture vignette;
     private final Texture dot;
     private final Texture shade;
+    private final Texture dither;
+    private final TextureRegion ditherRegion;
     private final TextureRegion whiteRegion;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
@@ -124,6 +126,8 @@ public final class Theme implements Disposable {
         white = new Texture(pixel);
         pixel.dispose();
         whiteRegion = new TextureRegion(white);
+        dither = ditherTexture();
+        ditherRegion = new TextureRegion(dither);
 
         glow = radialGlowTexture(256);
         vignette = vignetteTexture(256);
@@ -152,6 +156,49 @@ public final class Theme implements Disposable {
     /** A single white pixel, for drawing tinted rectangles straight onto a Batch. */
     TextureRegion whiteRegion() {
         return whiteRegion;
+    }
+
+    /**
+     * The dim a modal overlay puts the live screen under: a 4×4 ordered dither
+     * at 82%, sized in tiles so one draw covers the stage.
+     *
+     * <p>Not an alpha scrim — HANDOFF §11 is explicit, and it is the same rule
+     * the death wipe follows. A scrim blends every colour underneath toward
+     * black and lands them off the eighty; the dither turns whole pixels off in
+     * a fixed order and leaves the rest exactly as they were, so what shows
+     * through is still palette-true and still legible.
+     */
+    TextureRegion ditherRegion(int width, int height) {
+        ditherRegion.setRegion(0, 0, width / DITHER_TILE, height / DITHER_TILE);
+        return ditherRegion;
+    }
+
+    private static final int DITHER_TILE = 4;
+    /** 13 of the 16 cells dark — the 82% §11 asks for, at the grid's own resolution. */
+    private static final int DITHER_LEVEL = 13;
+    private static final int[] BAYER = {
+        0, 8, 2, 10,
+        12, 4, 14, 6,
+        3, 11, 1, 9,
+        15, 7, 13, 5,
+    };
+
+    private static Texture ditherTexture() {
+        Pixmap pixmap = new Pixmap(DITHER_TILE, DITHER_TILE, Pixmap.Format.RGBA8888);
+        pixmap.setBlending(Pixmap.Blending.None);
+        for (int y = 0; y < DITHER_TILE; y++) {
+            for (int x = 0; x < DITHER_TILE; x++) {
+                // Opaque black or nothing at all. No partial alpha anywhere —
+                // that is what makes it a pattern rather than a fade.
+                boolean dark = BAYER[y * DITHER_TILE + x] < DITHER_LEVEL;
+                pixmap.drawPixel(x, y, dark ? 0x000000ff : 0x00000000);
+            }
+        }
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        texture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+        pixmap.dispose();
+        return texture;
     }
 
     /** Soft warm radial glow (white; tinted at draw). Package-private — only the Backdrop uses it. */
@@ -382,6 +429,7 @@ public final class Theme implements Disposable {
         pixelLabelBold.dispose();
         pixelDisplayBold.dispose();
         white.dispose();
+        dither.dispose();
         glow.dispose();
         vignette.dispose();
         dot.dispose();

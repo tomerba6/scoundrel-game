@@ -315,32 +315,48 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
   achievement rule *where the choice is made*, so a variant run never silently
   fails to unlock. Back returns to the title. A new mode appears here with no
   change to the screen.
-- **THE LEDGER (records screen)** — the top 10 runs as a dungeon ledger:
-  Roman-numeral ranks in torchlight, scores in IM Fell (dried blood when
-  negative), outcome, **the mode it was run in**, date, duration, monsters
-  slain, hairline rules between rows. The mode tag is required reading, not
-  decoration: scores are ranked per mode, so without it a Frail 14 beside a
-  Standard 20 is unreadable. An id with no matching mode renders as the raw id. Beside it, lifetime totals headed `ACROSS N FINISHED RUNS` (the
-  label encodes the quit-runs decision: finished games are the whole
-  universe). Empty state invites a first run. Back returns to the title; a
-  quiet **Erase all progress** sits opposite it, bottom-right (disabled when
-  there is nothing to lose).
-- **Erase-progress confirmation** — a destructive reset is never one click. The
-  Erase control (records screen only — deliberately the one such button in the
-  whole app) opens a modal that names exactly what will be lost (`all N recorded
-  runs and M trophies`), with **Keep it** — the prominent torchlight default —
-  and a dried-blood **Erase everything**; both keep release semantics, so a
-  stray press can slide off and cancel. Confirming wipes both logs as a *soft*
-  delete: `RunLog`/`AchievementStore` `clear()` moves each file to a `.bak`
-  sibling rather than deleting, so a mistake is recoverable from disk (the game
-  never auto-restores it). The ledger then re-shows empty.
-- **TROPHIES (achievements screen)** — the whole catalog as a book of deeds,
-  headed by an `N of 10 earned` count. One hairline-ruled row per achievement:
-  title (torchlight when earned, dim when locked), the deed described, and the
-  date won or `locked`. Locked-but-visible trophies show what to aim for; a
+- **THE LEDGER (records screen)** — the top 10 runs in one framed table, rows
+  striping `191513`/`141110` by **flat colour, never alpha**, beside a 296px
+  totals panel. Seven columns: Roman-numeral rank, score (cream, dried blood
+  when negative), outcome (`71b45c` cleared / `8c2f22` defeated), **the mode it
+  was run in**, date, duration, monsters slain. The mode tag is required
+  reading, not decoration: scores are ranked per mode, so without it a Frail 14
+  beside a Standard 20 is unreadable. An id with no matching mode renders as the
+  raw id rather than taking the screen down. The table's height follows its row
+  count, so a short log shrinks the frame instead of leaving it hanging. Empty
+  state invites a first run. What a row *says* is the pure `LedgerRow`.
+  - The totals panel is **not** the reference render's list. That render asks
+    for `WEAPONS BROKEN`, and weapons never break in Scoundrel — they degrade
+    and stay equipped, which is the rule the whole game turns on. The row was
+    drawn from placeholder data, so the panel keeps the render's shape and
+    eight-row rhythm and is filled with figures the game actually keeps
+    (`LedgerTotals`), two of them — the score extremes and the fastest clear —
+    derived rather than stored.
+- **Erase-progress confirmation** — a destructive reset is never one press. The
+  Erase control (ledger only — deliberately the one such button in the whole
+  app) opens a modal that names exactly what will be lost (`N recorded runs and
+  M trophies`). The ledger goes under the **modal dim** first, since the dialog
+  asks about the very thing behind it. **Keep it** is the gold plate — the
+  opposite of how the rest of the game uses gold, and deliberate: the prominent
+  choice here is the safe one. Both plates take release semantics and the
+  pressed state, so even `ERASE EVERYTHING` can be taken back by sliding off,
+  which is verified by screenshot rather than assumed. Escape backs out of the
+  dialog before it backs out of the screen. Confirming wipes both logs as a
+  *soft* delete: `clear()` moves each file to a `.bak` sibling rather than
+  deleting, so a mistake is recoverable from disk (the game never auto-restores
+  it). The ledger then re-shows empty.
+- **TROPHIES (achievements screen)** — the whole catalog as a book of deeds, ten
+  entries in two columns of five, filled **down then across** (getting that
+  row-major would silently reorder the catalog and look entirely plausible).
+  Each row: a 26px seal well, the title, the deed, and the date won. The seal's
+  fill is the *only* difference between earned and locked — §11 rules out a
+  padlock glyph and a greyscale filter, so an empty well is the locked state. A
   hidden trophy stays `???` until earned, then reveals its real title and text.
-  Read once from the `AchievementStore` on entry, guarded; Back returns to the
-  title.
+  The header carries a 160×16 progress bar built exactly like the board's health
+  bar, down to reusing its dark-green empty track under a gold fill — that reads
+  like an oversight and is not, it is what the reference shows. The date a
+  trophy was won is kept, which the render drops; it is real information and the
+  row has the width. What a row says is the pure `TrophyEntry`.
 
 ## Files
 
@@ -371,7 +387,8 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - `core/src/main/java/com/tomer/scoundrel/screens/TitleScreen.java` /
   `ModeSelectScreen.java` / `RecordsScreen.java` / `TrophiesScreen.java` — the
   navigation anchor, the difficulty picker, THE LEDGER, and the achievement
-  catalog.
+  catalog. All four are on the pixel kit and draw in immediate mode; only the
+  board's overlays are still Scene2D.
 - `core/src/main/java/com/tomer/scoundrel/screens/Widgets.java` — shared label
   and button builders for the screens that are still Scene2D, plus
   `pressListener` (the press-not-click input rule).
@@ -380,7 +397,9 @@ and tinted at use; feed copy writes names out ("the Queen of clubs").
 - `core/src/main/java/com/tomer/scoundrel/screens/CardHitRegions.java` /
   `TorchFlicker.java` / `Embers.java` / `ClockText.java` / `FeedText.java` /
   `Feed.java` / `Labels.java` / `ResolveEffect.java` / `BoardArt.java` /
-  `CardArt.java` / `HudArt.java` / `PixelScale.java` / `PixelType.java` — the
+  `CardArt.java` / `HudArt.java` / `PixelScale.java` / `PixelType.java` /
+  `PressGesture.java` / `LedgerRow.java` / `LedgerTotals.java` /
+  `TrophyEntry.java` — the
   pure, headlessly unit-tested logic behind the screens: the "which card is
   under this point" lookup, the flicker curve, the ember sim, the
   run-timer/duration formatting, the event-feed text and its stepped fade, the

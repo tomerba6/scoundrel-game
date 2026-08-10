@@ -221,6 +221,96 @@ class ScreenArtTest {
         }
     }
 
+    /**
+     * The ledger's table, measured off the render. The height follows from the
+     * rows rather than being its own constant, so a row count and a frame
+     * cannot disagree — the failure that leaves a table with a floating edge.
+     */
+    @Test
+    void theLedgerTableIsItsRowsPlusItsHeader() {
+        assertEquals(41, ScreenArt.TABLE_X);
+        assertEquals(111, ScreenArt.TABLE_Y);
+        assertEquals(868, ScreenArt.TABLE_W);
+        assertEquals(140, ScreenArt.ledgerRowY(0), "measured off the render");
+        assertEquals(176, ScreenArt.ledgerRowY(1));
+        assertEquals(464, ScreenArt.ledgerRowY(9));
+        assertEquals(391, ScreenArt.tableH(ScreenArt.LEDGER_ROWS));
+        assertEquals(ScreenArt.TABLE_Y + ScreenArt.tableH(ScreenArt.LEDGER_ROWS) - ScreenArt.THICK,
+                ScreenArt.ledgerRowY(ScreenArt.LEDGER_ROWS - 1) + ScreenArt.ROW_H,
+                "the last row must land on the frame's inside edge");
+        // And a short log shrinks the frame rather than leaving it hanging.
+        assertEquals(ScreenArt.TABLE_Y + ScreenArt.tableH(3) - ScreenArt.THICK,
+                ScreenArt.ledgerRowY(2) + ScreenArt.ROW_H);
+    }
+
+    /** The columns run left to right and none of them overlaps the next. */
+    @Test
+    void theLedgerColumnsAreInOrderInsideTheTable() {
+        int[] edges = {ScreenArt.COL_RUN, ScreenArt.COL_SCORE_RIGHT, ScreenArt.COL_OUTCOME,
+                       ScreenArt.COL_MODE, ScreenArt.COL_DATE, ScreenArt.COL_TIME,
+                       ScreenArt.COL_SLAIN_RIGHT};
+        for (int i = 1; i < edges.length; i++) {
+            assertTrue(edges[i - 1] < edges[i], "column " + i + " runs backwards");
+        }
+        assertTrue(ScreenArt.TABLE_X < edges[0]);
+        assertTrue(edges[edges.length - 1] < ScreenArt.TABLE_X + ScreenArt.TABLE_W);
+    }
+
+    /**
+     * Eight totals rows with a 2px rule at the foot of each but the last, and
+     * the whole stack inside the panel. The rule positions are the render's.
+     */
+    @Test
+    void theTotalsPanelHoldsEightRowsAndItsRules() {
+        assertEquals(943, ScreenArt.TOTALS_X);
+        assertEquals(296, ScreenArt.TOTALS_W);
+        assertEquals(152, ScreenArt.totalsRowY(0));
+        assertEquals(182, ScreenArt.totalsRowY(0) + ScreenArt.TOTALS_ROW_H - ScreenArt.THICK,
+                "the first rule is at 182 on the render");
+        assertEquals(374, ScreenArt.totalsRowY(6) + ScreenArt.TOTALS_ROW_H - ScreenArt.THICK,
+                "and the last one at 374");
+        int bottom = ScreenArt.totalsRowY(ScreenArt.TOTALS_ROWS - 1) + ScreenArt.TOTALS_ROW_H;
+        assertTrue(bottom < ScreenArt.TABLE_Y + ScreenArt.TOTALS_H, "the rows run out of the panel");
+        assertTrue(ScreenArt.TABLE_X + ScreenArt.TABLE_W < ScreenArt.TOTALS_X,
+                "the table and the panel overlap");
+        assertTrue(ScreenArt.totalsRight() < Theme.WORLD_WIDTH);
+    }
+
+    /**
+     * Trophies fill down the first column and then down the second — the order
+     * the catalog is authored in. Getting this row-major would silently reorder
+     * ten achievements and look entirely plausible.
+     */
+    @Test
+    void trophiesFillDownThenAcross() {
+        assertEquals(ScreenArt.TROPHY_X, ScreenArt.trophyX(0));
+        assertEquals(ScreenArt.TROPHY_X, ScreenArt.trophyX(4), "still the first column");
+        assertEquals(651, ScreenArt.trophyX(5), "the second column starts at the sixth");
+        assertEquals(651, ScreenArt.trophyX(9));
+        assertEquals(113, ScreenArt.trophyY(0));
+        assertEquals(389, ScreenArt.trophyY(4));
+        assertEquals(113, ScreenArt.trophyY(5), "the second column starts at the top again");
+    }
+
+    @Test
+    void theTwoTrophyColumnsClearEachOtherAndTheStage() {
+        assertTrue(ScreenArt.trophyX(0) + ScreenArt.TROPHY_W < ScreenArt.trophyX(5));
+        assertTrue(ScreenArt.trophyX(5) + ScreenArt.TROPHY_W <= Theme.WORLD_WIDTH);
+        assertTrue(ScreenArt.TROPHY_PITCH > ScreenArt.TROPHY_H, "rows would overlap");
+        assertTrue(ScreenArt.trophyY(4) + ScreenArt.TROPHY_H < Theme.WORLD_HEIGHT);
+    }
+
+    /** The progress bar fills by whole pixels and never past its own interior. */
+    @Test
+    void theProgressBarFillsInWholePixelsAndClamps() {
+        int interior = ScreenArt.PROGRESS_W - 2 * ScreenArt.THICK;
+        assertEquals(0, ScreenArt.progressFillWidth(0, 10));
+        assertEquals(interior, ScreenArt.progressFillWidth(10, 10));
+        assertEquals(62, ScreenArt.progressFillWidth(4, 10), "the render shows 4 of 10 as 62px");
+        assertEquals(interior, ScreenArt.progressFillWidth(99, 10), "more earned than exist");
+        assertEquals(0, ScreenArt.progressFillWidth(1, 0), "no catalog, no division");
+    }
+
     /** A shorter menu must not answer for buttons it does not draw. */
     @Test
     void aShorterColumnDoesNotAnswerForMissingButtons() {

@@ -157,7 +157,154 @@ final class ScreenArt {
     static final int DESC_DX = 20;
     static final int DESC_DY = 58;
 
+    // --- the ledger --------------------------------------------------------
+
+    /** The table: a header row on the frame's own colour, then ten striped rows. */
+    static final int TABLE_X = 41;
+    static final int TABLE_Y = 111;
+    static final int TABLE_W = 868;
+    static final int TABLE_HEAD_H = 29;
+    static final int LEDGER_ROWS = 10;
+    static final int ROW_H = 36;
+
+    /**
+     * Striping is by <b>flat colour, never alpha</b> — §11 is explicit. A
+     * translucent stripe over the torchlit backdrop would shift down the table
+     * as the gradient does, so the rows would not read as one surface.
+     */
+    static final int ROW_ODD = 0x191513;
+    static final int ROW_EVEN = 0x141110;
+
+    /** Column edges, measured off the render. Two of the seven are right-aligned. */
+    static final int COL_RUN = 57;
+    static final int COL_SCORE_RIGHT = 166;
+    static final int COL_OUTCOME = 189;
+    static final int COL_MODE = 285;
+    static final int COL_DATE = 389;
+    static final int COL_TIME = 463;
+    static final int COL_SLAIN_RIGHT = 892;
+
+    static final int SCORE_POSITIVE = 0xe8ddc7;
+    static final int SCORE_NEGATIVE = 0x8c2f22;
+    static final int OUTCOME_WON = 0x71b45c;
+    static final int OUTCOME_LOST = 0x8c2f22;
+    /** The dim columns either side of the score: mode, date, time, slain. */
+    static final int CELL_QUIET = 0x746d63;
+
+    /** The totals panel beside it: a gold heading, then eight rows split by rules. */
+    static final int TOTALS_X = 943;
+    static final int TOTALS_W = 296;
+    static final int TOTALS_H = 310;
+    static final int TOTALS_HEADING_TOP = 130;
+    static final int TOTALS_ROW_Y = 152;
+    static final int TOTALS_ROW_H = 32;
+    static final int TOTALS_ROWS = 8;
+    static final int TOTALS_LABEL_X = 959;
+    static final int TOTALS_VALUE_RIGHT = 1222;
+
+    /** The line where a ledger with nothing in it says so. */
+    static final int EMPTY_TOP = 300;
+
+    /**
+     * The quiet erase control, under the totals panel and sharing its right
+     * edge. Not in the mock — the render has no destructive control at all —
+     * so it sits in the empty half of the screen where nothing else goes.
+     */
+    static final int ERASE_W = 232;
+    static final int ERASE_H = 36;
+    static final int ERASE_Y = 648;
+
+    // --- trophies ----------------------------------------------------------
+
+    /** Ten entries, five to a column, filled down then across. */
+    static final int TROPHY_X = 37;
+    static final int TROPHY_Y = 113;
+    static final int TROPHY_W = 582;
+    static final int TROPHY_H = 55;
+    static final int TROPHY_PITCH = 69;
+    static final int TROPHY_COLUMN_PITCH = 614;
+    static final int TROPHY_PER_COLUMN = 5;
+
+    static final int SEAL_DX = 13;
+    static final int SEAL_DY = 15;
+    static final int SEAL_SIZE = 26;
+    static final int TROPHY_TEXT_DX = 52;
+    static final int TROPHY_TITLE_DY = 15;
+    static final int TROPHY_DESC_DY = 34;
+    static final int TROPHY_STATUS_INSET = 16;
+
+    static final int ROW_EARNED = 0x191513;
+    static final int ROW_LOCKED = 0x131110;
+    /** The empty well <em>is</em> the locked state — §11 rules out a padlock glyph. */
+    static final int SEAL_EARNED = 0xd9a441;
+    static final int SEAL_LOCKED = 0x1e1a17;
+    static final int TROPHY_LOCKED_TEXT = 0x4a3524;
+
+    /** The header's progress bar, built like the board's health bar. */
+    static final int PROGRESS_X = 203;
+    static final int PROGRESS_Y = 35;
+    static final int PROGRESS_W = 160;
+    static final int PROGRESS_H = 20;
+    static final int PROGRESS_SEGMENT = 16;
+    static final int PROGRESS_GAP = 2;
+    /**
+     * "Exactly like the HP bar" turns out to be literal in the render: the empty
+     * track is the health bar's own {@link HudArt#BAR_EMPTY}, a dark green under
+     * a gold fill. It looks like an oversight and is not — sampled off the
+     * reference at 1e2a1c. The separators are the frame colour laid over the
+     * track at the same alpha the board uses.
+     */
+    static final int PROGRESS_EMPTY = HudArt.BAR_EMPTY;
+    static final float PROGRESS_SEGMENT_ALPHA = 0.8f;
+    /** Three bands over a 16px interior, lightest at the top, as the bar is drawn. */
+    static final int PROGRESS_BAND_TOP = 5;
+    static final int PROGRESS_BAND_MID = 6;
+
     private ScreenArt() {
+    }
+
+    /**
+     * The table's height follows from the rows it actually holds, so the frame
+     * and the striping cannot disagree — a fixed height with four runs in it
+     * would leave the bottom of the table hanging empty.
+     */
+    static int tableH(int rows) {
+        return TABLE_HEAD_H + rows * ROW_H + THICK;
+    }
+
+    static int ledgerRowY(int index) {
+        return TABLE_Y + TABLE_HEAD_H + index * ROW_H;
+    }
+
+    /** Each totals row carries a 2px rule at its foot, except the last. */
+    static int totalsRowY(int index) {
+        return TOTALS_ROW_Y + index * TOTALS_ROW_H;
+    }
+
+    static int totalsRight() {
+        return TOTALS_X + TOTALS_W;
+    }
+
+    static int eraseX() {
+        return totalsRight() - ERASE_W;
+    }
+
+    /** Down the first column, then down the second — the order the catalog is in. */
+    static int trophyX(int index) {
+        return TROPHY_X + (index / TROPHY_PER_COLUMN) * TROPHY_COLUMN_PITCH;
+    }
+
+    static int trophyY(int index) {
+        return TROPHY_Y + (index % TROPHY_PER_COLUMN) * TROPHY_PITCH;
+    }
+
+    /** How much of the progress bar is filled, in whole pixels of its interior. */
+    static int progressFillWidth(int earned, int total) {
+        if (total <= 0 || earned <= 0) {
+            return 0;
+        }
+        int interior = PROGRESS_W - 2 * THICK;
+        return Math.round(interior * Math.min(earned, total) / (float) total);
     }
 
     static int panelY(int index) {

@@ -1,164 +1,88 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.Touchable;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.AchievementStore;
-import com.tomer.scoundrel.model.Status;
-import com.tomer.scoundrel.rules.GameMode;
-import com.tomer.scoundrel.rules.GameModes;
 import com.tomer.scoundrel.runs.HighScores;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.runs.RunRecord;
-import com.tomer.scoundrel.runs.RunTotals;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-
-import static com.tomer.scoundrel.screens.Widgets.dangerButton;
-import static com.tomer.scoundrel.screens.Widgets.dim;
-import static com.tomer.scoundrel.screens.Widgets.label;
-import static com.tomer.scoundrel.screens.Widgets.mutedButton;
-import static com.tomer.scoundrel.screens.Widgets.torchButton;
 
 /**
- * THE LEDGER — the top runs and lifetime totals, read once from the run log
- * on entry. Totals are labeled "finished runs" deliberately: abandoned games
- * are never recorded, so finished games are the whole universe.
+ * THE LEDGER — the top runs and the lifetime figures, read once from the run log
+ * on entry. Totals are labelled "finished runs" deliberately: abandoned games are
+ * never recorded, so finished games are the whole universe.
+ *
+ * <p>Drawn in immediate mode from the menu kit ({@link Chrome}, {@link
+ * ScreenArt}) like every screen outside the board. The decisions a row makes —
+ * what it says and what colour it says it in — are in the pure {@link LedgerRow}
+ * and {@link LedgerTotals}, so this class only places things.
  */
 public final class RecordsScreen extends ScreenAdapter {
 
-    private static final String[] ROMAN =
-            {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"};
-    private static final DateTimeFormatter DAY =
-            DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH).withZone(ZoneId.systemDefault());
+    /** The quiet erase control, as a hit-test id alongside {@link ScreenArt#BACK}. */
+    private static final int ERASE = -3;
+    /** While the confirmation is up, its two buttons are the only targets. */
+    private static final int KEEP = 0;
+    private static final int WIPE = 1;
+
+    private static final int DIALOG_W = 640;
+    private static final int DIALOG_H = 244;
+    private static final int DIALOG_X = (int) (Theme.WORLD_WIDTH - DIALOG_W) / 2;
+    private static final int DIALOG_Y = 238;
+    private static final int DIALOG_BUTTON_W = 244;
+    private static final int DIALOG_BUTTON_Y = 396;
+    private static final int DIALOG_BUTTON_GAP = 24;
 
     private final ScoundrelGame game;
     private final Theme theme;
-    private final Stage stage;
 
-    public RecordsScreen(ScoundrelGame game, Theme theme, RunLog runLog, AchievementStore achievements) {
+    private final PixelViewport viewport;
+    private final SpriteBatch batch = new SpriteBatch();
+    private final PixelSurface surface;
+    private final Backdrop backdrop;
+    private final Chrome chrome;
+    private final PressGesture press = new PressGesture();
+
+    private final List<LedgerRow> rows;
+    private final List<LedgerTotals.Stat> totals;
+    private final String caption;
+    private final int runs;
+    private final int trophies;
+    private final boolean hasProgress;
+    /** The destructive confirmation, over the ledger. */
+    private boolean confirming;
+
+    public RecordsScreen(ScoundrelGame game, Theme theme, RunLog runLog,
+                         AchievementStore achievements) {
         this.game = game;
         this.theme = theme;
-        stage = new Stage(new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
-        stage.addActor(new Backdrop(theme));
+        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        this.surface = new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
+        this.backdrop = new Backdrop(theme);
+        this.chrome = new Chrome(theme);
+
         List<RunRecord> records = readSafely(runLog);
-        int trophies = trophyCount(achievements);
-        boolean hasProgress = !records.isEmpty() || trophies > 0;
-
-        Table root = new Table();
-        root.setFillParent(true);
-        root.top().pad(28, 56, 24, 56);
-        stage.addActor(root);
-
-        root.add(label("THE LEDGER", theme.title, Theme.BONE)).colspan(2).padBottom(24);
-        root.row();
-        if (records.isEmpty()) {
-            root.add(label("No runs recorded yet — the dungeon awaits.",
-                    theme.body, dim(Theme.BONE, 0.6f))).colspan(2).expand();
-            root.row();
-        } else {
-            root.add(scoreTable(theme, records)).top().expandX().left();
-            root.add(totalsColumn(theme, RunTotals.of(records))).top().padLeft(56);
-            root.row();
-            root.add().expand().colspan(2);
-            root.row();
+        List<RunRecord> top = HighScores.top(records, ScreenArt.LEDGER_ROWS);
+        List<LedgerRow> built = new ArrayList<>(top.size());
+        for (int i = 0; i < top.size(); i++) {
+            built.add(LedgerRow.of(i, top.get(i)));
         }
-        root.add(bottomBar(records.size(), trophies, hasProgress)).colspan(2).growX();
-    }
-
-    /** Back on the left; the quiet Erase control far right, disabled with nothing to lose. */
-    private Actor bottomBar(int runs, int trophies, boolean hasProgress) {
-        Table bar = new Table();
-        TextButton back = torchButton(theme, "Back");
-        back.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTitle();
-            }
-        });
-        bar.add(back).left();
-        bar.add().expandX();
-        TextButton erase = mutedButton(theme, "Erase all progress");
-        erase.setDisabled(!hasProgress);
-        if (hasProgress) {
-            erase.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    showEraseConfirmation(runs, trophies);
-                }
-            });
-        }
-        bar.add(erase).right();
-        return bar;
-    }
-
-    /**
-     * A modal, two-button confirmation — a destructive erase must never be one
-     * click. It names exactly what will be lost, and both buttons use release
-     * semantics so a press that slides off is cancelled. "Keep it" is the
-     * prominent default; "Erase everything" wears the danger colour.
-     */
-    private void showEraseConfirmation(int runs, int trophies) {
-        Table overlay = new Table();
-        overlay.setFillParent(true);
-        // A Table is childrenOnly by default, which would let presses fall through.
-        overlay.setTouchable(Touchable.enabled);
-        overlay.setBackground(theme.solid(dim(Theme.SOOT, 0.9f)));
-
-        overlay.add(label("Erase all progress?", theme.title, Theme.DRIED_BLOOD)).padBottom(12);
-        overlay.row();
-        overlay.add(label("This clears all " + runs + " recorded " + plural(runs, "run", "runs")
-                + " and " + trophies + " " + plural(trophies, "trophy", "trophies") + ".",
-                theme.body, Theme.BONE)).padBottom(4);
-        overlay.row();
-        overlay.add(label("A backup is kept on disk, but the game will not restore it for you.",
-                theme.small, dim(Theme.BONE, 0.6f))).padBottom(28);
-        overlay.row();
-
-        Table buttons = new Table();
-        TextButton keep = torchButton(theme, "Keep it");
-        keep.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                overlay.remove();
-            }
-        });
-        buttons.add(keep).padRight(48);
-        TextButton erase = dangerButton(theme, "Erase everything");
-        erase.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.eraseAllProgress();
-                game.showRecords(); // rebuild, now showing the empty ledger
-            }
-        });
-        buttons.add(erase);
-        overlay.add(buttons);
-        stage.addActor(overlay);
-    }
-
-    private static String plural(int count, String one, String many) {
-        return count == 1 ? one : many;
-    }
-
-    private static int trophyCount(AchievementStore achievements) {
-        try {
-            return achievements.unlockedIds().size();
-        } catch (RuntimeException e) {
-            Gdx.app.error("scoundrel", "failed to read achievements", e);
-            return 0;
-        }
+        this.rows = List.copyOf(built);
+        this.totals = LedgerTotals.of(records);
+        this.runs = records.size();
+        this.trophies = trophyCount(achievements);
+        this.hasProgress = runs > 0 || trophies > 0;
+        this.caption = runs == 1 ? "1 FINISHED RUN" : runs + " FINISHED RUNS";
     }
 
     private static List<RunRecord> readSafely(RunLog runLog) {
@@ -170,72 +94,294 @@ public final class RecordsScreen extends ScreenAdapter {
         }
     }
 
-    private Table scoreTable(Theme theme, List<RunRecord> records) {
-        Table table = new Table();
-        List<RunRecord> top = HighScores.top(records, ROMAN.length);
-        for (int i = 0; i < top.size(); i++) {
-            RunRecord run = top.get(i);
-            boolean won = run.outcome() == Status.WON;
-            table.add(label(ROMAN[i], theme.bodyBold, Theme.TORCHLIGHT)).right().padRight(20);
-            table.add(label(String.valueOf(run.score()), theme.bodyBold,
-                    run.score() < 0 ? Theme.DRIED_BLOOD : Theme.BONE)).right().padRight(28);
-            table.add(label(won ? "cleared" : "defeated", theme.body,
-                    won ? dim(Theme.TORCHLIGHT, 0.9f) : dim(Theme.BONE, 0.5f))).left().padRight(28);
-            // Scores are ranked per mode, so a row must say which one it was won in.
-            table.add(label(modeLabel(run.rulesetId()), theme.small, dim(Theme.BONE, 0.5f)))
-                    .left().padRight(28);
-            table.add(label(DAY.format(run.endedAt()), theme.small, dim(Theme.BONE, 0.5f)))
-                    .left().padRight(28);
-            table.add(label(ClockText.format(run.seconds()), theme.small, dim(Theme.BONE, 0.5f)))
-                    .left().padRight(28);
-            table.add(label(run.monstersDefeated() + " slain", theme.small, dim(Theme.BONE, 0.5f)))
-                    .left();
-            table.row();
-            table.add(new Image(theme.solid(dim(Theme.BONE, 0.13f))))
-                    .colspan(7).growX().height(1).padTop(7).padBottom(7);
-            table.row();
+    private static int trophyCount(AchievementStore achievements) {
+        try {
+            return achievements.unlockedIds().size();
+        } catch (RuntimeException e) {
+            Gdx.app.error("scoundrel", "failed to read achievements", e);
+            return 0;
         }
-        return table;
-    }
-
-    /** The mode's menu name; an unknown or retired id falls back to the raw id. */
-    private static String modeLabel(String rulesetId) {
-        return GameModes.byId(rulesetId).map(GameMode::title).orElse(rulesetId);
-    }
-
-    private Table totalsColumn(Theme theme, RunTotals totals) {
-        Table side = new Table();
-        side.add(label("ACROSS " + totals.runs() + " FINISHED RUNS",
-                theme.bodyBold, Theme.TORCHLIGHT)).colspan(2).left().padBottom(14);
-        side.row();
-        stat(side, theme, "cleared", totals.wins() + "  (" + Math.round(totals.winRate() * 100) + "%)");
-        stat(side, theme, "defeated", String.valueOf(totals.losses()));
-        stat(side, theme, "monsters slain", String.valueOf(totals.monstersDefeated()));
-        stat(side, theme, "damage taken", String.valueOf(totals.damageTaken()));
-        stat(side, theme, "health healed", String.valueOf(totals.healthHealed()));
-        stat(side, theme, "potions drunk", totals.potionsDrunk() + "  (" + totals.potionsWasted() + " wasted)");
-        stat(side, theme, "weapons equipped", String.valueOf(totals.weaponsEquipped()));
-        stat(side, theme, "rooms avoided", String.valueOf(totals.roomsAvoided()));
-        stat(side, theme, "time below", ClockText.format(totals.secondsPlayed()));
-        return side;
-    }
-
-    private void stat(Table side, Theme theme, String name, String value) {
-        side.add(label(name, theme.body, dim(Theme.BONE, 0.55f))).left().padRight(28).padBottom(5);
-        side.add(label(value, theme.bodyBold, Theme.BONE)).right().padBottom(5);
-        side.row();
     }
 
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(stage);
+        Gdx.input.setInputProcessor(new LedgerInput());
+    }
+
+    /**
+     * What a window-space point is on. While the confirmation is up it is the
+     * only thing that answers — a destructive dialog that let the screen behind
+     * it take a press would be the worst place in the game to get that wrong.
+     */
+    private int hit(int screenX, int screenY) {
+        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+        if (confirming) {
+            if (dialogButtonContains(0, point.x, point.y)) {
+                return KEEP;
+            }
+            return dialogButtonContains(1, point.x, point.y) ? WIPE : PressGesture.NONE;
+        }
+        if (ScreenArt.backContains(point.x, point.y)) {
+            return ScreenArt.BACK;
+        }
+        if (hasProgress && eraseContains(point.x, point.y)) {
+            return ERASE;
+        }
+        return PressGesture.NONE;
+    }
+
+    private void activate(int target) {
+        switch (target) {
+            case ScreenArt.BACK -> game.showTitle();
+            case ERASE -> confirming = true;
+            case KEEP -> confirming = false;
+            case WIPE -> {
+                game.eraseAllProgress();
+                game.showRecords(); // rebuild, now showing the empty ledger
+            }
+            default -> {
+            }
+        }
+    }
+
+    private final class LedgerInput extends InputAdapter {
+        @Override
+        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            if (button != Input.Buttons.LEFT) {
+                return false;
+            }
+            return press.press(hit(screenX, screenY)) || confirming;
+        }
+
+        @Override
+        public boolean touchDragged(int screenX, int screenY, int pointer) {
+            press.moveOver(hit(screenX, screenY));
+            return false;
+        }
+
+        @Override
+        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+            if (button != Input.Buttons.LEFT) {
+                return false;
+            }
+            return press.release(hit(screenX, screenY)) || confirming;
+        }
+
+        @Override
+        public boolean keyDown(int keycode) {
+            if (keycode != Input.Keys.ESCAPE) {
+                return false;
+            }
+            // Escape backs out of the dialog before it backs out of the screen.
+            if (confirming) {
+                confirming = false;
+                press.cancel();
+            } else {
+                game.showTitle();
+            }
+            return true;
+        }
     }
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(Theme.SOOT);
-        stage.act(delta);
-        stage.draw();
+        backdrop.advance(delta);
+
+        // A target acts here rather than the instant it comes up, once it has
+        // been down long enough to have been seen. Leaving disposes this screen
+        // along with its batch and surface, so nothing may be drawn afterwards.
+        int fired = press.advance(delta);
+        if (fired != PressGesture.NONE) {
+            activate(fired);
+            if (game.getScreen() != this) {
+                return;
+            }
+        }
+
+        surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
+        batch.setProjectionMatrix(surface.projection());
+        batch.begin();
+        backdrop.render(batch, 1f);
+        chrome.header(batch, "THE LEDGER", caption,
+                !confirming && press.sunk() == ScreenArt.BACK);
+        if (rows.isEmpty()) {
+            chrome.centredOn(batch, theme.pixelLabel,
+                    "NO RUNS RECORDED YET — THE DUNGEON AWAITS",
+                    (int) (Theme.WORLD_WIDTH / 2), ScreenArt.EMPTY_TOP,
+                    ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+        } else {
+            drawTable();
+            drawTotals();
+        }
+        if (hasProgress) {
+            chrome.plate(batch, ScreenArt.eraseX(), ScreenArt.ERASE_Y, ScreenArt.ERASE_W,
+                    ScreenArt.ERASE_H, "ERASE ALL PROGRESS", Chrome.Plate.DARK,
+                    !confirming && press.sunk() == ERASE);
+        }
+        if (confirming) {
+            drawConfirmation();
+        }
+        batch.end();
+        surface.end();
+
+        ScreenUtils.clear(Color.BLACK);
+        viewport.apply();
+        batch.setProjectionMatrix(viewport.getCamera().combined);
+        batch.begin();
+        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        batch.end();
+    }
+
+    /** The ten best runs, one frame around the lot of them. */
+    private void drawTable() {
+        int x = ScreenArt.TABLE_X;
+        int h = ScreenArt.tableH(rows.size());
+        chrome.frame(batch, x, ScreenArt.TABLE_Y, ScreenArt.TABLE_W, h);
+        chrome.face(batch, x + ScreenArt.THICK, ScreenArt.TABLE_Y + ScreenArt.THICK,
+                ScreenArt.TABLE_W - 2 * ScreenArt.THICK,
+                ScreenArt.TABLE_HEAD_H - ScreenArt.THICK, ScreenArt.FRAME);
+
+        int headY = ScreenArt.TABLE_Y + ScreenArt.THICK;
+        int headH = ScreenArt.TABLE_HEAD_H - ScreenArt.THICK;
+        label("RUN", ScreenArt.COL_RUN, headY, headH);
+        labelRight("SCORE", ScreenArt.COL_SCORE_RIGHT, headY, headH);
+        label("OUTCOME", ScreenArt.COL_OUTCOME, headY, headH);
+        label("MODE", ScreenArt.COL_MODE, headY, headH);
+        label("DATE", ScreenArt.COL_DATE, headY, headH);
+        label("TIME", ScreenArt.COL_TIME, headY, headH);
+        labelRight("SLAIN", ScreenArt.COL_SLAIN_RIGHT, headY, headH);
+
+        for (int i = 0; i < rows.size(); i++) {
+            drawRow(rows.get(i), ScreenArt.ledgerRowY(i));
+        }
+    }
+
+    /**
+     * Column headings are gold held back. Silkscreen has no anti-aliasing, so a
+     * full-strength gold at 8px is louder here than the same colour is in the
+     * render, where the browser's own softening takes the edge off it.
+     */
+    private static final float HEADING_ALPHA = 0.75f;
+
+    private void label(String text, int x, int y, int h) {
+        chrome.textInRow(batch, theme.pixelSmall, text, x, y, h, ScreenArt.HEADING, HEADING_ALPHA);
+    }
+
+    private void labelRight(String text, int right, int y, int h) {
+        chrome.textRightInRow(batch, theme.pixelSmall, text, right, y, h,
+                ScreenArt.HEADING, HEADING_ALPHA);
+    }
+
+    private void drawRow(LedgerRow row, int y) {
+        int inset = ScreenArt.THICK;
+        chrome.face(batch, ScreenArt.TABLE_X + inset, y, ScreenArt.TABLE_W - 2 * inset,
+                ScreenArt.ROW_H, row.stripe());
+        int h = ScreenArt.ROW_H;
+        // The numeral is a place in the list, not a reading — the render keeps
+        // it as quiet as the mode and the date, so the eye lands on the score.
+        chrome.textInRow(batch, theme.pixelLabel, row.numeral(), ScreenArt.COL_RUN, y, h,
+                ScreenArt.CELL_QUIET, 1f);
+        chrome.textRightInRow(batch, theme.pixelBody, row.score(), ScreenArt.COL_SCORE_RIGHT,
+                y, h, row.scoreColour(), 1f);
+        chrome.textInRow(batch, theme.pixelSmall, row.outcome(), ScreenArt.COL_OUTCOME, y, h,
+                row.outcomeColour(), 1f);
+        chrome.textInRow(batch, theme.pixelSmall, row.mode(), ScreenArt.COL_MODE, y, h,
+                ScreenArt.CELL_QUIET, 1f);
+        chrome.textInRow(batch, theme.pixelSmall, row.date(), ScreenArt.COL_DATE, y, h,
+                ScreenArt.CELL_QUIET, 1f);
+        chrome.textInRow(batch, theme.pixelSmall, row.time(), ScreenArt.COL_TIME, y, h,
+                ScreenArt.CELL_QUIET, 1f);
+        chrome.textRightInRow(batch, theme.pixelSmall, row.slain(), ScreenArt.COL_SLAIN_RIGHT,
+                y, h, ScreenArt.CELL_QUIET, 1f);
+    }
+
+    /** The lifetime figures, a gold heading over eight rows split by rules. */
+    private void drawTotals() {
+        chrome.frame(batch, ScreenArt.TOTALS_X, ScreenArt.TABLE_Y, ScreenArt.TOTALS_W,
+                ScreenArt.TOTALS_H);
+        chrome.face(batch, ScreenArt.TOTALS_X + ScreenArt.THICK,
+                ScreenArt.TABLE_Y + ScreenArt.THICK,
+                ScreenArt.TOTALS_W - 2 * ScreenArt.THICK,
+                ScreenArt.TOTALS_H - 2 * ScreenArt.THICK, ScreenArt.FACE_TABLE);
+        chrome.text(batch, theme.pixelSmall, "ACROSS ALL RUNS", ScreenArt.TOTALS_LABEL_X,
+                ScreenArt.TOTALS_HEADING_TOP, ScreenArt.HEADING);
+
+        for (int i = 0; i < totals.size(); i++) {
+            LedgerTotals.Stat stat = totals.get(i);
+            int y = ScreenArt.totalsRowY(i);
+            chrome.textInRow(batch, theme.pixelSmall, stat.label(), ScreenArt.TOTALS_LABEL_X,
+                    y, ScreenArt.TOTALS_ROW_H, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+            chrome.textRightInRow(batch, theme.pixelLabelBold, stat.value(),
+                    ScreenArt.TOTALS_VALUE_RIGHT, y, ScreenArt.TOTALS_ROW_H,
+                    ScreenArt.BODY, 1f);
+            if (i < totals.size() - 1) {
+                chrome.rule(batch, ScreenArt.TOTALS_LABEL_X,
+                        y + ScreenArt.TOTALS_ROW_H - ScreenArt.THICK,
+                        ScreenArt.TOTALS_VALUE_RIGHT - ScreenArt.TOTALS_LABEL_X);
+            }
+        }
+    }
+
+    // --- the erase confirmation ---
+
+    private static boolean eraseContains(float worldX, float worldY) {
+        float bottom = CardArt.toWorldY(ScreenArt.ERASE_Y, ScreenArt.ERASE_H);
+        return worldX >= ScreenArt.eraseX()
+                && worldX < ScreenArt.eraseX() + ScreenArt.ERASE_W
+                && worldY >= bottom && worldY < bottom + ScreenArt.ERASE_H;
+    }
+
+    private static int dialogButtonX(int index) {
+        int span = 2 * DIALOG_BUTTON_W + DIALOG_BUTTON_GAP;
+        int left = (int) (Theme.WORLD_WIDTH - span) / 2;
+        return left + index * (DIALOG_BUTTON_W + DIALOG_BUTTON_GAP);
+    }
+
+    private static boolean dialogButtonContains(int index, float worldX, float worldY) {
+        int x = dialogButtonX(index);
+        float bottom = CardArt.toWorldY(DIALOG_BUTTON_Y, ScreenArt.BUTTON_H);
+        return worldX >= x && worldX < x + DIALOG_BUTTON_W
+                && worldY >= bottom && worldY < bottom + ScreenArt.BUTTON_H;
+    }
+
+    /**
+     * A destructive erase is never one press. The dialog names exactly what
+     * will be lost, and "keep it" is the prominent choice — the gold plate is
+     * the one you are meant to reach for, which is the opposite of how the rest
+     * of the game uses it.
+     *
+     * <p>Not in the mock, which has no dialog, so it is built from the same five
+     * parts as everything else rather than invented.
+     */
+    private void drawConfirmation() {
+        // The ledger goes under the modal dim first — the dialog asks about the
+        // very thing behind it, so the table has to stop competing with it.
+        chrome.dim(batch);
+        chrome.frame(batch, DIALOG_X, DIALOG_Y, DIALOG_W, DIALOG_H);
+        chrome.face(batch, DIALOG_X + ScreenArt.THICK, DIALOG_Y + ScreenArt.THICK,
+                DIALOG_W - 2 * ScreenArt.THICK, DIALOG_H - 2 * ScreenArt.THICK,
+                ScreenArt.FACE_PANEL);
+
+        int centre = (int) (Theme.WORLD_WIDTH / 2);
+        chrome.centredOn(batch, theme.pixelBody, "ERASE ALL PROGRESS?", centre,
+                DIALOG_Y + 28, ScreenArt.OUTCOME_LOST, 1f);
+        chrome.centredOn(batch, theme.pixelLabel,
+                "THIS CLEARS " + runs + " RECORDED " + plural(runs, "RUN", "RUNS")
+                        + " AND " + trophies + " " + plural(trophies, "TROPHY", "TROPHIES") + ".",
+                centre, DIALOG_Y + 70, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+        chrome.centredOn(batch, theme.pixelSmall,
+                "A BACKUP IS KEPT ON DISK, BUT THE GAME WILL NOT RESTORE IT FOR YOU.",
+                centre, DIALOG_Y + 96, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+
+        int sunk = press.sunk();
+        chrome.plate(batch, dialogButtonX(0), DIALOG_BUTTON_Y, DIALOG_BUTTON_W,
+                ScreenArt.BUTTON_H, "KEEP IT", Chrome.Plate.GOLD, sunk == KEEP);
+        chrome.plate(batch, dialogButtonX(1), DIALOG_BUTTON_Y, DIALOG_BUTTON_W,
+                ScreenArt.BUTTON_H, "ERASE EVERYTHING", Chrome.Plate.DARK, sunk == WIPE);
+    }
+
+    private static String plural(int count, String one, String many) {
+        return count == 1 ? one : many;
     }
 
     @Override
@@ -243,11 +389,12 @@ public final class RecordsScreen extends ScreenAdapter {
         if (width <= 0 || height <= 0) {
             return;
         }
-        stage.getViewport().update(width, height, true);
+        viewport.update(width, height, true);
     }
 
     @Override
     public void dispose() {
-        stage.dispose();
+        surface.dispose();
+        batch.dispose();
     }
 }

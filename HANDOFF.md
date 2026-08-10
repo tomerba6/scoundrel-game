@@ -581,7 +581,10 @@ four 268px buttons — the first gold, the rest dark. Credit line 10px at the bo
 `74838f`, description below. **The selected panel's frame is `d9a441` instead of `0f1410`** — that
 is the whole selection treatment, no glow and no scale.
 
-**THE LEDGER** — a table in one frame beside a 296px totals panel. Column header row on `0f1410`
+**THE LEDGER** — a table in one frame beside a 296px totals panel. *(Built. The totals panel's
+own row list is not: it asks for `WEAPONS BROKEN`, and weapons never break in Scoundrel — they
+degrade and stay equipped. That row came from placeholder data. The panel keeps this shape and
+rhythm and holds figures the game actually keeps; see `LedgerTotals`.)* Column header row on `0f1410`
 with 9px gold labels. Rows alternate `191513` / `141110` — striping by **flat colour, never alpha**.
 Score is 14px, cream when positive and `8c2f22` when negative; outcome is 10px, `71b45c` for
 cleared and `8c2f22` for defeated. Totals panel: gold heading, then rows separated by 2px rules.
@@ -590,7 +593,10 @@ cleared and `8c2f22` for defeated. Totals panel: gold heading, then rows separat
 three-band gold fill, segment overlay every 16px). Ten entries in two columns: a 26px seal well per
 row, filled `d9a441` when earned and `1e1a17` when not; earned rows sit on `191513` with cream
 text, locked on `131110` with `4a3524`. **No padlock glyph and no greyscale filter** — the empty
-well is the locked state.
+well is the locked state. *(Built. Two notes: the entries fill down the first column then down the
+second, and each row also carries the date it was won, which this render drops — it is real
+information and the row has the width for it. The bar's empty track really is the health bar's
+`1e2a1c`, sampled off the render; it looks like an oversight and is what the reference shows.)*
 
 **TUTORIAL** — an overlay on the live board. The board dims under a **4×4 ordered dither at 82%**,
 not an alpha scrim — same rule as the death wipe. The taught card is ringed by **eight 24×4 corner

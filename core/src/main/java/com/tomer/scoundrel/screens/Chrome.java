@@ -74,6 +74,19 @@ final class Chrome {
         face(batch, x + w - t, y, t, h, dark);
     }
 
+    /**
+     * Puts the whole screen under the modal dim, for an overlay that must be
+     * answered before anything behind it. See {@link Theme#ditherRegion} for why
+     * it is a dither and not a scrim.
+     */
+    void dim(Batch batch) {
+        Color previous = batch.getColor().cpy();
+        batch.setColor(Color.WHITE);
+        batch.draw(theme.ditherRegion((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
+                0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        batch.setColor(previous);
+    }
+
     void rule(Batch batch, int x, int y, int w) {
         face(batch, x, y, w, ScreenArt.THICK, ScreenArt.RULE, ScreenArt.RULE_ALPHA);
     }
@@ -185,6 +198,25 @@ final class Chrome {
                    int rgb, float alpha) {
         layout.setText(font, s);
         text(batch, font, s, right - Math.round(layout.width), top, rgb, alpha);
+    }
+
+    /**
+     * Left-aligned at {@code x} and centred down a row — how a table cell sits.
+     * The row's height is what centres it, not the font's, so cells set in
+     * different sizes still share one optical line.
+     */
+    void textInRow(Batch batch, BitmapFont font, String s, int x, int y, int h,
+                   int rgb, float alpha) {
+        layout.setText(font, s);
+        text(batch, font, s, x, y + Math.round((h - layout.height) / 2f), rgb, alpha);
+    }
+
+    /** The same, ending on an edge — the column a table's numbers line up against. */
+    void textRightInRow(Batch batch, BitmapFont font, String s, int right, int y, int h,
+                        int rgb, float alpha) {
+        layout.setText(font, s);
+        text(batch, font, s, right - Math.round(layout.width),
+                y + Math.round((h - layout.height) / 2f), rgb, alpha);
     }
 
     /** Centred in a box, horizontally and vertically — how a label sits on a plate. */
