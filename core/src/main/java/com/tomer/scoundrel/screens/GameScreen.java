@@ -99,7 +99,9 @@ public final class GameScreen extends ScreenAdapter {
 
     private GameState state;
     private RunRecorder recorder;
+    /** Frozen off the finished record, so the panel quotes exactly what was filed. */
     private long finalRunSeconds;
+    private int finalDamageTaken;
     private AchievementTracker tracker;
     private String endBestLine;
     private List<Achievement> newlyUnlocked = List.of();
@@ -580,9 +582,9 @@ public final class GameScreen extends ScreenAdapter {
         if (state.status() != Status.IN_PROGRESS) {
             endSummary = tutorial != null
                     ? EndSummary.tutorial(state.score(), state.health())
-                    : EndSummary.of(state.status(), state.score(), state.health(),
-                            finalRunSeconds, "New best!".equals(endBestLine), rules.healthCap(),
-                            state.monstersRemaining());
+                    : EndSummary.of(state.status(), state.score(), finalRunSeconds,
+                            "New best!".equals(endBestLine),
+                            state.monstersRemaining(), finalDamageTaken);
         } else {
             calloutUp = tutorial != null && !tutorial.isComplete();
         }
@@ -954,6 +956,10 @@ public final class GameScreen extends ScreenAdapter {
             tracker = new AchievementTracker(rules.cardsResolvedPerTurn());
         }
         endBestLine = null;
+        // Cleared per run: if the record ever fails to build, the panel must
+        // show zeroes rather than the previous run's figures.
+        finalRunSeconds = 0;
+        finalDamageTaken = 0;
         lastPotion = null;
         weaponBeforeMove = null;
         newlyUnlocked = List.of();
@@ -976,7 +982,9 @@ public final class GameScreen extends ScreenAdapter {
             newlyUnlocked = List.of();
             return;
         }
-        finalRunSeconds = record.seconds(); // the timer freezes here, exactly as recorded
+        // The timer freezes here, and the damage total with it — both exactly as recorded.
+        finalRunSeconds = record.seconds();
+        finalDamageTaken = record.damageTaken();
         try {
             OptionalInt bestBefore = HighScores.bestForRuleset(runLog.readAll(), mode.id());
             runLog.append(record);

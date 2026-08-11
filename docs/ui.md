@@ -326,8 +326,13 @@ to 8.
   the real scoring strategy.
 - **RUN END** — one 600px panel over the modal dim, covering both outcomes:
   eyebrow, headline with a 4px hard shadow, three figures in a shared frame
-  (score, health left or the debt still owed, time), a `NEW BEST` badge, and the
-  trophies the run unlocked. A death is the *same layout* with the gold accents
+  (score, then the middle cell, then time), a `NEW BEST` badge, and the
+  trophies the run unlocked. **The middle cell never repeats the score:** a
+  clear scores exactly the health you kept, so it reports `DAMAGE TAKEN` — what
+  getting out cost — and a death, which has no health left to report, counts the
+  monsters `STILL DOWN THERE`, the one figure that explains how far below zero
+  the score is. The damage figure is set in the health bar's own blood — the red
+  it flashes when you are hit. A death is the *same layout* with the gold accents
   swapped for dried blood — `EndSummary` decides every word and colour, so there
   is one drawing method and not two. The panel has two heights: a run that
   unlocked nothing drops the rule and the trophy band and shrinks by 114, rather

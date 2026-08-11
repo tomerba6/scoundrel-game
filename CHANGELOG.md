@@ -32,6 +32,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   for "weapons broken"; weapons degrade in Scoundrel and never break.
 - TROPHIES rows are taller and their descriptions wrap, so the real achievement copy fits at a
   legible size.
+- The run-end panel's middle figure no longer repeats the score. Clearing the dungeon scores
+  exactly the health you kept, so a win now reports `DAMAGE TAKEN` — what getting out cost — in
+  the health bar's own blood; a death, which has no health left to report, counts the monsters
+  `STILL DOWN THERE`, the one figure that explains how far below zero the score is.
 - Nothing on the converted screens is set below 12px. Silkscreen strokes are 1px, and at the
   ×1.5 scale a 1920×1080 display gets, an 8px glyph loses half of them to rounding.
 

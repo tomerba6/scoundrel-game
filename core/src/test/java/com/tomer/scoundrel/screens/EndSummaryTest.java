@@ -19,7 +19,7 @@ class EndSummaryTest {
 
     @Test
     void clearingTheDungeonReadsAsAnAchievementNotAnEnding() {
-        EndSummary won = EndSummary.of(Status.WON, 17, 17, 252, true, 20, 12);
+        EndSummary won = EndSummary.of(Status.WON, 17, 252, true, 12, 47);
         assertEquals("THE DUNGEON RAN OUT", won.eyebrow());
         assertEquals("CLEARED", won.headline());
         assertEquals(ScreenArt.GOLD, won.accent());
@@ -27,7 +27,7 @@ class EndSummaryTest {
 
     @Test
     void dyingSwapsEveryGoldAccentForDriedBlood() {
-        EndSummary lost = EndSummary.of(Status.LOST, -63, 0, 158, false, 20, 12);
+        EndSummary lost = EndSummary.of(Status.LOST, -63, 158, false, 12, 47);
         assertEquals("YOU DIED", lost.headline());
         assertEquals(ScreenArt.OUTCOME_LOST, lost.accent());
         assertNotEquals(ScreenArt.GOLD, lost.accent());
@@ -37,8 +37,8 @@ class EndSummaryTest {
     @Test
     void thereAreAlwaysExactlyThreeStatCells() {
         for (EndSummary summary : new EndSummary[] {
-                EndSummary.of(Status.WON, 17, 17, 252, true, 20, 12),
-                EndSummary.of(Status.LOST, -63, 0, 158, false, 20, 12)}) {
+                EndSummary.of(Status.WON, 17, 252, true, 12, 47),
+                EndSummary.of(Status.LOST, -63, 158, false, 12, 47)}) {
             assertEquals(3, summary.cells().size());
             for (EndSummary.Cell cell : summary.cells()) {
                 assertFalse(cell.label().isBlank());
@@ -47,17 +47,34 @@ class EndSummaryTest {
         }
     }
 
+    /**
+     * Clearing the dungeon scores the health you kept, so a HEALTH LEFT cell
+     * beside the score was the same number twice. What it costs to get out is
+     * the figure the score cannot carry: two runs that both end on 17 are not
+     * the same run if one of them bled 60 along the way.
+     */
     @Test
-    void aWonRunShowsTheHealthItGotOutWith() {
-        EndSummary won = EndSummary.of(Status.WON, 17, 17, 252, false, 20, 12);
+    void aWonRunShowsWhatTheClearCostRatherThanRepeatingTheScore() {
+        EndSummary won = EndSummary.of(Status.WON, 17, 252, false, 12, 47);
         assertEquals("SCORE", won.cells().get(0).label());
         assertEquals("17", won.cells().get(0).value());
-        assertEquals("HEALTH LEFT", won.cells().get(1).label());
-        assertEquals("17", won.cells().get(1).value());
-        assertEquals(ScreenArt.OUTCOME_WON, won.cells().get(1).colour(),
-                "health left is the green the render uses");
+        assertEquals("DAMAGE TAKEN", won.cells().get(1).label());
+        assertEquals("47", won.cells().get(1).value());
+        assertNotEquals(won.cells().get(0).value(), won.cells().get(1).value(),
+                "the panel is saying the same number twice again");
+        // The health bar already paints damage in this red and healing in the
+        // green the cell used to carry; the stat follows the bar, not the panel.
+        assertEquals(ScreenArt.OUTCOME_LOST, won.cells().get(1).colour());
         assertEquals("TIME", won.cells().get(2).label());
         assertEquals("4:12", won.cells().get(2).value());
+    }
+
+    /** A clear taken without a scratch says so rather than leaving a hole. */
+    @Test
+    void anUntouchedClearReportsNoDamageAtAll() {
+        EndSummary won = EndSummary.of(Status.WON, 20, 300, false, 0, 0);
+        assertEquals("DAMAGE TAKEN", won.cells().get(1).label());
+        assertEquals("0", won.cells().get(1).value());
     }
 
     /**
@@ -71,7 +88,7 @@ class EndSummaryTest {
      */
     @Test
     void aLostRunCountsWhatWasStillWaitingRatherThanRepeatingTheScore() {
-        EndSummary lost = EndSummary.of(Status.LOST, -63, 0, 158, false, 20, 21);
+        EndSummary lost = EndSummary.of(Status.LOST, -63, 158, false, 21, 47);
         assertEquals("-63", lost.cells().get(0).value());
         assertEquals("STILL DOWN THERE", lost.cells().get(1).label());
         assertEquals("21", lost.cells().get(1).value());
@@ -84,16 +101,20 @@ class EndSummaryTest {
     /** Dying on the very last card is a different story, and reads as one. */
     @Test
     void aDeathWithAnEmptyDungeonSaysNoneWereLeft() {
-        EndSummary lost = EndSummary.of(Status.LOST, -2, 0, 300, false, 20, 0);
+        EndSummary lost = EndSummary.of(Status.LOST, -2, 300, false, 0, 47);
         assertEquals("0", lost.cells().get(1).value());
     }
 
-    /** A win still reports health, and never the monster count. */
+    /**
+     * The two outcomes ask different questions — how much dungeon was left, and
+     * what the clear cost — so each ignores the other's figure entirely.
+     */
     @Test
-    void aWonRunIgnoresTheCountEntirely() {
-        EndSummary won = EndSummary.of(Status.WON, 17, 17, 252, false, 20, 0);
-        assertEquals("HEALTH LEFT", won.cells().get(1).label());
-        assertEquals("17", won.cells().get(1).value());
+    void eachOutcomeIgnoresTheFigureThatBelongsToTheOther() {
+        EndSummary won = EndSummary.of(Status.WON, 17, 252, false, 9, 47);
+        assertEquals("47", won.cells().get(1).value(), "a win never counts the dungeon");
+        EndSummary lost = EndSummary.of(Status.LOST, -63, 158, false, 9, 47);
+        assertEquals("9", lost.cells().get(1).value(), "a death never reports the damage");
     }
 
     /**
@@ -103,9 +124,9 @@ class EndSummaryTest {
      */
     @Test
     void theHeadlineIsCreamOnAWinAndBloodOnADeath() {
-        assertEquals(ScreenArt.BODY, EndSummary.of(Status.WON, 17, 17, 252, true, 20, 12).headlineColour());
+        assertEquals(ScreenArt.BODY, EndSummary.of(Status.WON, 17, 252, true, 12, 47).headlineColour());
         assertEquals(ScreenArt.OUTCOME_LOST,
-                EndSummary.of(Status.LOST, -63, 0, 158, false, 20, 12).headlineColour());
+                EndSummary.of(Status.LOST, -63, 158, false, 12, 47).headlineColour());
     }
 
     /**
@@ -128,7 +149,9 @@ class EndSummaryTest {
      * could only ever read 0:00 because nothing was recording.
      *
      * <p>What it shows instead is the worked example the last beat just taught:
-     * score and health left, side by side and equal.
+     * score and health left, side by side and equal. It is the one panel that
+     * still reports health, and deliberately — teaching that equality is the
+     * whole point of the beat, where on a real run it was redundancy.
      */
     @Test
     void theTutorialShowsTheScoringLessonRatherThanATimeItNeverKept() {
@@ -149,21 +172,23 @@ class EndSummaryTest {
 
     @Test
     void newBestOnlyShowsWhenItIsOne() {
-        assertTrue(EndSummary.of(Status.WON, 17, 17, 252, true, 20, 12).newBest());
-        assertFalse(EndSummary.of(Status.WON, 17, 17, 252, false, 20, 12).newBest());
-        assertTrue(EndSummary.of(Status.LOST, -3, 0, 100, true, 20, 12).newBest(),
+        assertTrue(EndSummary.of(Status.WON, 17, 252, true, 12, 47).newBest());
+        assertFalse(EndSummary.of(Status.WON, 17, 252, false, 12, 47).newBest());
+        assertTrue(EndSummary.of(Status.LOST, -3, 100, true, 12, 47).newBest(),
                 "a least-bad death is still a record");
     }
 
     /**
      * The one scoring edge case the game has: clearing on full health with a
-     * potion last takes the score above the cap. The panel must not present that
-     * as a bug by showing a score higher than the health it reports.
+     * potion last takes the score above the cap. Reporting the cost instead of
+     * the health settles it — a 27 beside a 20 looked like an error, where a 27
+     * beside what it cost simply is the run.
      */
     @Test
     void aScoreAboveTheHealthCapIsShownAsItStands() {
-        EndSummary won = EndSummary.of(Status.WON, 27, 20, 300, true, 20, 12);
+        EndSummary won = EndSummary.of(Status.WON, 27, 300, true, 12, 31);
         assertEquals("27", won.cells().get(0).value());
-        assertEquals("20", won.cells().get(1).value());
+        assertEquals("DAMAGE TAKEN", won.cells().get(1).label());
+        assertEquals("31", won.cells().get(1).value());
     }
 }
