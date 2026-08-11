@@ -113,8 +113,10 @@ before touching anything visual.
   (frame, face, bevel, label, rule); learn those and the screens are assembly work.
 - **Screen transitions are cuts.** One frame, old screen gone, new screen up. No fades, no hover
   glows, no panel shadows, no rounded corners anywhere.
-- **Do not change the torchlit backdrop without asking.** It is the one deliberately open decision
-  in `HANDOFF.md` — smooth gradients behind flat-palette sprites. Both answers are defensible.
+- **The torchlit backdrop stays smooth, and that is now decided** — a soft glow, a continuous
+  flicker and sub-pixel drifting embers behind flat-palette sprites. It is the one place that
+  breaks the whole-pixel and quantised-timing rules, deliberately: light is not an object. Don't
+  dither it, coarse-render it or round the embers to the grid.
 - **Hurt and rim frames are generated in Java at load** from each base sprite (§8), not shipped.
   There are no death frames — the card dissolve covers it.
 - **Silkscreen replaces IM Fell English and Alegreya Sans entirely**, at pixel-aligned sizes with

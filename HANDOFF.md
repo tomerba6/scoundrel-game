@@ -775,6 +775,16 @@ How the art was generated is in the appendix below, not in the document.
 
 ## 14. Open questions for whoever picks this up
 
+**All three are now answered.** Kept here with their answers, because what was decided against
+is worth knowing.
+
+- ~~**Does the torchlit backdrop belong behind flat-palette sprites?**~~ **Answered — it stays.**
+  The glow is a soft radial texture at `0.16 × flicker`, the flicker three continuous sines, the
+  embers up to 40 soft dots at fractional positions and fractional sizes. It is the one thing in
+  the game that breaks whole-pixel positions and quantised timing, and it keeps breaking them:
+  light is not an object. Dithering it to the ramp, coarse-rendering it to a 320×180 buffer and
+  rounding the embers to the grid were all considered and all declined.
+
 - ~~**Does the discard pile show sprites?**~~ **Answered.** No — it keeps the mock's 22×30
   number chips. Sprites there would have needed a ×1 draw and a simplified frame; the chips
   read fine and the slain stack is a tally, not a display.
