@@ -391,6 +391,19 @@ class ScreenArtTest {
                 < ScreenArt.endTrophyY(0), "the rule is below the first trophy");
     }
 
+    /**
+     * The tutorial's Skip plate must clear the potion marker in the bottom
+     * strip. It did not: converted from Scene2D it landed on the render's own
+     * y, and the render's board has no marker showing to collide with.
+     */
+    @Test
+    void skipTutorialClearsThePotionMarker() {
+        assertTrue(ScreenArt.SKIP_Y + ScreenArt.SKIP_H <= BoardArt.MARKER_Y,
+                "Skip overlaps the potion marker");
+        assertTrue(ScreenArt.SKIP_Y > 0);
+        assertTrue(ScreenArt.skipX() + ScreenArt.SKIP_W <= Theme.WORLD_WIDTH);
+    }
+
     /** A shorter menu must not answer for buttons it does not draw. */
     @Test
     void aShorterColumnDoesNotAnswerForMissingButtons() {

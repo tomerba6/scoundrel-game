@@ -343,11 +343,17 @@ final class ScreenArt {
 
     // --- the tutorial overlay ----------------------------------------------
 
-    static final int CALLOUT_W = 422;
+    /**
+     * Wider than the render's 422, because the narration is set at 14 rather
+     * than 12 and the longest beat runs to about 250 characters. At 422 that
+     * wrapped to seven lines, and seven do not fit in the 219px of clear screen
+     * under the room — so the panel got wider rather than the words smaller.
+     */
+    static final int CALLOUT_W = 600;
     static final int CALLOUT_PAD_X = 18;
     static final int CALLOUT_STEP_TOP = 16;
-    static final int CALLOUT_TEXT_TOP = 42;
-    static final int CALLOUT_LINE_H = 22;
+    static final int CALLOUT_TEXT_TOP = 44;
+    static final int CALLOUT_LINE_H = 24;
     /**
      * The render's callout holds three lines, because the copy it was drawn with
      * is short. The real narration runs to about 180 characters, so the panel
@@ -356,7 +362,7 @@ final class ScreenArt {
      */
     static final int CALLOUT_MAX_LINES = 6;
     static final int CALLOUT_GAP = 13;
-    static final int CALLOUT_BOTTOM_PAD = 14;
+    static final int CALLOUT_BOTTOM_PAD = 12;
 
     /** One dot per beat, the current one gold. */
     static final int DOT_SIZE = 6;
@@ -368,7 +374,13 @@ final class ScreenArt {
     static final int TICK_COLOUR = 0xf7f0dc;
     static final int SKIP_W = 166;
     static final int SKIP_H = 36;
-    static final int SKIP_Y = 643;
+    /**
+     * Bottom right, but lifted clear of the potion marker, which occupies the
+     * bottom strip from {@link BoardArt#MARKER_Y}. The render puts Skip straight
+     * over it — its board has no marker showing — and the Scene2D version this
+     * replaced had the same lift for the same reason.
+     */
+    static final int SKIP_Y = BoardArt.MARKER_Y - SKIP_H - 20;
     static final int SKIP_INSET = 45;
 
     private ScreenArt() {

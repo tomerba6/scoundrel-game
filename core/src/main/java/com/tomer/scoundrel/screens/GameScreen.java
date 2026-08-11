@@ -734,7 +734,7 @@ public final class GameScreen extends ScreenAdapter {
     private List<String> calloutLines(TutorialStep step) {
         return TextWrap.wrap(step.narration().toUpperCase(Locale.ROOT),
                 ScreenArt.calloutTextWidth(), ScreenArt.CALLOUT_MAX_LINES,
-                s -> chrome.width(theme.pixelLabel, s));
+                s -> chrome.width(theme.pixelBody, s));
     }
 
     private int calloutH(TutorialStep step) {
@@ -773,9 +773,15 @@ public final class GameScreen extends ScreenAdapter {
      * of eight corner ticks, and the narration sits in a callout pointing at it.
      */
     private void drawTutorialOverlay() {
-        // The lighter veil, not the modal dim: the board under this is what the
-        // step is asking you to click.
-        chrome.veil(batch);
+        // Only the opening beat veils the board. That step is pure introduction —
+        // there is nothing on the board to do yet, so pulling the eye to the
+        // words is right. From step two on the board is left exactly as it looks
+        // in a real run, because the point of a tutorial is to teach *this*
+        // game, and a permanently dimmed board teaches a game nobody plays. The
+        // corner ticks do the pointing from there.
+        if (tutorial.stepNumber() == 1) {
+            chrome.veil(batch);
+        }
         TutorialStep step = tutorial.current();
         int[] target = tutorialTarget(step);
         if (target != null) {
@@ -809,7 +815,7 @@ public final class GameScreen extends ScreenAdapter {
 
         List<String> lines = calloutLines(step);
         for (int i = 0; i < lines.size(); i++) {
-            chrome.text(batch, theme.pixelLabel, lines.get(i), textX,
+            chrome.text(batch, theme.pixelBody, lines.get(i), textX,
                     at.y() + ScreenArt.CALLOUT_TEXT_TOP + i * ScreenArt.CALLOUT_LINE_H,
                     ScreenArt.BODY);
         }
