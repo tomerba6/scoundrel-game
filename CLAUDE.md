@@ -34,7 +34,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
       now: there is no Scene2D left in the project, and Silkscreen is the only
       face.** Pure logic is
       kept **out** of the GL classes: leaf helpers are extracted into small,
-      headlessly-unit-tested classes (`Motion`, `CardHitRegions`, `ClockText`,
+      headlessly-unit-tested classes (`RoomMotion`, `CardHitRegions`, `ClockText`,
       `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`,
       `PressGesture`, `LedgerRow`, `LedgerTotals`, `TrophyEntry`, `TextWrap`,
       `EndSummary`, `ButtonRow`, `CalloutPlacement`, `CornerTicks`), leaving the
@@ -58,13 +58,14 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
   types, the turn loop, extension seams, and the locked edge-case decisions — is
   documented in [`docs/design.md`](docs/design.md) (prose + Mermaid diagrams).
   Consult it when working on the engine, and keep it in sync when the design changes.
-- **UI layer reference:** the Scene2D UI — locked interview decisions, theme tokens,
+- **UI layer reference:** the UI — locked interview decisions, theme tokens,
   architecture, and every on-screen component — is documented in
   [`docs/ui.md`](docs/ui.md). The board is a torchlit dungeon — a procedural
-  backdrop (glow, live flicker, drifting embers) and framed cards in the muted
-  *Ashen* palette. Motion (deal-in, avoid-sweep, HP pulses via the
-  `Choreographer`) and the atmosphere already ship. Consult it when working on
-  screens, and keep it in sync when the UI changes.
+  backdrop (glow, live flicker, drifting embers) and framed cards on the ramp
+  system below. Motion (deal-in, avoid sweep, per-card effects, HP pulses) and
+  the atmosphere already ship, now as `BoardView` over `CardFlight` / `HpPulse`
+  and the rest — `Choreographer` and `Motion` went with the pixel conversion.
+  Consult it when working on screens, and keep it in sync when the UI changes.
 - **Sprite art reference:** the pixel art is **finished and delivered** — see
   [`HANDOFF.md`](HANDOFF.md), which is the contract, and the section below for the
   hard rules. The *Ashen* palette is superseded by the 80-colour ramp system it
