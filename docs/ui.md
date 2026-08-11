@@ -253,7 +253,13 @@ to 8.
   textures; no external assets.
 - **Room row** — up to four 176×256 cards, centred for however many are in the
   room. Each is an outer bezel, a role-coloured plate with 2px light/dark
-  bevels, and a recessed well holding the 64×64 sprite at ×2. A 26px header
+  bevels, and a recessed well holding the 64×64 sprite at ×2. The sprites
+  **breathe together**: `SpriteBob` lifts and settles them ±2px on one shared
+  clock, eight steps at the idle 6fps, moving the sprite alone while the frame
+  and printing hold still. It takes no card argument, which is how the
+  synchronisation is enforced rather than merely intended — and it is the
+  opposite of `IdleCycle`'s per-card stagger, deliberately (see HANDOFF §7).
+  Resting cards only; anything mid-flight or mid-effect owns its own motion. A 26px header
   carries the rank, its suit pip and the type; the footer carries the value at
   38px with a hard 4px drop shadow. Plates come from the ramp system
   (`CardArt.paletteFor`): oxblood monster, slate weapon, moss potion.

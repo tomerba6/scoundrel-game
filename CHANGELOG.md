@@ -38,6 +38,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `STILL DOWN THERE`, the one figure that explains how far below zero the score is.
 - `CLEARED` and the score under it are green on the run-end panel, the same green the ledger
   sets a cleared run in. The reference render has the headline cream.
+- **The sprites breathe.** Every card's art rises and settles ±2px on one shared clock — eight
+  steps at the idle 6fps — while the card frame and its printing hold still. The whole room moves
+  as one, and the hovered creature's five-frame idle plays on top of it.
 - Time is floored onto the frame grid in one place (`Frames`) rather than nine. Nothing in this
   art tweens — effects hold at 12 fps and idles at 6 — and the epsilon that keeps a frame boundary
   from landing a tick late now lives once, with the note explaining it, instead of being copied

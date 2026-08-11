@@ -245,6 +245,22 @@ lockstep. Store the offset on the card when it is dealt, not per frame.
 Frame 1 of every cycle **is** the base sprite, pixel-identical. Draw the base sprite when a card is
 static (a bestiary entry, the discard pile) and the cycle when it is in play; they match.
 
+> **Added: the idle bob** (`SpriteBob`), which this section did not call for. Every sprite on the
+> board — creature, weapon and potion alike — rises and settles **±2px on one shared breath**:
+> eight steps at the idle 6 fps, `{0, -2, -2, 0, 0, +2, +2, 0}`, a little over a second a cycle.
+> Four notes, because it bends three rules here on purpose:
+> - It moves the **sprite alone**. The frame, header and value stay put, so the art breathes inside
+>   its window instead of the card wobbling.
+> - It is **deliberately in lockstep**, which is the opposite of the stagger above. That stagger
+>   governs the *frame* cycle and still does; but only the hovered card runs frames, so at most one
+>   card is ever animating, and one shared breath reads as the room being lit by one torch where
+>   four independent bobs read as four loose sprites.
+> - **±2 because the well allows 6.** A 128 sprite in a 140 well has six pixels of clearance; the
+>   bob spends a third of it and a test fails if it ever spends more than two thirds. Steps are
+>   even because sprites draw at ×2 — an odd offset moves the art half a source pixel.
+> - **Resting cards only.** A card mid-flight or mid-effect owns its motion; a bob underneath
+>   would fight it. The rail icon and the potion marker are HUD, and do not breathe.
+
 ---
 
 ## 8. Hurt and rim frames — generate at load

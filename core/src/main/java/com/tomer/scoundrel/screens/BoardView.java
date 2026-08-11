@@ -495,11 +495,20 @@ final class BoardView {
         }
     }
 
-    /** One card, whole, at a design-space position — the ordinary resting state. */
+    /**
+     * One card, whole, at a design-space position — the ordinary resting state.
+     *
+     * <p>The frame and the printing are drawn where they belong and the sprite
+     * alone takes the {@link SpriteBob} offset, so the art breathes inside its
+     * window rather than the card wobbling. A card mid-flight or mid-effect does
+     * not come through here: those own their motion, and a bob underneath would
+     * fight it.
+     */
     void drawCard(Batch batch, Card card, int slotX, int slotY) {
         cardFrame.draw(batch, card.type(), slotX, slotY);
+        int spriteTop = slotY + (CardArt.spriteTop() - CardArt.SLOT_Y) + SpriteBob.offsetAt(elapsed);
         batch.draw(spriteFor(card, card.equals(hovered)), CardArt.spriteLeft(slotX),
-                CardArt.toWorldY(slotY + (CardArt.spriteTop() - CardArt.SLOT_Y), CardArt.SPRITE),
+                CardArt.toWorldY(spriteTop, CardArt.SPRITE),
                 CardArt.SPRITE, CardArt.SPRITE);
         cardFace.draw(batch, card, slotX, slotY);
     }
