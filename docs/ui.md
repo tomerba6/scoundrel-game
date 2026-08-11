@@ -14,13 +14,13 @@ visual tokens, the architecture, and every component on screen. It complements
 > `Choreographer` and `Motion` are **gone**, and so is the *Ashen* palette —
 > the 80-colour ramp system in `HANDOFF.md` §6 supersedes it.
 >
-> Everything below still describes the board accurately as **behaviour** —
+> Everything below still describes the game accurately as **behaviour** —
 > what a press does, when Avoid is live, what the feed says, why a click is
-> never swallowed. Where it describes Scene2D *mechanics* for the board, read
-> it as history. The title, mode picker, ledger and trophies screens have since
-> been converted and are described as they now are. Only the **run end and
-> tutorial overlays** are still Scene2D exactly as written; they are the last
-> pass, and this document is rewritten when they land.
+> never swallowed. Where it describes Scene2D *mechanics*, read it as history:
+> **every screen is now immediate-mode and there is no Scene2D in the project
+> at all.** The last of it went with the run-end panel and the tutorial
+> overlay, and the two vector faces went with it — Silkscreen is the only type
+> in the game.
 >
 > **Where the look stands.** The board is a torchlit dungeon: a procedural
 > backdrop (warm glow with a live flicker over a vignette, drifting embers) and
@@ -201,11 +201,10 @@ to 8.
 - **`Theme` owns every visual fact**: palette, fonts, flat drawables (a 1×1
   white texture tinted per use), suit icons. Created once in `ScoundrelGame`,
   disposed once, passed to screens. The sprite pass swaps Theme internals.
-- **Programmatic styles, no uiskin.** With zero art, the Scene2D `Skin`
-  JSON/atlas adds indirection; styles are built in code, compiler-checked.
-  (The unused liftoff `assets/ui/` skin remains and should be removed or
-  replaced in the art pass.) An atlas-backed Skin becomes worthwhile when
-  real textures arrive.
+- **No skin, and now no Scene2D.** Styles used to be built in code rather than
+  from a `Skin` JSON/atlas, to keep them compiler-checked. That question is
+  moot: nothing builds a widget any more. Every screen draws tinted rectangles
+  and Silkscreen glyphs straight onto a batch through `Chrome`.
 - **`PixelViewport` at a fixed 1280×720 virtual resolution** — all layout math
   in one coordinate system, any window size letterboxes. Fonts are generated
   once at design sizes. It is a `FitViewport` that snaps the scale down to a
@@ -213,12 +212,13 @@ to 8.
   always lands on a whole number of screen pixels; a plain fit gives ×1.25 at
   1600×900 and the pixel art crawls. The scale arithmetic is the pure,
   headlessly tested `PixelScale`, leaving the viewport itself a thin shell.
-- **Three stage layers with distinct lifetimes:** the root board table
-  (cleared per rebuild), the feed anchor (persistent, `Touchable.disabled` so
-  it never steals clicks), and transient overlays (chooser, end screen) on
-  top. The end overlay is modal because it is fill-parent **and explicitly
-  `Touchable.enabled`** — a background alone does not block input, since a
-  Table is `childrenOnly` by default.
+- **Draw order is the layering, now that there are no stages.** `GameScreen`
+  draws the backdrop, the HUD, the board, the chooser and the feed onto the
+  surface, then whichever overlay is up on top of that. Modality is a decision
+  in the hit test rather than a property of an actor: the run-end panel
+  swallows every press whether or not it landed on a button, and the tutorial's
+  callout deliberately does not — only its Skip and Next are targets, because
+  playing the board is the whole point of it.
 - **Events feed the feed; state feeds everything else.** `MoveResult.events`
   are consumed once for feed lines; persistent widgets render from state.
   `RoomDealt` and `GameWon/Lost` are filtered (board and overlay own those
@@ -324,6 +324,23 @@ to 8.
   end-to-end by a headless test that plays the script through the engine to a
   win, and that pins the winning beat's promise — `score == health left` — against
   the real scoring strategy.
+- **RUN END** — one 600px panel over the modal dim, covering both outcomes:
+  eyebrow, headline with a 4px hard shadow, three figures in a shared frame
+  (score, health left or the debt still owed, time), a `NEW BEST` badge, and the
+  trophies the run unlocked. A death is the *same layout* with the gold accents
+  swapped for dried blood — `EndSummary` decides every word and colour, so there
+  is one drawing method and not two. The panel has two heights: a run that
+  unlocked nothing drops the rule and the trophy band and shrinks by 114, rather
+  than leaving a hole. Its four buttons are sized by their labels and centred as
+  a row (`ButtonRow`) on the panel, not the stage.
+- **TUTORIAL overlay** — the board under the lighter **veil** (half the modal
+  dim: what the step is telling you to click has to stay readable), the taught
+  card ringed by eight 24×4 corner ticks, and the narration in a callout that
+  points at it with a stepped notch — blocks, never a rotation. The callout
+  grows to fit its words and flips above or below its target to stay on screen
+  (`CalloutPlacement`); an explanation beat points at nothing, so it takes no
+  notch and sits *under* the room where it covers neither cards nor HUD. `STEP
+  n OF m` and a dot per beat come from the guide itself.
 - **NEW GAME (mode picker)** — headed `NEW GAME` over `Choose your descent.`,
   one hairline-ruled row per mode from `GameModes.all()`: the mode's name as the
   torchlight button that starts the run, what it changes, and a right-aligned
@@ -412,11 +429,9 @@ to 8.
 - `core/src/main/java/com/tomer/scoundrel/screens/TitleScreen.java` /
   `ModeSelectScreen.java` / `RecordsScreen.java` / `TrophiesScreen.java` — the
   navigation anchor, the difficulty picker, THE LEDGER, and the achievement
-  catalog. All four are on the pixel kit and draw in immediate mode; only the
-  board's overlays are still Scene2D.
-- `core/src/main/java/com/tomer/scoundrel/screens/Widgets.java` — shared label
-  and button builders for the screens that are still Scene2D, plus
-  `pressListener` (the press-not-click input rule).
+  catalog. All on the pixel kit, drawn in immediate mode, as are the run-end
+  panel and the tutorial overlay that `GameScreen` draws over the board.
+  `Widgets` is gone with the last of Scene2D.
 - `core/src/main/java/com/tomer/scoundrel/screens/Backdrop.java` — the ambient
   layer added first to each stage: torch glow, vignette, and embers.
 - `core/src/main/java/com/tomer/scoundrel/screens/CardHitRegions.java` /
@@ -424,7 +439,8 @@ to 8.
   `Feed.java` / `Labels.java` / `ResolveEffect.java` / `BoardArt.java` /
   `CardArt.java` / `HudArt.java` / `PixelScale.java` / `PixelType.java` /
   `PressGesture.java` / `LedgerRow.java` / `LedgerTotals.java` /
-  `TrophyEntry.java` / `TextWrap.java` — the
+  `TrophyEntry.java` / `TextWrap.java` / `EndSummary.java` / `ButtonRow.java` /
+  `CalloutPlacement.java` / `CornerTicks.java` — the
   pure, headlessly unit-tested logic behind the screens: the "which card is
   under this point" lookup, the flicker curve, the ember sim, the
   run-timer/duration formatting, the event-feed text and its stepped fade, the

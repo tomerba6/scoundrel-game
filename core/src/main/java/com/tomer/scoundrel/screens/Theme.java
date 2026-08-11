@@ -8,8 +8,6 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 
 import java.util.HashMap;
@@ -47,26 +45,11 @@ public final class Theme implements Disposable {
     /** Characters beyond the freetype defaults used by the UI copy. */
     private static final String EXTRA_CHARS = "—–×•";
 
-    // Fonts are rasterised at this multiple of their design size, then scaled back
-    // down to world units — a high-res glyph atlas that stays crisp when the
-    // PixelViewport upscales the 720p design to a larger screen (crisp up to ~4K).
-    private static final int FONT_SUPERSAMPLE = 3;
     // The detail shapes (impact star, battleaxe, flask, slice halves) are rasterised
     // at this multiple and drawn at their world size, so they stay crisp when upscaled.
     private static final int SHAPE_SUPERSAMPLE = 2;
 
-    /** IM Fell English — card values and other large set pieces. */
-    public final BitmapFont display;
-    /** IM Fell English — overlay titles and the wordmark. */
-    public final BitmapFont title;
-    /** Alegreya Sans — HUD labels, buttons, feed lines. */
-    public final BitmapFont body;
-    /** Alegreya Sans Bold — numbers and emphasized labels. */
-    public final BitmapFont bodyBold;
-    /** Alegreya Sans — the smallest text: feed detail, card corners. */
-    public final BitmapFont small;
-
-    /** Silkscreen — the pixel face the whole front end is moving onto. */
+    /** Silkscreen — the only face left, now that every screen is converted. */
     public final BitmapFont pixelSmall;
     public final BitmapFont pixelLabel;
     public final BitmapFont pixelBody;
@@ -82,7 +65,9 @@ public final class Theme implements Disposable {
     private final Texture dot;
     private final Texture shade;
     private final Texture dither;
+    private final Texture veil;
     private final TextureRegion ditherRegion;
+    private final TextureRegion veilRegion;
     private final TextureRegion whiteRegion;
     private final TextureRegion glowRegion;
     private final TextureRegion vignetteRegion;
@@ -91,22 +76,10 @@ public final class Theme implements Disposable {
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
     public Theme() {
-        FreeTypeFontGenerator fell =
-                new FreeTypeFontGenerator(Gdx.files.internal("fonts/IMFellEnglish-Regular.ttf"));
-        FreeTypeFontGenerator sans =
-                new FreeTypeFontGenerator(Gdx.files.internal("fonts/AlegreyaSans-Regular.ttf"));
-        FreeTypeFontGenerator sansBold =
-                new FreeTypeFontGenerator(Gdx.files.internal("fonts/AlegreyaSans-Bold.ttf"));
         FreeTypeFontGenerator silk =
                 new FreeTypeFontGenerator(Gdx.files.internal("fonts/Silkscreen-Regular.ttf"));
         FreeTypeFontGenerator silkBold =
                 new FreeTypeFontGenerator(Gdx.files.internal("fonts/Silkscreen-Bold.ttf"));
-        display = generate(fell, 64);
-        title = generate(fell, 42);
-        body = generate(sans, 18);
-        bodyBold = generate(sansBold, 18);
-        small = generate(sans, 14);
-        fell.dispose();
         pixelSmall = generatePixel(silk, PixelType.SMALL);
         pixelLabel = generatePixel(silk, PixelType.LABEL);
         pixelBody = generatePixel(silk, PixelType.BODY);
@@ -115,8 +88,6 @@ public final class Theme implements Disposable {
         pixelLabelBold = generatePixel(silkBold, PixelType.LABEL);
         pixelDisplayBold = generatePixel(silkBold, PixelType.DISPLAY);
 
-        sans.dispose();
-        sansBold.dispose();
         silk.dispose();
         silkBold.dispose();
 
@@ -126,8 +97,10 @@ public final class Theme implements Disposable {
         white = new Texture(pixel);
         pixel.dispose();
         whiteRegion = new TextureRegion(white);
-        dither = ditherTexture();
+        dither = ditherTexture(DITHER_MODAL);
         ditherRegion = new TextureRegion(dither);
+        veil = ditherTexture(DITHER_VEIL);
+        veilRegion = new TextureRegion(veil);
 
         glow = radialGlowTexture(256);
         vignette = vignetteTexture(256);
@@ -148,11 +121,6 @@ public final class Theme implements Disposable {
         suitTextures.put('C', suitTexture('C'));
     }
 
-    /** A flat rectangle of the given color, stretchable to any size. */
-    public Drawable solid(Color color) {
-        return new TextureRegionDrawable(new TextureRegion(white)).tint(color);
-    }
-
     /** A single white pixel, for drawing tinted rectangles straight onto a Batch. */
     TextureRegion whiteRegion() {
         return whiteRegion;
@@ -168,14 +136,25 @@ public final class Theme implements Disposable {
      * a fixed order and leaves the rest exactly as they were, so what shows
      * through is still palette-true and still legible.
      */
-    TextureRegion ditherRegion(int width, int height) {
-        ditherRegion.setRegion(0, 0, width / DITHER_TILE, height / DITHER_TILE);
-        return ditherRegion;
+    TextureRegion ditherRegion(boolean heavy, int width, int height) {
+        TextureRegion region = heavy ? ditherRegion : veilRegion;
+        region.setRegion(0, 0, width / DITHER_TILE, height / DITHER_TILE);
+        return region;
     }
 
     private static final int DITHER_TILE = 4;
-    /** 13 of the 16 cells dark — the 82% §11 asks for, at the grid's own resolution. */
-    private static final int DITHER_LEVEL = 13;
+    /**
+     * Two strengths, because two things want dimming for different reasons.
+     *
+     * <p>{@code MODAL} is 13 of 16 cells — the 82% §11 names — for a dialog that
+     * must be answered before anything behind it matters. {@code VEIL} is half
+     * that, for the tutorial, where the board underneath is the thing you are
+     * about to click and has to stay readable. §11 asks for 82% there too, but
+     * its own render disagrees with it: sampled over a card, the reference has
+     * <em>no</em> pure-black pixels at all and keeps roughly half the art.
+     */
+    private static final int DITHER_MODAL = 13;
+    private static final int DITHER_VEIL = 8;
     private static final int[] BAYER = {
         0, 8, 2, 10,
         12, 4, 14, 6,
@@ -183,14 +162,15 @@ public final class Theme implements Disposable {
         15, 7, 13, 5,
     };
 
-    private static Texture ditherTexture() {
+    private static Texture ditherTexture(int level) {
         Pixmap pixmap = new Pixmap(DITHER_TILE, DITHER_TILE, Pixmap.Format.RGBA8888);
         pixmap.setBlending(Pixmap.Blending.None);
         for (int y = 0; y < DITHER_TILE; y++) {
             for (int x = 0; x < DITHER_TILE; x++) {
                 // Opaque black or nothing at all. No partial alpha anywhere —
-                // that is what makes it a pattern rather than a fade.
-                boolean dark = BAYER[y * DITHER_TILE + x] < DITHER_LEVEL;
+                // that is what makes it a pattern rather than a fade, and what
+                // leaves every surviving pixel exactly on the palette.
+                boolean dark = BAYER[y * DITHER_TILE + x] < level;
                 pixmap.drawPixel(x, y, dark ? 0x000000ff : 0x00000000);
             }
         }
@@ -211,11 +191,6 @@ public final class Theme implements Disposable {
         return vignetteRegion;
     }
 
-    /** The edge vignette as a tinted drawable — blood-red for the death bleed-out. */
-    Drawable vignette(Color tint) {
-        return new TextureRegionDrawable(new TextureRegion(vignetteRegion)).tint(tint);
-    }
-
     /** A soft round mote (white; tinted at draw) for the drifting embers. */
     TextureRegion dotRegion() {
         return dotRegion;
@@ -224,15 +199,6 @@ public final class Theme implements Disposable {
     /** A symmetric top-and-bottom edge shade (black, alpha baked in) for card panels. */
     TextureRegion shadeRegion() {
         return shadeRegion;
-    }
-
-    /** Suit shape for a card id's suit letter (S/H/D/C), tinted. */
-    public Drawable suitIcon(char suitLetter, Color tint) {
-        Texture texture = suitTextures.get(suitLetter);
-        if (texture == null) {
-            throw new IllegalArgumentException("Unknown suit letter: " + suitLetter);
-        }
-        return new TextureRegionDrawable(new TextureRegion(texture)).tint(tint);
     }
 
     // A gradient stored in 8-bit alpha bands into visible contours when stretched
@@ -362,20 +328,6 @@ public final class Theme implements Disposable {
         return font;
     }
 
-    private static BitmapFont generate(FreeTypeFontGenerator generator, int size) {
-        FreeTypeFontParameter parameter = new FreeTypeFontParameter();
-        parameter.size = size * FONT_SUPERSAMPLE;
-        parameter.characters = FreeTypeFontGenerator.DEFAULT_CHARS + EXTRA_CHARS;
-        parameter.minFilter = Texture.TextureFilter.Linear;
-        parameter.magFilter = Texture.TextureFilter.Linear;
-        BitmapFont font = generator.generateFont(parameter);
-        // Scale back to the design size (so layout is unchanged) while keeping the
-        // high-res atlas; fractional positions let the downscaled glyphs stay smooth.
-        font.getData().setScale(1f / FONT_SUPERSAMPLE);
-        font.setUseIntegerPositions(false);
-        return font;
-    }
-
     /**
      * The bundled fonts have no suit glyphs, so the four suits are drawn as
      * simple shapes on a 64px canvas (white, tinted at use).
@@ -416,11 +368,6 @@ public final class Theme implements Disposable {
 
     @Override
     public void dispose() {
-        display.dispose();
-        title.dispose();
-        body.dispose();
-        bodyBold.dispose();
-        small.dispose();
         pixelSmall.dispose();
         pixelLabel.dispose();
         pixelBody.dispose();
@@ -430,6 +377,7 @@ public final class Theme implements Disposable {
         pixelDisplayBold.dispose();
         white.dispose();
         dither.dispose();
+        veil.dispose();
         glow.dispose();
         vignette.dispose();
         dot.dispose();

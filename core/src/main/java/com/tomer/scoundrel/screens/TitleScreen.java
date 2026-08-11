@@ -135,7 +135,7 @@ public final class TitleScreen extends ScreenAdapter {
     private int hit(int screenX, int screenY) {
         Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
         return offeringTutorial
-                ? ScreenArt.buttonAt(promptButtonX(), 2, point.x, point.y)
+                ? ScreenArt.promptButtonAt(point.x, point.y)
                 : ScreenArt.buttonAt(ScreenArt.COLUMN_X, menu.size(), point.x, point.y);
     }
 
@@ -279,44 +279,44 @@ public final class TitleScreen extends ScreenAdapter {
 
     // --- the first-run prompt ---
 
-    private static final int PROMPT_W = 600;
-    private static final int PROMPT_X = (int) (Theme.WORLD_WIDTH - PROMPT_W) / 2;
-    private static final int PROMPT_Y = 232;
-    private static final int PROMPT_H = 260;
-
-    private static int promptButtonX() {
-        return (int) (Theme.WORLD_WIDTH - ScreenArt.BUTTON_W) / 2;
-    }
-
     /**
      * The one-time welcome, shown over the menu on the very first launch. Both
      * choices mark the tutorial seen, so it never nags twice.
      *
      * <p>It is not in the mock — the reference has no first run — so it is built
-     * from the same five parts as everything else rather than invented.
+     * from the same five parts as everything else rather than invented. It has
+     * its own geometry in {@link ScreenArt} rather than borrowing the menu
+     * column's: it used to reuse {@code buttonY}, which put the first plate
+     * straight through the second line of its own copy. Nobody had seen it,
+     * because it only appears when the tutorial flag is absent.
      */
     private void drawPrompt() {
-        chrome.frame(batch, PROMPT_X, PROMPT_Y, PROMPT_W, PROMPT_H);
-        chrome.face(batch, PROMPT_X + ScreenArt.THICK, PROMPT_Y + ScreenArt.THICK,
-                PROMPT_W - 2 * ScreenArt.THICK, PROMPT_H - 2 * ScreenArt.THICK,
-                ScreenArt.FACE_PANEL);
-        chrome.centredOn(batch, theme.pixelBody, "NEW HERE?",
-                (int) (Theme.WORLD_WIDTH / 2), PROMPT_Y + 28, ScreenArt.HEADING, 1f);
+        // The menu behind has to stop competing — the prompt is a question, and
+        // there are four other things on screen inviting a click.
+        chrome.dim(batch);
+        int x = ScreenArt.promptX();
+        chrome.frame(batch, x, ScreenArt.PROMPT_Y, ScreenArt.PROMPT_W, ScreenArt.PROMPT_H);
+        chrome.face(batch, x + ScreenArt.THICK, ScreenArt.PROMPT_Y + ScreenArt.THICK,
+                ScreenArt.PROMPT_W - 2 * ScreenArt.THICK,
+                ScreenArt.PROMPT_H - 2 * ScreenArt.THICK, ScreenArt.FACE_PANEL);
+        int centre = (int) (Theme.WORLD_WIDTH / 2);
+        chrome.centredOn(batch, theme.pixelBody, "NEW HERE?", centre,
+                ScreenArt.PROMPT_Y + ScreenArt.PROMPT_HEADING_DY, ScreenArt.HEADING, 1f);
         chrome.centredOn(batch, theme.pixelLabel,
-                "SCOUNDREL HAS A FEW RULES WORTH KNOWING.",
-                (int) (Theme.WORLD_WIDTH / 2), PROMPT_Y + 66,
+                "SCOUNDREL HAS A FEW RULES WORTH KNOWING.", centre,
+                ScreenArt.PROMPT_Y + ScreenArt.PROMPT_LINE_DY,
                 ScreenArt.BODY, ScreenArt.BODY_ALPHA);
         chrome.centredOn(batch, theme.pixelLabel,
-                "A SHORT GUIDED RUN WALKS THROUGH ALL OF THEM.",
-                (int) (Theme.WORLD_WIDTH / 2), PROMPT_Y + 88,
+                "A SHORT GUIDED RUN WALKS THROUGH ALL OF THEM.", centre,
+                ScreenArt.PROMPT_Y + ScreenArt.PROMPT_LINE_DY + ScreenArt.PROMPT_LINE_GAP,
                 ScreenArt.BODY, ScreenArt.BODY_ALPHA);
-        // Reusing the menu's own button geometry, so the prompt's two choices
-        // are the same shape and pitch as the four behind them.
         int sunk = press.sunk();
-        chrome.plate(batch, promptButtonX(), ScreenArt.buttonY(0), ScreenArt.BUTTON_W,
-                ScreenArt.BUTTON_H, "PLAY TUTORIAL", Chrome.Plate.GOLD, sunk == 0);
-        chrome.plate(batch, promptButtonX(), ScreenArt.buttonY(1), ScreenArt.BUTTON_W,
-                ScreenArt.BUTTON_H, "MAYBE LATER", Chrome.Plate.DARK, sunk == 1);
+        chrome.plate(batch, ScreenArt.promptButtonX(), ScreenArt.promptButtonY(0),
+                ScreenArt.BUTTON_W, ScreenArt.BUTTON_H, "PLAY TUTORIAL",
+                Chrome.Plate.GOLD, sunk == 0);
+        chrome.plate(batch, ScreenArt.promptButtonX(), ScreenArt.promptButtonY(1),
+                ScreenArt.BUTTON_W, ScreenArt.BUTTON_H, "MAYBE LATER",
+                Chrome.Plate.DARK, sunk == 1);
     }
 
     @Override

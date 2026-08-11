@@ -271,7 +271,154 @@ final class ScreenArt {
     static final int PROGRESS_BAND_TOP = 5;
     static final int PROGRESS_BAND_MID = 6;
 
+    // --- the first-run prompt ----------------------------------------------
+
+    /**
+     * The one-time welcome, over the title. Its own geometry rather than the
+     * menu column's: reusing {@link #buttonY} put the first plate at 326, which
+     * is where the prompt's second line of copy sits, and the two overlapped.
+     */
+    static final int PROMPT_W = 600;
+    static final int PROMPT_H = 268;
+    static final int PROMPT_Y = 226;
+    static final int PROMPT_HEADING_DY = 30;
+    static final int PROMPT_LINE_DY = 72;
+    static final int PROMPT_LINE_GAP = 24;
+    static final int PROMPT_BUTTON_DY = 132;
+
+    // --- run end -----------------------------------------------------------
+
+    /**
+     * One panel over the dither, covering both outcomes. Measured off the render
+     * and held as offsets from the panel's own top, because the panel is not
+     * always the same height: a run that unlocked nothing has no rule and no
+     * trophy band, and a fixed height left a hole where they would have been.
+     */
+    static final int END_X = 338;
+    static final int END_W = 600;
+    /** With the trophy band; the render's own 444. */
+    static final int END_H = 444;
+    /**
+     * The rule, the heading and two trophy rows — dropped when nothing unlocked.
+     * Even, so the shorter panel is even too and still centres on a whole pixel;
+     * an odd height lands it half a pixel off and the frame stops being crisp.
+     */
+    static final int END_TROPHY_BAND = 114;
+
+    static final int END_EYEBROW_DY = 34;
+    static final int END_HEADLINE_DY = 67;
+    /** The same hard offset the wordmark uses — an offset, not a blur. */
+    static final int END_HEADLINE_SHADOW_DY = 4;
+
+    /** Three figures in one shared frame, split by 2px dividers. */
+    static final int END_STATS_X = 376;
+    static final int END_STATS_DY = 118;
+    static final int END_STATS_W = 524;
+    static final int END_STATS_H = 71;
+    static final int END_STAT_LABEL_DY = 13;
+    static final int END_STAT_VALUE_DY = 33;
+
+    static final int END_BADGE_DY = 207;
+    static final int END_BADGE_H = 26;
+    static final int END_BADGE_PAD_X = 18;
+
+    static final int END_RULE_X = 372;
+    static final int END_RULE_DY = 255;
+    static final int END_RULE_W = 532;
+
+    static final int END_UNLOCKED_DY = 276;
+    static final int END_UNLOCKED_X = 372;
+    static final int END_TROPHY_DY = 298;
+    static final int END_TROPHY_PITCH = 30;
+    static final int END_TROPHY_SEAL = 22;
+    static final int END_TROPHY_NAME_DX = 34;
+    static final int END_TROPHY_DESC_GAP = 14;
+    /** Two fit above the buttons; a run cannot realistically unlock more at once. */
+    static final int END_TROPHIES_SHOWN = 2;
+
+    static final int END_BUTTONS_DY = 376;
+    static final int END_BUTTON_H = 38;
+    static final int END_BUTTON_GAP = 10;
+    static final int END_BUTTON_PAD_X = 22;
+
+    // --- the tutorial overlay ----------------------------------------------
+
+    static final int CALLOUT_W = 422;
+    static final int CALLOUT_PAD_X = 18;
+    static final int CALLOUT_STEP_TOP = 16;
+    static final int CALLOUT_TEXT_TOP = 42;
+    static final int CALLOUT_LINE_H = 22;
+    /**
+     * The render's callout holds three lines, because the copy it was drawn with
+     * is short. The real narration runs to about 180 characters, so the panel
+     * grows to fit rather than the words being cut — the tutorial's whole job is
+     * saying things.
+     */
+    static final int CALLOUT_MAX_LINES = 6;
+    static final int CALLOUT_GAP = 13;
+    static final int CALLOUT_BOTTOM_PAD = 14;
+
+    /** One dot per beat, the current one gold. */
+    static final int DOT_SIZE = 6;
+    static final int DOT_PITCH = 8;
+    static final int DOT_ON = 0xd9a441;
+    static final int DOT_OFF = 0x3a2e26;
+
+    /** The viewfinder ticks around the card being taught, and the Skip plate. */
+    static final int TICK_COLOUR = 0xf7f0dc;
+    static final int SKIP_W = 166;
+    static final int SKIP_H = 36;
+    static final int SKIP_Y = 643;
+    static final int SKIP_INSET = 45;
+
     private ScreenArt() {
+    }
+
+    /**
+     * The callout is as tall as its heading, its own lines and its padding make
+     * it, plus a Next plate on an explanation beat. A fixed height either
+     * truncated the long steps or left the short ones half empty.
+     */
+    static int calloutH(int lines, boolean hasNext) {
+        int h = CALLOUT_TEXT_TOP + lines * CALLOUT_LINE_H + CALLOUT_BOTTOM_PAD;
+        return hasNext ? h + SKIP_H + CALLOUT_BOTTOM_PAD / 2 : h;
+    }
+
+    /** How wide a line of narration may be. */
+    static int calloutTextWidth() {
+        return CALLOUT_W - 2 * CALLOUT_PAD_X;
+    }
+
+    static int skipX() {
+        return (int) Theme.WORLD_WIDTH - SKIP_W - SKIP_INSET;
+    }
+
+    /** Which of the three stat cells a column index covers, inside the shared frame. */
+    static int endCellX(int index) {
+        return END_STATS_X + index * (END_STATS_W + THICK) / 3;
+    }
+
+    static int endCellW() {
+        return (END_STATS_W - 2 * THICK) / 3;
+    }
+
+    /** Shorter by the trophy band when the run unlocked nothing. */
+    static int endH(boolean withTrophies) {
+        return withTrophies ? END_H : END_H - END_TROPHY_BAND;
+    }
+
+    /** The panel stays centred whichever height it is. */
+    static int endY(boolean withTrophies) {
+        return ((int) Theme.WORLD_HEIGHT - endH(withTrophies)) / 2;
+    }
+
+    static int endButtonsY(boolean withTrophies) {
+        return endY(withTrophies) + (withTrophies ? END_BUTTONS_DY
+                : END_BUTTONS_DY - END_TROPHY_BAND);
+    }
+
+    static int endTrophyY(int index) {
+        return endY(true) + END_TROPHY_DY + index * END_TROPHY_PITCH;
     }
 
     /**
@@ -388,6 +535,34 @@ final class ScreenArt {
 
     static int buttonY(int index) {
         return BUTTONS_Y + index * BUTTON_PITCH;
+    }
+
+    static int promptX() {
+        return (int) (Theme.WORLD_WIDTH - PROMPT_W) / 2;
+    }
+
+    /** The prompt's plates are centred on the stage, not on the menu column. */
+    static int promptButtonX() {
+        return (int) (Theme.WORLD_WIDTH - BUTTON_W) / 2;
+    }
+
+    static int promptButtonY(int index) {
+        return PROMPT_Y + PROMPT_BUTTON_DY + index * BUTTON_PITCH;
+    }
+
+    /** Which of the prompt's two buttons a world point is on, or -1. */
+    static int promptButtonAt(float worldX, float worldY) {
+        int x = promptButtonX();
+        if (worldX < x || worldX >= x + BUTTON_W) {
+            return -1;
+        }
+        for (int i = 0; i < 2; i++) {
+            float bottom = CardArt.toWorldY(promptButtonY(i), BUTTON_H);
+            if (worldY >= bottom && worldY < bottom + BUTTON_H) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**

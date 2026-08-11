@@ -7,7 +7,7 @@
 [![libGDX](https://img.shields.io/badge/libGDX-1.14-c0392b.svg)](https://libgdx.com/)
 
 A desktop implementation of **Scoundrel**, a single-player roguelike card game — built in Java
-with libGDX, on a rules engine that is pure, headless and tested to 98.6%.
+with libGDX, on a rules engine that is pure, headless and tested to 98.7%.
 
 Scoundrel is a solitaire dungeon crawl played with a trimmed deck of 44 cards. You descend
 through a dungeon of face-up cards, fighting monsters, swapping weapons and drinking potions,
@@ -102,12 +102,12 @@ Three difficulty modes ship: **Standard**, **Relentless** (avoiding is forbidden
 |---|---|
 | **Language** | Java 21 (records, sealed types, pattern matching for `switch`) |
 | **Framework** | [libGDX](https://libgdx.com/) 1.14 with the LWJGL3 desktop backend |
-| **UI** | Immediate-mode pixel art over a `Pixmap`-generated backdrop; hand-drawn sprites packed into an atlas at build time. Scene2D remains on the last two overlays |
+| **UI** | Immediate-mode pixel art over a `Pixmap`-generated backdrop; hand-drawn sprites packed into an atlas at build time. No Scene2D, no layout engine — the art is specified as pixels at fixed positions |
 | **Build** | Gradle 9 multi-module, wrapper committed |
 | **Testing** | JUnit 5, JaCoCo coverage gate |
 | **CI/CD** | GitHub Actions — checks on every PR, tag-triggered release builds |
 | **Packaging** | [construo](https://github.com/fourlastor-alexandria/construo) — self-contained archives with a trimmed JDK per platform |
-| **Fonts** | IM Fell English and Alegreya Sans, rasterised at runtime via FreeType |
+| **Fonts** | Silkscreen, rasterised at runtime via FreeType — 1-bit, unhinted, nearest-filtered, at whole pixel sizes |
 
 No third-party dependency does any game logic; the rules are entirely first-party code.
 
@@ -128,7 +128,7 @@ context and no render loop. Everything else follows from that.
 core/
   model/         cards, deck, game state — plain records, no behaviour beyond invariants
   rules/         moves, resolution, scoring — pure functions over state
-  screens/       Scene2D views (libGDX-bound) — draw state, translate input into moves
+  screens/       immediate-mode views (libGDX-bound) — draw state, translate input into moves
   runs/          run recording, high scores, lifetime stats  ─┐ pure, and observe the
   achievements/  achievement definitions and evaluation       ├─ engine from outside;
   tutorial/      the scripted first run and its gating        ─┘ model/rules never
@@ -166,7 +166,7 @@ Full design notes, including the locked edge-case decisions and Mermaid diagrams
 
 ## Testing
 
-531 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
+562 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
 JaCoCo gate of **90% line / 75% branch on every pure package** — the build fails below it.
 
 > Every figure in this section is a measurement, not a claim, and the branch moves fast enough that
@@ -233,7 +233,7 @@ kept in sync with the code rather than written once.
 ## Roadmap
 
 - [x] Pure model and rules engine — dealing, avoiding, combat, degradation, scoring
-- [x] Scene2D UI, card motion, per-card resolve effects, death cinematic
+- [x] Immediate-mode UI, card motion, per-card resolve effects, death cinematic
 - [x] Procedural torchlit atmosphere — glow, flicker, drifting embers
 - [x] Persisted high scores, lifetime statistics, achievements
 - [x] Three difficulty modes as alternate rulesets

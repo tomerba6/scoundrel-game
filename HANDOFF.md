@@ -598,13 +598,24 @@ second, and each row also carries the date it was won, which this render drops �
 information and the row has the width for it. The bar's empty track really is the health bar's
 `1e2a1c`, sampled off the render; it looks like an oversight and is what the reference shows.)*
 
-**TUTORIAL** — an overlay on the live board. The board dims under a **4×4 ordered dither at 82%**,
+**TUTORIAL** — an overlay on the live board. *(Built, with three departures from what follows.
+**The dim is half this, not 82%** — the board under it is the thing the step is telling you to
+click, and at 82% the cards are barely there. This render disagrees with its own prose: sampled
+over a card it has* no *pure-black pixels and keeps about half the art. 82% is kept for modal
+dialogs, where nothing behind needs reading. **The callout grows to fit its narration** rather
+than holding three lines: the real script runs to ~180 characters against this render's ~90.
+And **an explanation beat sits under the room**, not over it — it points at nothing, and a
+five-line panel above the row pushes into the HUD.)* The board dims under a **4×4 ordered dither
+at 82%**,
 not an alpha scrim — same rule as the death wipe. The taught card is ringed by **eight 24×4 corner
 ticks** in `f7f0dc`, 4px thick, leaving the edges open. The callout is a framed panel with
 `STEP 2 OF 7`, seven 6×6 step dots (current one gold), and the instruction at 14px cream; a 20×14
 triangle notch points down at the card. `SKIP TUTORIAL` as a dark button, bottom right.
 
-**RUN END** — one 600px centred panel over the dither, covering both outcomes.
+**RUN END** — one 600px centred panel over the dither, covering both outcomes. *(Built. The
+panel has two heights: a run that unlocked nothing drops the rule and the trophy band and
+shrinks by 114 so there is no hole where they would have been. The band is even so the shorter
+panel still centres on a whole pixel.)*
 `THE DUNGEON RAN OUT` in gold, `CLEARED` at 38px with the hard shadow, then three stat cells in a
 shared frame (score, health left in `71b45c`, time) at 26px. `NEW BEST` as a gold badge, a 2px
 rule, then unlocked trophies each with a 22px gold seal. Four buttons in a row, first gold.
@@ -723,9 +734,9 @@ engine instead of the screen, and every duration being tuned in isolation.
 tutorial. The tutorial is last because it overlays a finished board.
 *Verify:* each against the mock's SCREENS tab. No rounded corner, no fade, no hover glow anywhere.
 
-> **Four of the six are done** — title, new game, ledger, trophies. Run end and tutorial are
-> still Scene2D overlays on the board. Three things the first four settled, which the last two
-> should follow rather than re-decide:
+> **All six are done**, and with them the last of Scene2D: the two vector faces, the stage and
+> the widget helpers are all out, so §5's "Silkscreen replaces IM Fell English and Alegreya Sans
+> entirely" is now literally true. Three rules the screens settled, worth keeping:
 > - **Menus act on release, not press** (`PressGesture`), and a held plate is drawn pressed.
 >   Cards keep press-to-act; that exception is §10's, not an oversight.
 > - **A modal overlay dims what is behind it** with `Chrome.dim` — the 4×4 ordered dither at

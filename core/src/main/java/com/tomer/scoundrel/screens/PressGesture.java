@@ -9,7 +9,8 @@ package com.tomer.scoundrel.screens;
  * which is what a button has always done. The board is the deliberate exception:
  * cards and the Avoid plate resolve on press, because a click made while the
  * mouse is already travelling to the next card is what fast play looks like and
- * release semantics silently discard it (HANDOFF §10, {@link Widgets}).
+ * release semantics silently discard it (HANDOFF §10). The board hit-tests its
+ * own rectangles for that, in {@code GameScreen.BoardInput}.
  *
  * <p>The timing is why this is a class rather than two fields on a screen.
  * A click is often shorter than four frames, and every menu button navigates, so

@@ -30,14 +30,17 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 - Suggested package split inside `core`:
     - `...scoundrel.model` — cards, deck, game state (pure).
     - `...scoundrel.rules` — actions and rule resolution (pure).
-    - `...scoundrel.screens` — Scene2D screens (LibGDX-dependent). Pure logic is
+    - `...scoundrel.screens` — the screens (LibGDX-dependent). **All immediate-mode
+      now: there is no Scene2D left in the project, and Silkscreen is the only
+      face.** Pure logic is
       kept **out** of the GL classes: leaf helpers are extracted into small,
       headlessly-unit-tested classes (`Motion`, `CardHitRegions`, `ClockText`,
       `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`,
-      `PressGesture`, `LedgerRow`, `LedgerTotals`, `TrophyEntry`, `TextWrap`),
-      leaving the screens as thin views verified by screenshot. `TextWrap` is the
-      pattern to copy when a helper needs a font: the measuring is passed in as a
-      function, so the arithmetic stays testable. When touching a screen, prefer
+      `PressGesture`, `LedgerRow`, `LedgerTotals`, `TrophyEntry`, `TextWrap`,
+      `EndSummary`, `ButtonRow`, `CalloutPlacement`, `CornerTicks`), leaving the
+      screens as thin views verified by screenshot. `TextWrap` and `ButtonRow` are
+      the pattern to copy when a helper needs a font: the measuring is passed in
+      as a function, so the arithmetic stays testable. When touching a screen, prefer
       extracting any new pure formatter/decision/geometry the same way — write a
       characterization test first, then move the method verbatim.
     - `...scoundrel.CrashLog` — appends uncaught crashes to `~/.scoundrel/crash.log`

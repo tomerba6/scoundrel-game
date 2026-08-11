@@ -44,6 +44,20 @@ public final class TutorialGuide {
         }
     }
 
+    /**
+     * Which beat is showing, counting from one — what the callout prints as
+     * {@code STEP n OF m} and how many dots it fills. One-based because a player
+     * reads it; clamped at the last beat so a finished guide still answers, since
+     * the completion panel is drawn from the same guide the callout was.
+     */
+    public int stepNumber() {
+        return Math.min(index + 1, steps.size());
+    }
+
+    public int stepCount() {
+        return steps.size();
+    }
+
     /** Advance an explanation beat (the Next affordance); a no-op on action beats. */
     public void next() {
         if (!isComplete() && !current().isAction()) {

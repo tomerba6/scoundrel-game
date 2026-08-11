@@ -80,9 +80,22 @@ final class Chrome {
      * it is a dither and not a scrim.
      */
     void dim(Batch batch) {
+        dither(batch, true);
+    }
+
+    /**
+     * The lighter half of the same pattern, for the tutorial: the board under it
+     * is the thing you are about to click, so it has to stay readable. A modal
+     * dialog wants {@link #dim} instead — nothing behind that needs reading.
+     */
+    void veil(Batch batch) {
+        dither(batch, false);
+    }
+
+    private void dither(Batch batch, boolean heavy) {
         Color previous = batch.getColor().cpy();
         batch.setColor(Color.WHITE);
-        batch.draw(theme.ditherRegion((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
+        batch.draw(theme.ditherRegion(heavy, (int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
                 0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
         batch.setColor(previous);
     }

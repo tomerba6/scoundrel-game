@@ -328,6 +328,69 @@ class ScreenArtTest {
         assertEquals(0, ScreenArt.progressFillWidth(1, 0), "no catalog, no division");
     }
 
+    /**
+     * The first-run prompt's copy and its plates must not overlap. They did:
+     * the prompt borrowed the menu column's {@link ScreenArt#buttonY}, which put
+     * the first plate at 326 — straight through the second line of its own text.
+     * It only shows on a first launch, so nobody had ever seen it.
+     */
+    @Test
+    void theFirstRunPromptsTextClearsItsButtons() {
+        int lastLineBottom = ScreenArt.PROMPT_Y + ScreenArt.PROMPT_LINE_DY
+                + ScreenArt.PROMPT_LINE_GAP + PixelType.LABEL;
+        assertTrue(lastLineBottom <= ScreenArt.promptButtonY(0),
+                "the prompt's copy runs into its first button");
+        int lastButtonBottom = ScreenArt.promptButtonY(1) + ScreenArt.BUTTON_H;
+        assertTrue(lastButtonBottom <= ScreenArt.PROMPT_Y + ScreenArt.PROMPT_H,
+                "the second button hangs out of the panel");
+        assertTrue(ScreenArt.PROMPT_Y + ScreenArt.PROMPT_HEADING_DY
+                < ScreenArt.PROMPT_Y + ScreenArt.PROMPT_LINE_DY);
+    }
+
+    /** And it is hit where it is drawn, in its own space rather than the menu's. */
+    @Test
+    void theFirstRunPromptIsHitWhereItIsDrawn() {
+        for (int i = 0; i < 2; i++) {
+            float middleY = CardArt.toWorldY(ScreenArt.promptButtonY(i), ScreenArt.BUTTON_H)
+                    + ScreenArt.BUTTON_H / 2f;
+            float x = ScreenArt.promptButtonX() + ScreenArt.BUTTON_W / 2f;
+            assertEquals(i, ScreenArt.promptButtonAt(x, middleY));
+        }
+        float gap = CardArt.toWorldY(ScreenArt.promptButtonY(0) + ScreenArt.BUTTON_H + 2, 0);
+        assertEquals(-1, ScreenArt.promptButtonAt(
+                ScreenArt.promptButtonX() + 10, gap), "the gap between them");
+    }
+
+    /**
+     * The run-end panel has two heights: with the trophy band and without. A run
+     * that unlocked nothing used to keep the taller one, leaving a hole between
+     * the rule and the buttons. Whichever height it is, the panel stays centred
+     * and the buttons keep the same clearance from its foot.
+     */
+    @Test
+    void theRunEndPanelShrinksWhenNothingWasUnlocked() {
+        assertEquals(444, ScreenArt.endH(true), "the render's own height");
+        assertTrue(ScreenArt.endH(false) < ScreenArt.endH(true));
+        for (boolean trophies : new boolean[] {true, false}) {
+            int top = ScreenArt.endY(trophies);
+            int bottom = top + ScreenArt.endH(trophies);
+            assertEquals(Theme.WORLD_HEIGHT - bottom, top, "the panel is off centre");
+            int buttonsBottom = ScreenArt.endButtonsY(trophies) + ScreenArt.END_BUTTON_H;
+            assertTrue(buttonsBottom < bottom, "the buttons hang out of the panel");
+            assertEquals(30, bottom - buttonsBottom, "the foot clearance moved");
+        }
+    }
+
+    /** Both trophy rows have to land inside the taller panel, above the buttons. */
+    @Test
+    void theUnlockedTrophiesFitAboveTheButtons() {
+        int last = ScreenArt.endTrophyY(ScreenArt.END_TROPHIES_SHOWN - 1)
+                + ScreenArt.END_TROPHY_SEAL;
+        assertTrue(last <= ScreenArt.endButtonsY(true), "a trophy row runs into the buttons");
+        assertTrue(ScreenArt.endY(true) + ScreenArt.END_RULE_DY
+                < ScreenArt.endTrophyY(0), "the rule is below the first trophy");
+    }
+
     /** A shorter menu must not answer for buttons it does not draw. */
     @Test
     void aShorterColumnDoesNotAnswerForMissingButtons() {
