@@ -579,7 +579,7 @@ public final class GameScreen extends ScreenAdapter {
         calloutUp = false;
         if (state.status() != Status.IN_PROGRESS) {
             endSummary = tutorial != null
-                    ? EndSummary.tutorial(state.score(), finalRunSeconds)
+                    ? EndSummary.tutorial(state.score(), state.health())
                     : EndSummary.of(state.status(), state.score(), state.health(),
                             finalRunSeconds, "New best!".equals(endBestLine), rules.healthCap());
         } else {

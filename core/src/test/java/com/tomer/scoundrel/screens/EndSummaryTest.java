@@ -93,14 +93,37 @@ class EndSummaryTest {
      */
     @Test
     void theTutorialEndsOnTheSamePanelWithoutClaimingAnything() {
-        EndSummary done = EndSummary.tutorial(8, 95);
+        EndSummary done = EndSummary.tutorial(8, 8);
         assertEquals("THAT IS THE WHOLE GAME", done.eyebrow());
         assertEquals("TUTORIAL DONE", done.headline());
         assertEquals(ScreenArt.GOLD, done.accent());
         assertFalse(done.newBest(), "the tutorial is never a record");
         assertEquals(3, done.cells().size());
-        assertEquals("8", done.cells().get(0).value());
-        assertEquals("1:35", done.cells().get(2).value());
+    }
+
+    /**
+     * It reports no time. The board hides the clock for the whole tutorial —
+     * it is not a timed run — and the panel showed a TIME cell anyway, which
+     * could only ever read 0:00 because nothing was recording.
+     *
+     * <p>What it shows instead is the worked example the last beat just taught:
+     * score and health left, side by side and equal.
+     */
+    @Test
+    void theTutorialShowsTheScoringLessonRatherThanATimeItNeverKept() {
+        EndSummary done = EndSummary.tutorial(10, 10);
+        for (EndSummary.Cell cell : done.cells()) {
+            assertNotEquals("TIME", cell.label());
+            assertNotEquals("0:00", cell.value());
+        }
+        assertEquals("SCORE", done.cells().get(0).label());
+        assertEquals("10", done.cells().get(0).value());
+        assertEquals("HEALTH LEFT", done.cells().get(1).label());
+        assertEquals("10", done.cells().get(1).value(),
+                "clearing scores the health you kept — the two must read the same");
+        assertEquals(ScreenArt.OUTCOME_WON, done.cells().get(1).colour());
+        assertEquals("CLEARED", done.cells().get(2).label());
+        assertEquals("YES", done.cells().get(2).value());
     }
 
     @Test

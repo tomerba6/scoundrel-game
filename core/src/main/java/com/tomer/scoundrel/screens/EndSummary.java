@@ -22,14 +22,20 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
     /**
      * The tutorial's ending, on the same panel with its own words. It never
      * claims a best or a trophy, because nothing about it is recorded.
+     *
+     * <p>And it reports no time: the board hides the clock for the whole
+     * tutorial — it is not a timed run — so a TIME cell here could only ever
+     * read 0:00. The three cells show the worked example the last beat just
+     * taught instead. Score and health left sit side by side and equal, which
+     * <em>is</em> the rule: clear the dungeon and you score the health you kept.
      */
-    static EndSummary tutorial(int score, long seconds) {
+    static EndSummary tutorial(int score, int health) {
         return new EndSummary("THAT IS THE WHOLE GAME", "TUTORIAL DONE",
                 ScreenArt.GOLD, ScreenArt.BODY,
                 List.of(
                         new Cell("SCORE", String.valueOf(score), ScreenArt.BODY),
-                        new Cell("YOU GOT OUT", "YES", ScreenArt.OUTCOME_WON),
-                        new Cell("TIME", ClockText.format(seconds), ScreenArt.BODY)),
+                        new Cell("HEALTH LEFT", String.valueOf(health), ScreenArt.OUTCOME_WON),
+                        new Cell("CLEARED", "YES", ScreenArt.BODY)),
                 false);
     }
 
