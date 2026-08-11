@@ -54,9 +54,10 @@ import java.util.Random;
  *
  * <p>The board itself is drawn in immediate mode, straight onto a batch at the
  * design resolution, because the art is specified as pixels at fixed positions
- * and a layout engine's job is to compute positions. The overlays that still
- * have buttons — the end screen, the move chooser, the tutorial callout — remain
- * Scene2D on a stage drawn over the top, until the screens pass converts them.
+ * and a layout engine's job is to compute positions. The overlays with buttons —
+ * the end panel, the move chooser, the tutorial callout — are drawn the same
+ * way on the menu kit ({@link Chrome}) and hit-tested by this screen; there is
+ * no stage under any of them.
  */
 public final class GameScreen extends ScreenAdapter {
 
