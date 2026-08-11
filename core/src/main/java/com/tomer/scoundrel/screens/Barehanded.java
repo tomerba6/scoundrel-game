@@ -12,8 +12,8 @@ package com.tomer.scoundrel.screens;
  */
 final class Barehanded {
 
-    /** One effect frame. Effects run at 12fps. */
-    static final float FRAME = 1f / 12f;
+    /** One effect frame. Effects run at 12fps; the grid itself is {@link Frames}. */
+    static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /**
      * ~333ms. The art direction quoted 900, and at that length the exchange
@@ -42,7 +42,7 @@ final class Barehanded {
     }
 
     static float quantise(float elapsed) {
-        return (float) Math.floor(elapsed / FRAME + 1e-4) * FRAME;
+        return Frames.snap(elapsed, Frames.EFFECT_FPS);
     }
 
     private static int frameOf(float elapsed) {

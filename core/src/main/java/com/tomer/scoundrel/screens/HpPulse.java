@@ -14,7 +14,7 @@ package com.tomer.scoundrel.screens;
  */
 final class HpPulse {
 
-    private static final float FRAME = 1f / 12f;
+    private static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /** The jolt, on the same 4px grid the bare-handed shake uses. */
     private static final int JUMP = 4;
@@ -39,7 +39,7 @@ final class HpPulse {
     }
 
     private static int frameOf(float elapsed) {
-        return (int) Math.floor(elapsed / FRAME + 1e-4);
+        return Frames.at(elapsed, Frames.EFFECT_FPS);
     }
 
     /**

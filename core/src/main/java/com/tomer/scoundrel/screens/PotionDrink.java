@@ -17,7 +17,7 @@ package com.tomer.scoundrel.screens;
  */
 final class PotionDrink {
 
-    private static final float FRAME = 1f / 12f;
+    private static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /** The card folding down into the bottle it contained. */
     static final int COLLAPSE_FRAMES = 2;
@@ -53,7 +53,7 @@ final class PotionDrink {
     }
 
     private static int frameOf(float elapsed) {
-        return (int) Math.floor(elapsed / FRAME + 1e-4);
+        return Frames.at(elapsed, Frames.EFFECT_FPS);
     }
 
     static boolean collapsing(float elapsed) {

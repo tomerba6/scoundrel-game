@@ -20,7 +20,7 @@ package com.tomer.scoundrel.screens;
  */
 final class DeathCinematic {
 
-    private static final float FRAME = 1f / 12f;
+    private static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /** The blow lands and flares over whatever killed you. */
     private static final int FLARE_FRAMES = 2;
@@ -98,7 +98,7 @@ final class DeathCinematic {
     }
 
     private static int frameOf(float elapsed) {
-        return (int) Math.floor(elapsed / FRAME + 1e-4);
+        return Frames.at(elapsed, Frames.EFFECT_FPS);
     }
 
     /** The red flare over the killer, before anything else happens. */

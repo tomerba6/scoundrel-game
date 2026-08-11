@@ -13,7 +13,7 @@ package com.tomer.scoundrel.screens;
 final class CardFlight {
 
     /** Effects run at 12fps, and a hop is always a whole number of frames. */
-    private static final float FRAME = 1f / 12f;
+    private static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /** The anchors a card can fly to, from the board geometry. */
     static final int TICKER_X = 640;
@@ -124,7 +124,7 @@ final class CardFlight {
 
     /** Which hop is showing, clamped to the last one once the flight is over. */
     private static int hopOf(Flight flight, float elapsed) {
-        int hop = (int) Math.floor(elapsed / flight.hopTime() + 1e-4);
+        int hop = Frames.atPeriod(elapsed, flight.hopTime());
         return Math.max(0, Math.min(flight.hops() - 1, hop));
     }
 

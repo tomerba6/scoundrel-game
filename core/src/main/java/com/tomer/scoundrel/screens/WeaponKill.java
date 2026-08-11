@@ -24,8 +24,8 @@ package com.tomer.scoundrel.screens;
  */
 final class WeaponKill {
 
-    /** One effect frame. Effects run at 12fps; idles run at 6. */
-    static final float FRAME = 1f / 12f;
+    /** One effect frame. Effects run at 12fps; the grid itself is {@link Frames}. */
+    static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /**
      * The flash holds this long before the blade lands. The art direction
@@ -64,7 +64,7 @@ final class WeaponKill {
 
     /** Floors a time onto the effect grid, so every segment holds on a frame. */
     static float quantise(float elapsed) {
-        return (float) Math.floor(elapsed / FRAME + 1e-4) * FRAME;
+        return Frames.snap(elapsed, Frames.EFFECT_FPS);
     }
 
     /** The creature is holding its struck frame, still whole. */

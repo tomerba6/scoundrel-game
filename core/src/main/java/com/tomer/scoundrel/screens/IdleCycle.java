@@ -14,7 +14,7 @@ import java.util.Random;
 final class IdleCycle {
 
     /** Six frames a second, 167ms each. Effects run at 12; idles do not. */
-    static final int FPS = 6;
+    static final int FPS = Frames.IDLE_FPS;
     static final float FRAME_TIME = 1f / FPS;
     /** One full five-frame loop, 833ms — also the range of the start stagger. */
     static final float CYCLE_TIME = 5f / FPS;
@@ -28,13 +28,10 @@ final class IdleCycle {
      * throwing, since a paused or rewound clock should still draw something.
      */
     static int frameIndex(float elapsed, float offset, int frameCount) {
-        // Nudge before flooring. A frame boundary is not exactly representable
-        // in binary — one whole cycle divided by one frame yields 4.9999998,
-        // not 5 — so a bare floor sticks on the last frame for an extra tick
-        // every time the cycle wraps. The epsilon is 1e-4 of a frame, about 17
-        // microseconds, far below anything that can be seen or timed.
-        double ticks = Math.floor((double) (elapsed + offset) / FRAME_TIME + 1e-4);
-        int index = (int) (ticks % frameCount);
+        // Frames does the flooring, and carries the note on why a boundary has
+        // to be nudged before it is floored — this cycle wrapping a frame late
+        // is the case that found it.
+        int index = Frames.at(elapsed + offset, FPS) % frameCount;
         return index < 0 ? index + frameCount : index;
     }
 

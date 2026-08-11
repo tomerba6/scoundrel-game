@@ -38,6 +38,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `STILL DOWN THERE`, the one figure that explains how far below zero the score is.
 - `CLEARED` and the score under it are green on the run-end panel, the same green the ledger
   sets a cleared run in. The reference render has the headline cream.
+- Time is floored onto the frame grid in one place (`Frames`) rather than nine. Nothing in this
+  art tweens — effects hold at 12 fps and idles at 6 — and the epsilon that keeps a frame boundary
+  from landing a tick late now lives once, with the note explaining it, instead of being copied
+  beside eight of the nine floors that needed it.
 - Nothing on the converted screens is set below 12px. Silkscreen strokes are 1px, and at the
   ×1.5 scale a 1920×1080 display gets, an 8px glyph loses half of them to rounding.
 

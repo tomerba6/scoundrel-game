@@ -753,7 +753,14 @@ tutorial. The tutorial is last because it overlays a finished board.
 >   not survive the viewport; its copy is also placeholder and shorter than the real strings,
 >   so expect to wrap and to grow rows rather than shrink type.
 
-**12 — Quantise.** One place that floors time to 1/12 s for effects, 1/6 s for idles.
+**12 — Quantise.** *(done — `Frames` is the grid: `at(elapsed, fps)`, `atPeriod` for a flight's
+per-hop hold, `snap` for the timelines written in seconds, and `EFFECT_FPS`/`IDLE_FPS`. The eight
+effect and idle classes delegate to it. Before this the frame length and the epsilon that goes with
+it were copied into nine places, with the comment explaining the epsilon beside only one of them —
+and they all had to agree. `at` multiplies by the rate rather than dividing by a stored 1/12, so it
+stays exact however long the game has been open; a float 1/12 is a hair over the true value and by
+an hour in that error outgrows the epsilon.)*
+One place that floors time to 1/12 s for effects, 1/6 s for idles.
 *Verify:* pause on any frame and every element is on a whole pixel.
 
 ---

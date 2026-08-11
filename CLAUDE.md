@@ -37,7 +37,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
       headlessly-unit-tested classes (`RoomMotion`, `CardHitRegions`, `ClockText`,
       `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`,
       `PressGesture`, `LedgerRow`, `LedgerTotals`, `TrophyEntry`, `TextWrap`,
-      `EndSummary`, `ButtonRow`, `CalloutPlacement`, `CornerTicks`), leaving the
+      `EndSummary`, `ButtonRow`, `CalloutPlacement`, `CornerTicks`, `Frames`), leaving the
       screens as thin views verified by screenshot. `TextWrap` and `ButtonRow` are
       the pattern to copy when a helper needs a font: the measuring is passed in
       as a function, so the arithmetic stays testable. When touching a screen, prefer
