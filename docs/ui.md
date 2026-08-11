@@ -332,7 +332,10 @@ to 8.
   getting out cost — and a death, which has no health left to report, counts the
   monsters `STILL DOWN THERE`, the one figure that explains how far below zero
   the score is. The damage figure is set in the health bar's own blood — the red
-  it flashes when you are hit. A death is the *same layout* with the gold accents
+  it flashes when you are hit. The verdict and, on a win, the score take the
+  outcome's own colour, the green and blood the ledger sets `CLEARED` and
+  `DEFEATED` in; the render has the headline cream, and the hard shadow still
+  carries it under the colour. A death is the *same layout* with the gold accents
   swapped for dried blood — `EndSummary` decides every word and colour, so there
   is one drawing method and not two. The panel has two heights: a run that
   unlocked nothing drops the rule and the trophy band and shrinks by 114, rather

@@ -71,12 +71,17 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
                 won ? "THE DUNGEON RAN OUT" : "THE DUNGEON KEPT YOU",
                 won ? "CLEARED" : "YOU DIED",
                 accent,
-                // Cream on a win, as the render has it — the hard shadow is what
-                // gives the headline weight, not colour. A death sets it in
-                // blood, since a cream YOU DIED reads as a second CLEARED.
-                won ? ScreenArt.BODY : ScreenArt.OUTCOME_LOST,
+                // The verdict takes the outcome's own colour, the same green and
+                // blood the ledger sets CLEARED and DEFEATED in, so a run reads
+                // the same here as on the row it is about to become. The render
+                // has the headline cream and leaves the hard shadow to carry it;
+                // the shadow still does, under the colour.
+                won ? ScreenArt.OUTCOME_WON : ScreenArt.OUTCOME_LOST,
                 List.of(
-                        new Cell("SCORE", String.valueOf(score), ScreenArt.BODY),
+                        // A clear's score is the number the whole run was for, and
+                        // is lit accordingly. A death's is just the damage done.
+                        new Cell("SCORE", String.valueOf(score),
+                                won ? ScreenArt.OUTCOME_WON : ScreenArt.BODY),
                         middle,
                         new Cell("TIME", ClockText.format(seconds), ScreenArt.BODY)),
                 newBest);

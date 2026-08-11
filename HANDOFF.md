@@ -615,7 +615,14 @@ triangle notch points down at the card. `SKIP TUTORIAL` as a dark button, bottom
 **RUN END** — one 600px centred panel over the dither, covering both outcomes. *(Built. The
 panel has two heights: a run that unlocked nothing drops the rule and the trophy band and
 shrinks by 114 so there is no hole where they would have been. The band is even so the shorter
-panel still centres on a whole pixel.)*
+panel still centres on a whole pixel. **Two deviations in the stat row and the headline.** The
+middle cell never repeats the score: a clear scores exactly the health you kept, so `HEALTH LEFT`
+beside it was the same number twice — a win reports `DAMAGE TAKEN` in the health bar's `8c2f22`
+instead, and a death, which has no health left to report, counts the monsters `STILL DOWN THERE`,
+the one figure that explains how far below zero the score is. And the headline, with the win's
+score under it, takes the outcome colour — `71b45c` or `8c2f22` — rather than cream, so a run
+reads the same here as on the ledger row it is about to become; the hard shadow still carries the
+headline under the colour.)*
 `THE DUNGEON RAN OUT` in gold, `CLEARED` at 38px with the hard shadow, then three stat cells in a
 shared frame (score, health left in `71b45c`, time) at 26px. `NEW BEST` as a gold badge, a 2px
 rule, then unlocked trophies each with a 22px gold seal. Four buttons in a row, first gold.

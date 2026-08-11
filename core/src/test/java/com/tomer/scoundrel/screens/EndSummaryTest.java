@@ -58,6 +58,8 @@ class EndSummaryTest {
         EndSummary won = EndSummary.of(Status.WON, 17, 252, false, 12, 47);
         assertEquals("SCORE", won.cells().get(0).label());
         assertEquals("17", won.cells().get(0).value());
+        assertEquals(ScreenArt.OUTCOME_WON, won.cells().get(0).colour(),
+                "what a clear is worth is the panel's headline figure, and reads as one");
         assertEquals("DAMAGE TAKEN", won.cells().get(1).label());
         assertEquals("47", won.cells().get(1).value());
         assertNotEquals(won.cells().get(0).value(), won.cells().get(1).value(),
@@ -90,6 +92,8 @@ class EndSummaryTest {
     void aLostRunCountsWhatWasStillWaitingRatherThanRepeatingTheScore() {
         EndSummary lost = EndSummary.of(Status.LOST, -63, 158, false, 21, 47);
         assertEquals("-63", lost.cells().get(0).value());
+        assertEquals(ScreenArt.BODY, lost.cells().get(0).colour(),
+                "only a clear's score is worth colouring; a death's is just the damage done");
         assertEquals("STILL DOWN THERE", lost.cells().get(1).label());
         assertEquals("21", lost.cells().get(1).value());
         assertNotEquals(lost.cells().get(0).value(), lost.cells().get(1).value(),
@@ -118,13 +122,15 @@ class EndSummaryTest {
     }
 
     /**
-     * The headline is cream on a win, as the render has it — the hard shadow is
-     * what gives it weight, not colour. A death sets it in blood, because a
-     * cream YOU DIED reads as a second CLEARED at a glance.
+     * CLEARED is green and YOU DIED is blood — the two outcome colours the game
+     * already uses everywhere else, on the ledger's rows and in the health bar.
+     * The reference render sets the headline cream and leaves the hard shadow to
+     * carry it; this is a deliberate departure, so the panel's verdict reads the
+     * same colour here as it will on the ledger row this run becomes.
      */
     @Test
-    void theHeadlineIsCreamOnAWinAndBloodOnADeath() {
-        assertEquals(ScreenArt.BODY, EndSummary.of(Status.WON, 17, 252, true, 12, 47).headlineColour());
+    void theHeadlineTakesTheOutcomeColourEitherWay() {
+        assertEquals(ScreenArt.OUTCOME_WON, EndSummary.of(Status.WON, 17, 252, true, 12, 47).headlineColour());
         assertEquals(ScreenArt.OUTCOME_LOST,
                 EndSummary.of(Status.LOST, -63, 158, false, 12, 47).headlineColour());
     }
