@@ -31,6 +31,37 @@ class ScoringTest {
         assertTrue(engine.legalMoves(lost).isEmpty());
     }
 
+    /**
+     * The run-end panel explains a death by saying how many monsters were still
+     * face-down, so the state has to be able to count them. It counts the same
+     * cards the loss score charges for: monsters in the dungeon, not the room
+     * and not the weapons and potions down there with them.
+     */
+    @Test
+    void theStateCountsTheMonstersStillFaceDown() {
+        GameState s = state().health(4)
+                .room(monster(7), weapon(2), weapon(3), weapon(4))
+                .dungeon(monster(12), monster2(9), weapon(5), potion(3))
+                .build();
+        assertEquals(2, s.monstersRemaining(), "only the dungeon's monsters count");
+        assertEquals(0, state().health(4).room(monster(7)).build().monstersRemaining(),
+                "an empty dungeon has none left, whatever is in the room");
+    }
+
+    /** The count and the score have to agree about which cards they are about. */
+    @Test
+    void theCountMatchesWhatTheLossScoreCharedFor() {
+        GameState s = state().health(4)
+                .room(monster(7), weapon(2), weapon(3), weapon(4))
+                .dungeon(monster(12), monster2(9))
+                .build();
+        GameState lost = engine.apply(s, new FightBarehanded(monster(7))).state();
+        assertEquals(Status.LOST, lost.status());
+        assertEquals(2, lost.monstersRemaining());
+        // -3 health, less the 12 and the 9 it counted: the two the panel names.
+        assertEquals(-24, lost.score());
+    }
+
     @Test
     void lossScoreIsNegativeHealthMinusDungeonMonsters() {
         // Die at -3 with Q(12) + 9 still face-down: -3 - 21 = -24.

@@ -40,22 +40,26 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
     }
 
     /**
-     * @param score     the run's final score, which for a death is negative
-     * @param health    health remaining; zero or below on a death
-     * @param seconds   how long the run took
-     * @param newBest   whether it beat the best for its mode
-     * @param healthCap the ruleset's cap, so the middle cell can be labelled honestly
+     * @param score         the run's final score, which for a death is negative
+     * @param health        health remaining; zero or below on a death
+     * @param seconds       how long the run took
+     * @param newBest       whether it beat the best for its mode
+     * @param healthCap     the ruleset's cap
+     * @param monstersLeft  monsters still face-down, which is what a death is charged for
      */
     static EndSummary of(Status status, int score, int health, long seconds,
-                         boolean newBest, int healthCap) {
+                         boolean newBest, int healthCap, int monstersLeft) {
         boolean won = status == Status.WON;
         int accent = won ? ScreenArt.GOLD : ScreenArt.OUTCOME_LOST;
-        // A death has no health left to report — it has a debt. Showing what the
-        // dungeon still had in it is the only thing on screen that explains why
-        // the score is that far below zero.
+        // A death has no health left to report, so the middle cell counts what
+        // was still waiting instead. It used to repeat the score, which said
+        // nothing twice; the count is the one figure that explains how far below
+        // zero the number is, since falling early with the deck still full is
+        // the worst score there is.
         Cell middle = won
                 ? new Cell("HEALTH LEFT", String.valueOf(health), ScreenArt.OUTCOME_WON)
-                : new Cell("STILL BELOW", String.valueOf(score), ScreenArt.OUTCOME_LOST);
+                : new Cell("STILL DOWN THERE", String.valueOf(monstersLeft),
+                        ScreenArt.OUTCOME_LOST);
         return new EndSummary(
                 won ? "THE DUNGEON RAN OUT" : "THE DUNGEON KEPT YOU",
                 won ? "CLEARED" : "YOU DIED",

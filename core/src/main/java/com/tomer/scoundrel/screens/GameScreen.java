@@ -581,7 +581,8 @@ public final class GameScreen extends ScreenAdapter {
             endSummary = tutorial != null
                     ? EndSummary.tutorial(state.score(), state.health())
                     : EndSummary.of(state.status(), state.score(), state.health(),
-                            finalRunSeconds, "New best!".equals(endBestLine), rules.healthCap());
+                            finalRunSeconds, "New best!".equals(endBestLine), rules.healthCap(),
+                            state.monstersRemaining());
         } else {
             calloutUp = tutorial != null && !tutorial.isComplete();
         }
