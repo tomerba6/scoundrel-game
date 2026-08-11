@@ -119,8 +119,8 @@ before touching anything visual.
   There are no death frames — the card dissolve covers it.
 - **Silkscreen replaces IM Fell English and Alegreya Sans entirely**, at pixel-aligned sizes with
   no anti-aliasing. Both old faces come out once the board is converted.
-- The nine 16×16 rail icons are **not drawn yet**; the rail shows the card sprite at ×1 until
-  they are. Don't generate them — models are unreliable below 32px.
+- The nine 16×16 rail icons the brief asked for are **dropped**; the rail shows the card sprite
+  at ×1 and that is the finished answer, not a placeholder. Don't generate them.
 
 The mock (`art-reference/Scoundrel - Sprite Directions.dc.html`) is the visual target: the board
 at 1280×720, every effect in isolation, all 26 idle cycles, and all six screens. It opens in a

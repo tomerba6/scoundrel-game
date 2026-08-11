@@ -380,8 +380,8 @@ HELD_ICON = 32;                      // the card sprite at ÷2 — even, so it s
 ```
 
 ÷2 is a clean halving: every 2×2 source block becomes one pixel. It loses detail but never produces
-an uneven grid. The long-term answer is the 16×16 hand-drawn icons the brief calls for, drawn at ×4 —
-see §14.
+an uneven grid. The brief's long-term answer was the 16×16 hand-drawn icons at ×4; **those have
+been dropped** — the ×1 card sprite is the shipped rail and is staying. See §14.
 
 ---
 
@@ -775,18 +775,18 @@ How the art was generated is in the appendix below, not in the document.
 
 ## 14. Open questions for whoever picks this up
 
-- **Does the discard pile show sprites?** Not specified. The mock shows slain values as small
-  22×30 chips with the number only. If you want sprites there, they need a ×1 (64px) draw and the
-  card frame simplifying — ask before building it.
+- ~~**Does the discard pile show sprites?**~~ **Answered.** No — it keeps the mock's 22×30
+  number chips. Sprites there would have needed a ×1 draw and a simplified frame; the chips
+  read fine and the slain stack is a tally, not a display.
 - ~~**What happens to the idle when a card is not the player's focus?**~~ **Answered.** Four
   cycles at once did read as busy in motion, so only the hovered card animates and the rest hold
   on frame 1. Frame 1 is the base sprite pixel-for-pixel, so a held card is indistinguishable
   from a static one and nothing jumps as focus moves. `IdleCycle.frameIndex(..., animating)` is
   the switch; hit-testing reuses `CardHitRegions`.
-- **The nine 16×16 rail icons do not exist yet.** The brief calls for them; nothing in `atlas/` is
-  one. Until they are drawn, the rail shows the 64×64 card sprite at ×1 (§9), which works but is
-  detailed for its size. They are hand-drawing work, not generation — models are unreliable below
-  32px. Nine icons, an hour or two in any pixel editor.
+- ~~**The nine 16×16 rail icons do not exist yet.**~~ **Answered — dropped.** The rail keeps the
+  64×64 card sprite at ×1 (§9), which is what shipped and what the game is staying with. The
+  icons were the brief's long-term answer and would still be hand-drawing work, not generation;
+  they are simply not wanted. Nothing in `atlas/` is one, and nothing needs to be.
 
 ---
 
