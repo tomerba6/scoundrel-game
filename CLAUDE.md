@@ -128,7 +128,7 @@ before touching anything visual.
   There are no death frames — the card dissolve covers it.
 - **Silkscreen replaces IM Fell English and Alegreya Sans entirely**, at pixel-aligned sizes with
   no anti-aliasing. `Theme` loads the two Silkscreen TTFs and nothing else; the three vector
-  faces are still in `assets/fonts/` and load nowhere, pending deletion.
+  faces and the Scene2D skin were deleted with the last of Scene2D.
 - The nine 16×16 rail icons the brief asked for are **dropped**; the rail shows the card sprite
   at ×1 and that is the finished answer, not a placeholder. Don't generate them.
 
