@@ -15,30 +15,19 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * The torchlit-dungeon look of the plain UI: palette, fonts, and flat
- * drawables. Every visual decision derives from here so the later sprite
- * pass swaps assets, not screen code. Must be created and disposed on the
- * GL thread.
+ * What every screen needs from the GL side: the Silkscreen faces at their five
+ * sizes, the generated textures the backdrop and the dither draw from, and the
+ * two accent colours the torch itself is lit in. The drawables it used to hold
+ * went with Scene2D. Must be created and disposed on the GL thread.
  */
 public final class Theme implements Disposable {
 
-    // Palette (see docs: torchlit dungeon mood).
-    public static final Color SOOT = Color.valueOf("17130f");
-    public static final Color STONE = Color.valueOf("241d16");
-    public static final Color DRIED_BLOOD = Color.valueOf("8c2f22");
-    public static final Color IRON = Color.valueOf("7a8794");
-    public static final Color HERBAL = Color.valueOf("5d8a4a");
+    // The two the torch itself needs, both on the accent ramp. Every other
+    // colour a screen draws is named in the art classes beside what it draws.
     public static final Color TORCHLIGHT = Color.valueOf("d9a441");
     public static final Color BONE = Color.valueOf("e8ddc7");
 
-    // Card panels ("Ashen"): deep and low-lit so the board sits inside the
-    // torchlit mood rather than shouting over it. Type still reads from the
-    // label and suit pips, so the quiet colours never cost legibility.
-    public static final Color CARD_MONSTER = Color.valueOf("4e2620");
-    public static final Color CARD_WEAPON = Color.valueOf("3f484e");
-    public static final Color CARD_POTION = Color.valueOf("374b32");
-
-    // Virtual resolution shared by every screen's Fit viewport.
+    // Virtual resolution shared by every screen's PixelViewport.
     public static final float WORLD_WIDTH = 1280;
     public static final float WORLD_HEIGHT = 720;
 
