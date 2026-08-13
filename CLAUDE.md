@@ -10,12 +10,16 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 ## Commands
 - Run the game: `./gradlew lwjgl3:run` (Windows: `gradlew.bat lwjgl3:run`).
 - Run tests: `./gradlew core:test`. Tests use JUnit 5 and live in `core/src/test/java`.
+  One class: `./gradlew core:test --tests '*FramesTest'`.
 - Tests + coverage gate: `./gradlew core:check`. JaCoCo enforces a minimum
   coverage on each **pure** package (`model`/`rules`/`runs`/`achievements`/
   `tutorial`); the GL-bound `screens` layer is excluded (screenshot-verified,
   not gated). HTML report at `core/build/reports/jacoco/test/html/`.
 - Drive/screenshot the real game (the only way to verify UI): the
   `run-scoundrel` skill (`.claude/skills/run-scoundrel/`).
+- `assets/assets.txt` is regenerated from the directory listing by `generateAssetList`
+  (wired to `processResources`) — never hand-edit it, and note that anything left in
+  `assets/` ships whether or not any code loads it.
 
 ## Architecture — these are hard rules
 - **All game logic lives in the `core` module.** `lwjgl3` is a thin launcher only; do not
@@ -105,7 +109,9 @@ before touching anything visual.
   at ×2 sprites, and integer snapping would letterbox away a third of it. The maths is the pure,
   unit-tested `PixelScale`; keep it there rather than in the GL class.
 - **Idles run at 6 fps, effects at 12 fps**, and nothing tweens or rotates — every segment holds
-  on a frame. A rotated pixel is a blurred pixel.
+  on a frame. A rotated pixel is a blurred pixel. Floor time through `Frames`
+  (`at`/`atPeriod`/`snap`), never a local `1f / 12f`: it carries the epsilon a frame boundary
+  needs, and multiplies by the rate so an hour-old clock has not drifted past it.
 - **The barehanded stars are four bars, never a rotation** (§10). The diagonal arms are staircases
   of 8×8 blocks — exactly 45°, grid-aligned, no transform. A rotated rect is the worst thing you
   can do to a pixel sprite.
@@ -121,7 +127,8 @@ before touching anything visual.
 - **Hurt and rim frames are generated in Java at load** from each base sprite (§8), not shipped.
   There are no death frames — the card dissolve covers it.
 - **Silkscreen replaces IM Fell English and Alegreya Sans entirely**, at pixel-aligned sizes with
-  no anti-aliasing. Both old faces come out once the board is converted.
+  no anti-aliasing. `Theme` loads the two Silkscreen TTFs and nothing else; the three vector
+  faces are still in `assets/fonts/` and load nowhere, pending deletion.
 - The nine 16×16 rail icons the brief asked for are **dropped**; the rail shows the card sprite
   at ×1 and that is the finished answer, not a placeholder. Don't generate them.
 
@@ -136,13 +143,19 @@ browser — ask the user to compare against it; you can't render it yourself.
   `achievements`/`tutorial` code is pure and headless, so TDD applies throughout. UI
   rendering, which can't be unit-tested, is the exception: verify it by screenshot instead.
   Cover the tricky rules below especially, and get tests green before touching the UI.
+- **A UI state you cannot drive to is verified by rigging, not by playing it out.** The run-end
+  panel needs a finished run, and finishing one appends to the player's real
+  `~/.scoundrel/runs.log`. Point an already-reachable screen at the component with rigged
+  values, screenshot it, then `git checkout --` the file — the change is never committed.
 - Keep commits small and focused; commit after each working piece.
 - **Verify, don't recall — and never quote a number you did not just measure.**
-  The docs in this repo *lag the code by design*: the UI revamp is mid-flight, so
-  `README.md`, `docs/ui.md` and `HANDOFF.md` each hold a mix of what shipped, what is
-  being replaced, and what is only planned. A figure in a doc was true when written and
-  is evidence of nothing today. If a claim is checkable by reading a file or running a
-  command, check it **before** stating it — the check is seconds and being wrong costs
+  The docs in this repo *lag the code by design*: `README.md`, `docs/ui.md` and
+  `HANDOFF.md` each hold a mix of what shipped, what was replaced, and what was only
+  ever planned — both `README.md` and the `run-scoundrel` skill have been caught this
+  way, one listing the finished sprites as in progress, the other quoting a test count
+  a third of the real one. A figure in a doc was true when written and is evidence of
+  nothing today. If a claim is checkable by reading a file or running a command, check
+  it **before** stating it — the check is seconds and being wrong costs
   the user their trust in everything else you said.
     - test count → `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`
     - coverage → `./gradlew core:test` (it refreshes the report), then parse

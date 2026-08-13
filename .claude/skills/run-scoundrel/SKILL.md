@@ -28,7 +28,7 @@ screenshots the actual screen, so the window must be visible and not minimised.
 ## Build and test
 
 ```bash
-./gradlew core:test          # 183 tests, the pure rules engine + observers
+./gradlew core:test          # 585 tests: the engine, the observers, the screen helpers
 ./gradlew lwjgl3:compileJava # launcher compiles
 ```
 

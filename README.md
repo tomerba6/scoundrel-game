@@ -239,7 +239,7 @@ kept in sync with the code rather than written once.
 - [x] Three difficulty modes as alternate rulesets
 - [x] Guided tutorial that teaches every rule, including scoring
 - [x] CI, coverage gate, self-contained desktop builds
-- [ ] Pixel-art creature sprites, weapons and potions *(in progress)*
+- [x] Pixel-art creature sprites, weapons and potions
 
 ## Author
 

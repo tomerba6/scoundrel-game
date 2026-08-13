@@ -673,7 +673,9 @@ Add TexturePacker (`gdx-tools`) as a build step over `atlas/`. Settings:
 false`. Whitespace stripping would break the 64×64 alignment the idle frames depend on.
 *Verify:* the atlas has 174 regions and `findRegions("creature_02_cellar_rat_clubs_idle").size == 5`.
 
-**2 — One sprite on screen.** Load the atlas, draw `creature_02_cellar_rat_clubs` at ×2 anywhere.
+**2 — One sprite on screen.** *(done — subsumed by steps 4–5; the lab's Tab-toggled SHEET view is
+the standing version of this check, drawing all 44 rather than one.)*
+Load the atlas, draw `creature_02_cellar_rat_clubs` at ×2 anywhere.
 *Verify:* crisp edges, no blur, no colour fringing. If it's soft, the filter is wrong.
 
 **3 — Viewport.** *(done — `PixelViewport`, on all six screens. See the note in §5: it snaps the
@@ -798,7 +800,7 @@ How the art was generated is in the appendix below, not in the document.
 
 ## 14. Open questions for whoever picks this up
 
-**All three are now answered.** Kept here with their answers, because what was decided against
+**All four are now answered.** Kept here with their answers, because what was decided against
 is worth knowing.
 
 - ~~**Does the torchlit backdrop belong behind flat-palette sprites?**~~ **Answered — it stays.**
