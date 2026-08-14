@@ -280,7 +280,30 @@ test still passes.
 
 Anything else discovered along the way is **written down, not done**. The list does not grow.
 
-**Done.** All six are out, each with its own test.
+> **As built — four of the six were empty, and R4 closed at two.** This list was derived from a
+> method-name inventory; the bodies were not read until execution. Two held pure logic that had
+> not already been extracted:
+>
+> | # | Outcome |
+> |---|---|
+> | 1 | **Real.** The band check and slot scan became `ButtonRow.indexAt`, beside the `lay` that produces the slots — not `EndSummary`, which this document guessed at. 5 tests |
+> | 5 | **Real.** The right-alignment and below-the-last-line geometry became `CalloutPlacement.nextPlate`, returning a `Plate` record rather than the `int[4]` `GameScreen` was indexing at three call sites. 4 tests |
+> | 2 | Empty. `Labels.move(…).toUpperCase()`, and `Labels.move` is already pure with all five cases tested; `chooserSlotX` is an index lookup into a `BoardView.slotX` that `BoardViewSlotsTest` covers |
+> | 3 | Empty. Thin adapters over `TextWrap`, `ScreenArt.calloutH` and `CalloutPlacement`, all extracted and tested by earlier passes |
+> | 4 | Empty. `dungeon.size() + board.rising() - board.sweeping()` — a one-line sum of three collaborator reads |
+> | 6 | Empty. `value == null ? -1 : value` |
+>
+> Moving the four would add indirection whose tests mostly re-assert what `Labels`, `TextWrap`
+> and `CalloutPlacement` already prove — the "no speculative abstraction" guardrail in
+> `CLAUDE.md`. The earlier characterize-then-move passes had already taken the real logic out;
+> what remains at those points is wiring, which is what a screen is for.
+>
+> **`GameScreen` therefore stays at ~1,084 lines, and that is the honest floor** for a class that
+> owns a board, a chooser, a run-end panel and a tutorial overlay. Recorded because the line
+> count on its own invites someone to try again and find the same four dead ends.
+
+**Done.** The two real extractions are out, each with its own test, and the four empty ones are
+recorded above rather than forced.
 
 **Verify — this is the item where `core:check` is least sufficient.** A characterization test
 proves the extracted method still behaves the same. It says nothing about whether `GameScreen`
