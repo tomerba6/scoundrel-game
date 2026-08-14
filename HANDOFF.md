@@ -208,6 +208,23 @@ the UI should use.
 | **COLD** | ♠ corruption | `101a20 1a2b33 263f49 35555f 487078 618c92 80a8ac a3c4c6` |
 | ACCENT | torch, blood, cream | `d9a441 f2cf7a ffe9b0 b5651f 8c2f22 c2503a e8ddc7 f7f0dc` |
 
+> **As built — the second half of that sentence was never true.** The eighty govern *sprite*
+> pixels, and even there §8 records six creatures that are partly off them. They were never all
+> the UI used: §11 of this document specifies chrome hexes that are on no ramp, and the potion
+> bottle's glass, the cleaved card's cut faces and the HUD tints were sampled from the reference
+> render rather than from a ramp. None of it was invented, which is why the answer is to write
+> it down rather than repaint it.
+>
+> What ships is **two tiers**. `Ramps` holds the eighty and governs sprite pixel operations —
+> the hurt and rim generation, which snap unmatched colours to the nearest entry. `UiPalette`
+> holds the **32** colours drawn in code that are not on a ramp, each with a comment saying what
+> it draws. `UiPaletteTest` reads both declaration forms out of the source and fails if a colour
+> is in neither, so a new one has to be justified rather than merely typed.
+>
+> It cannot govern blended output: a shadow drawn as `0x000000` at 50% alpha is off-ramp by
+> construction, and that is also where "striping by flat colour, never alpha" in §11 quietly
+> loses. Left alone deliberately — fixing it would change pixels.
+
 ROT and COLD are **step-for-step equivalents**: `ROT[n]` ↔ `COLD[n]`. That is what makes the two
 suits the same drawing with its corruption swapped. Both suits are already drawn and in the atlas —
 you never do this swap at runtime. It matters only if you add a creature later.

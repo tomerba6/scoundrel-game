@@ -83,9 +83,16 @@ frames, all 64×64. [`HANDOFF.md`](HANDOFF.md) is the full contract — region n
 geometry, effect timings, and a 12-step order of work with a verify line per step. Read it
 before touching anything visual.
 
-- **Never regenerate, recolour, or "improve" a sprite.** Every pixel sits on a locked 80-colour
-  ramp system that took ~30 generations to settle. A helpful palette tweak is a regression.
-  If a sprite genuinely needs changing, say so and stop — it is an art task, not a code task.
+- **Never regenerate, recolour, or "improve" a sprite.** Sprite pixels sit on the locked
+  80-colour ramp system (`Ramps`) that took ~30 generations to settle. A helpful palette tweak
+  is a regression. If a sprite genuinely needs changing, say so and stop — it is an art task,
+  not a code task.
+- **The palette has two tiers, and both are tested.** `Ramps` is the 80 and governs sprite
+  pixels; `UiPalette` is the 32 colours drawn in code that are not on a ramp — the §11 chrome,
+  the bottle, the cleave faces, the HUD tints — all sampled from the reference render, not
+  invented. `UiPaletteTest` scans both declaration forms (`static final int … = 0x…` and
+  `Color.valueOf("…")`) and fails on a colour in neither. A new colour goes in `UiPalette` with
+  a comment saying what it draws.
 - **Build the atlas from `art-source/atlas/` only.** `art-reference/sprites/` holds the same
   PNGs under dot-separated names for the HTML mock; it is not the delivery set.
 - **Load sprites through the atlas, never as loose files.** The 174 source PNGs sit outside
