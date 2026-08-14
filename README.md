@@ -165,7 +165,7 @@ lwjgl3/          desktop launcher, ~300 lines, no game logic
 Four decisions carry most of the weight:
 
 **Moves are functions of state.** `engine.apply(state, move)` returns a new state *and the events
-that occurred* — monster slain, potion wasted, weapon broken, room avoided, game won. Nothing
+that occurred* — monster defeated, potion wasted, weapon degraded, room avoided, game won. Nothing
 mutates in place, so any position is reproducible and testable in isolation.
 
 **Features observe the event stream from outside.** Achievements, statistics and high scores are
@@ -257,7 +257,7 @@ construction, so there is never a reason not to.
 **UI is verified by screenshot, not by test.** Rendering cannot be asserted meaningfully in JUnit,
 so changes to `screens` are checked by launching the real game, driving it with synthesised input
 and reading the pixels back. When a screen accumulates logic that *could* be tested — a formatter,
-a hit region, an easing curve — that logic gets extracted into a pure class with a characterization
+a hit region, a frame timeline — that logic gets extracted into a pure class with a characterization
 test written before the move, rather than left where it cannot be reached.
 
 Design notes live in [`docs/design.md`](docs/design.md) and [`docs/ui.md`](docs/ui.md), and are
