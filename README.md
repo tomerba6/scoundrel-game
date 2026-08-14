@@ -210,9 +210,15 @@ JaCoCo gate of **90% line / 75% branch on every pure package** — the build fai
 > `core/build/reports/jacoco/test/jacocoTestReport.xml`, which `./gradlew core:test` refreshes.
 >
 > **Every percentage here is LINE coverage**, because that is what the gate enforces
-> (`counter = 'LINE'`). If you open the HTML report instead, note that its leading `Cov.` column
-> is **instructions**, not lines — a different counter with a different number. For `screens`
-> today: 30.4% instructions, 35.7% branches, **26.2% lines**.
+> (`counter = 'LINE'`). Neither report states it: the XML holds raw counts
+> (`<counter type="LINE" missed="2250" covered="798"/>`) and the HTML draws percentage bars only
+> for instructions and branches, showing lines as a bare *missed / total*. So every line figure
+> here is that division, and you can check it off the HTML yourself — for `screens`,
+> `(3,048 − 2,250) / 3,048 = 26.2%`.
+>
+> Which also means the HTML's leading `Cov.` column is **instructions**, not lines. Three
+> counters, three answers, and for `screens` today they are 30.4% instructions, 35.7% branches
+> and 26.2% lines.
 
 | Package | Line | Branch |
 |---|---|---|
