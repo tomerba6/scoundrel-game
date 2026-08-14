@@ -226,14 +226,20 @@ the build actually holds itself to.
 That said, the number is not meaningless as a *progress* signal, because the pure helpers extracted
 out of the GL classes stay in the same package. `screens` splits cleanly in two:
 
-| Inside `screens` | Classes | Lines | Line coverage |
-|---|---|---|---|
-| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `UiPalette`, …) | 43 | 819 | 96.7% |
-| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, the screens themselves) | 19 | 2,229 | 0.3% |
+| Inside `screens` | Classes | Source lines | Executable lines | Line coverage |
+|---|---|---|---|---|
+| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `UiPalette`, …) | 43 | 4,134 | 819 | 96.7% |
+| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, the screens themselves) | 19 | 5,186 | 2,229 | 0.3% |
 
-The package reads 26.2% overall, and that number rises by *extraction* rather than by new tests
-against rendering — 43 of its 62 classes now have no libGDX import at all. The ratio is the useful
-reading: it says how much of the UI layer has stopped being untestable.
+Two line counts because they tell different stories and only one of them is JaCoCo's. **Executable
+lines** are what coverage is computed over, and they make the package read 26.2% overall. **Source
+lines** are what `wc -l` gives you, and by that measure the pure half is 44% of the package rather
+than 27% — the helpers are comment-heavy by design, so they carry far fewer executable lines than
+their size suggests.
+
+Either way the number rises by *extraction* rather than by new tests against rendering: **43 of
+the 62 classes now have no libGDX import at all**, which is the reading that matters. It says how
+much of the UI layer has stopped being untestable.
 
 The engine's determinism is used deliberately: the tutorial's scripted run, for instance, is proven
 by playing every one of its moves through the real engine in a test and asserting the narration's
