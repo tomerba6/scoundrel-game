@@ -4,11 +4,14 @@
 # achievements and tutorial script -- plus the JaCoCo coverage gate on those
 # packages. It runs headless, so it belongs here.
 #
-# The Scene2D screens are deliberately NOT covered. They need a window, a GPU
-# and screenshot pixels to verify (see .claude/skills/run-scoundrel), which no
-# runner has. A green check here says the build is sound and the engine is
-# correct; it says nothing about whether anything renders. Do not treat it as a
-# substitute for the screenshot pass on UI work.
+# The screens are deliberately NOT covered. They need a window, a GPU and
+# screenshot pixels to verify (see .claude/skills/run-scoundrel), which no runner
+# has. A green check here says the build is sound and the engine is correct; it
+# says nothing about whether anything renders. Do not treat it as a substitute
+# for the screenshot pass on UI work.
+#
+# The package job says something narrower and still worth having: that the
+# release will build. It publishes nothing.
 name: CI
 
 on:
@@ -21,12 +24,13 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: write   # only used to refresh the coverage badge on main
-
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Scoped to this job: only the badge refresh writes, and the package job
+    # below has no business holding a write token.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
 
@@ -40,10 +44,9 @@ jobs:
       # One Gradle invocation on purpose: org.gradle.daemon=false in
       # gradle.properties means every call pays full JVM startup.
       #
-      # Once the sprite branch lands, core:check will also drag in :packAtlas
-      # through processResources, making this a clean-checkout proof that the
-      # texture atlas packs -- it is generated and gitignored, so nothing else
-      # would ever check it.
+      # core:check drags in :core:packAtlas through processResources, so this is
+      # also a clean-checkout proof that the texture atlas packs -- it is
+      # generated and gitignored, so nothing else would ever check it.
       - name: Check
         run: ./gradlew core:check lwjgl3:compileJava
 
@@ -78,3 +81,34 @@ jobs:
             core/build/reports/
             core/build/test-results/
           retention-days: 7
+
+  # Proof that the release will build, which nothing else here provides.
+  #
+  # Packaging used to run only on a tag. That made it the one part of the build
+  # nobody exercised until the moment it mattered, and it broke: gdx-tools on the
+  # root buildscript classpath shadowed the libGDX construo loads, killing the
+  # Windows icon step. Every CI run stayed green for weeks because none of them
+  # packaged anything; the v2.0.0 tag was what finally surfaced it.
+  #
+  # Same runner and same command as release.yml, so a green run here means
+  # tagging will get as far as publishing. It uploads nothing and publishes
+  # nothing -- the artifacts are thrown away with the runner.
+  package:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: gradle
+
+      # Both targets, because a break in the macOS bundle would hide exactly as
+      # long as the Windows one did. Each downloads its own JDK, so this is the
+      # slow job -- it runs in parallel with check rather than after it.
+      - name: Build distributables
+        run: ./gradlew lwjgl3:packageWinX64 lwjgl3:packageMacM1
