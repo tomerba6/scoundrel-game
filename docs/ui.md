@@ -4,29 +4,26 @@ This documents the UI: the decisions locked in the design interview, the
 visual tokens, the architecture, and every component on screen. It complements
 [`design.md`](design.md) (the rules engine); keep both in sync with the code.
 
-> ## ⚠ The board has moved on — read this first
+> ## Where this stands, 2026-08-14
 >
-> **The game board is no longer Scene2D.** The pixel-art conversion
-> ([`HANDOFF.md`](../HANDOFF.md)) replaced it with immediate-mode drawing at a
-> fixed 1280×720: `GameScreen` draws onto a batch, `BoardView` owns the room and
-> every effect, `BoardHud` the chrome, `CardFace` the printing on a card, and
-> `BoardArt`/`CardArt`/`HudArt` hold the measurements. `CardTiles`,
-> `Choreographer` and `Motion` are **gone**, and so is the *Ashen* palette —
-> the 80-colour ramp system in `HANDOFF.md` §6 supersedes it.
+> **This document is current.** It was for a while a mix of what shipped and what was being
+> replaced, with a banner telling you to read parts of it as history; that mix has been
+> audited out. Where a passage *is* history it now says so in its own line, and says what the
+> lesson became.
 >
-> Everything below still describes the game accurately as **behaviour** —
-> what a press does, when Avoid is live, what the feed says, why a click is
-> never swallowed. Where it describes Scene2D *mechanics*, read it as history:
-> **every screen is now immediate-mode and there is no Scene2D in the project
-> at all.** The last of it went with the run-end panel and the tutorial
-> overlay, and the two vector faces went with it — Silkscreen is the only type
-> in the game.
+> **There is no Scene2D in the project.** Every screen draws in immediate mode at a fixed
+> 1280×720, and the five navigable ones share `PixelScreen`. `CardTiles`, `Choreographer`,
+> `Motion` and `Widgets` are gone; so are the *Ashen* palette and both vector faces —
+> Silkscreen is the only type in the game, and the colour rule is the two tiers described
+> under Design tokens.
 >
-> **Where the look stands.** The board is a torchlit dungeon: a procedural
-> backdrop (warm glow with a live flicker over a vignette, drifting embers) and
-> hand-drawn 64×64 pixel sprites at ×2 inside 176×256 framed cards. Motion
-> (deal-in, avoid-sweep, HP pulses, the per-card resolve effects, and the YOU
-> DIED death cinematic) steps on a 12 fps grid; idles run at 6.
+> **The look.** A torchlit dungeon: a procedural backdrop (warm glow with a live flicker over
+> a vignette, drifting embers) and hand-drawn 64×64 pixel sprites at ×2 inside 176×256 framed
+> cards. Motion — deal-in, avoid-sweep, HP pulses, the per-card resolve effects, the death
+> cinematic — steps on a 12 fps grid; idles run at 6, floored in `Frames`.
+>
+> The board's own furniture lives in `BoardView` (the room and every effect), `BoardHud` (the
+> chrome), `CardFace` (the printing), and `BoardArt`/`CardArt`/`HudArt` (the measurements).
 
 ## Locked decisions (from the design interview)
 
@@ -37,22 +34,23 @@ visual tokens, the architecture, and every component on screen. It complements
 - **Input: press-then-pick.** A card with one legal move plays immediately; a
   monster with both fight options pops a small two-button chooser at the card.
   Avoid is a HUD button.
-- **A press must never be swallowed.** This UI's recurring bug. Two Scene2D
-  traps caused it, both fixed and both worth remembering:
-  1. **`Table` defaults to `Touchable.childrenOnly`** — the table itself is
-     never a hit target, only its children are. A card tile is a Table, so
-     only its *label glyphs* were clickable and presses on the blank part of a
-     card vanished into the stage. Cards no longer go through Scene2D at all —
-     the board hit-tests its own rectangles (`CardHitRegions`) — but the trap
-     is still live for the overlays: it made the end overlay non-modal (presses
-     fell through to the dead board), so it is explicitly `enabled`. Any
-     full-screen or overlapping actor needs a deliberate `Touchable` decision.
-  2. **Cards, chooser buttons, and the animation gate act on _press_, not
-     click** (`Widgets.pressListener`). Scene2D's `ClickListener` only fires
-     when the release lands back on the same actor, so fast play — where the
-     mouse is already travelling to the next card as the button comes up —
-     silently lost clicks. Real buttons (Avoid, New game, Records) keep
-     release semantics, so a press can still be cancelled by sliding off.
+- **A press must never be swallowed.** This UI's recurring bug, and the rule that outlived the
+  toolkit that caused it. *(Scene2D is gone; the two traps below are history, but the second
+  half of each is still live and still enforced.)*
+  1. **Modality is a decision somebody has to make, explicitly.** Under Scene2D the trap was
+     `Table` defaulting to `Touchable.childrenOnly`, so only a card's *label glyphs* were
+     clickable and presses on the blank part vanished; the same default made the end overlay
+     non-modal, and presses fell through to a dead board. Nothing goes through Scene2D now —
+     the board hit-tests its own rectangles (`CardHitRegions`) — but the decision did not go
+     away, it moved: **`PixelScreen.modal()`** is where a screen says that a click hitting none
+     of its targets is swallowed rather than passed through. The run-end panel and the erase
+     confirmation return true; the tutorial callout deliberately does not, because playing the
+     board is the whole point of it.
+  2. **Cards act on _press_, buttons on _release_.** Scene2D's `ClickListener` only fired when
+     the release landed back on the same actor, so fast play — the mouse already travelling to
+     the next card as the button came up — silently lost clicks. The distinction survives the
+     toolkit and is now deliberate: cards resolve on press, and every button goes through
+     `PressGesture` so a press can be taken back by sliding off.
 - **Menu buttons act on release, and show the press while they wait**
   (`PressGesture`, added 2026-08-10). The pixel menus hit-test their own
   rectangles, so they get none of Scene2D's button behaviour for free and had
@@ -93,42 +91,46 @@ visual tokens, the architecture, and every component on screen. It complements
   New game / Trophies / Records. **Records and Trophies are reachable only
   between games** (title + end overlay): a run, once started, is
   uninterruptible — consistent with quit-outs being unrecorded.
-- **Window:** resizable, 1280×720 default, Fit viewport (letterboxed scaling).
+- **Window:** resizable, 1280×720 default, `PixelViewport` — a fit that snaps the scale down
+  to a multiple of 0.5 and letterboxes the rest, so pixel art always lands on whole screen
+  pixels. See the architecture note below for why a plain fit was not enough.
 - **Mood: torchlit dungeon** — dark, warm, quiet.
 
 ## Design tokens
 
-Palette (all constants in `screens.Theme`):
+**The palette is two tiers, and `Theme` is not where it lives.** The *Ashen* seven-token
+table this section used to carry went with release 1; six of the seven had no reader left by
+the time they were deleted.
 
-| Token | Hex | Used for |
+| Tier | Where | What it governs |
 |---|---|---|
-| soot | `#17130f` | background |
-| stone | `#241d16` | frames, strips, popups |
-| dried blood | `#8c2f22` | monster tiles, slain chips, the YOU DIED reveal & death bleed |
-| iron | `#7a8794` | weapon tiles |
-| herbal | `#5d8a4a` | potion tiles |
-| torchlight | `#d9a441` | accent: Avoid, threshold plate, ticker, CLEARED |
-| bone | `#e8ddc7` | text, health |
+| The eighty | `Ramps` | Sprite pixels. Nine ramps of eight steps plus eight accents (`HANDOFF.md` §6). The hurt and rim generators snap unmatched colours to the nearest entry, which is how six part-off-ramp creatures still flash on-palette |
+| The thirty-two | `UiPalette` | Every colour drawn in code that is *not* on a ramp — the §11 chrome, the potion bottle's glass, the cleaved card's cut faces, the HUD tints. All sampled from the reference render, each with a comment saying what it draws |
 
-Type (generated at startup via `gdx-freetype` from TTFs in `assets/fonts/`,
-both SIL OFL, licenses bundled):
+`UiPaletteTest` scans both declaration forms out of the source and fails on a colour in
+neither, so a new one has to be justified rather than merely typed. What it cannot govern is
+blended output: a shadow drawn as `0x000000` at half alpha is off-ramp by construction, and
+that is where §11's "flat colour, never alpha" quietly loses.
 
-- **IM Fell English** — display (64px card values, 42px overlay titles). Its
-  old-style numerals are a deliberate period touch (a big "11" reads a little
-  like Roman "II"; the corner index always shows the true identity in the sans
-  face).
-- **Alegreya Sans** regular/bold — HUD labels, buttons, feed, corner indices
-  (18px and 14px).
+`Theme` keeps exactly two colours, the ones the torch itself is lit in — `TORCHLIGHT`
+(`#d9a441`) and `BONE` (`#e8ddc7`) — both on the accent ramp.
 
-Neither face has suit glyphs, so ♠♥♦♣ are drawn as pixmap shapes in `Theme`
-and tinted at use; feed copy writes names out ("the Queen of clubs").
+Type: **Silkscreen, and nothing else.** Generated at startup via `gdx-freetype` from the two
+TTFs in `assets/fonts/` (SIL OFL, licence bundled), rasterised at 1:1 with `mono = true`,
+`hinting = None`, gamma 1 and **Nearest** filtering — the opposite of how a vector face is
+loaded, and the reason the readout renders in exactly one colour where Alegreya took 27.
 
-Both faces are on their way out. **Silkscreen** replaces them screen by screen
-as the pixel-art conversion lands (`HANDOFF` §5); the board, title, new game,
-ledger and trophies are already on it, and the two remaining Scene2D overlays
-still hold the old pair. Its sizes are the only ones anything may ask for, and
-they live in `PixelType`: 8, 12, 14, 26, 38. All even, because the viewport
-snaps to half-steps and an odd size lands on a half pixel at ×1.5.
+IM Fell English and Alegreya Sans are **gone**, files and all: they set type on nothing after
+the last two overlays were converted, and the three TTFs left `assets/` with the default
+libGDX skin. The old display face's old-style numerals were a period touch worth remembering
+and not worth keeping a vector face for.
+
+Silkscreen has no suit glyphs, so ♠♥♦♣ are rasterised from geometry (`PipMask`, `Pips`) rather
+than drawn as font characters; feed copy writes names out ("the Queen of clubs").
+
+Its sizes are the only ones anything may ask for, and they live in `PixelType`: 8, 12, 14, 26,
+38. All even, because the viewport snaps to half-steps and an odd size lands on a half pixel
+at ×1.5.
 
 **Nothing below 12 for anything a player reads.** Silkscreen's strokes are 1px,
 so at the ×1.5 a 1920×1080 display gets, each stroke lands on either one screen
@@ -198,9 +200,20 @@ to 8.
   Everything conditional (Avoid enabled, instant-play vs chooser, chooser
   contents) derives from `legalMoves`. Zero rule logic in screens — even
   damage previews were omitted rather than duplicate combat math in the UI.
-- **`Theme` owns every visual fact**: palette, fonts, flat drawables (a 1×1
-  white texture tinted per use), suit icons. Created once in `ScoundrelGame`,
-  disposed once, passed to screens. The sprite pass swaps Theme internals.
+- **`Theme` owns what the GL side needs**: the Silkscreen faces at their five sizes, the
+  generated textures the backdrop and the dither draw from, and the two accent colours the
+  torch is lit in. Created once in `ScoundrelGame`, disposed once, passed to screens. It used
+  to own the palette and a set of flat drawables; the drawables went with Scene2D and the
+  palette went to `Ramps` and `UiPalette`.
+- **`PixelScreen` is the frame every navigable screen draws inside** — the batch, the
+  viewport, the surface, the backdrop, the chrome and the press gesture, declared once instead
+  of five times. Its `render` is **final**, and that is the point: activating a target
+  navigates, navigating disposes the screen, and drawing afterwards reads freed native memory
+  and takes the JVM down rather than throwing. The guard sits above a `drawContent` a subclass
+  cannot reach until the check has passed, so the mistake is no longer expressible. Four hooks
+  carry the differences — `advance` (extra clocks), `backdropLight` (the death's guttering
+  torch), `modal`, and `escape` (the title has nowhere to go). `SpriteLab` deliberately stays
+  outside it: no press gesture, no backdrop, and nobody navigates to a developer tool.
 - **No skin, and now no Scene2D.** Styles used to be built in code rather than
   from a `Skin` JSON/atlas, to keep them compiler-checked. That question is
   moot: nothing builds a widget any more. Every screen draws tinted rectangles
@@ -290,20 +303,7 @@ to 8.
   "… wasted — one potion a turn", "Equipped the 5 of diamonds",
   "The weapon dulls — slays < 6" / "The weapon is spent",
   "Avoided the room".
-- **End overlay** — dim soot over the board. A **win** reads `DUNGEON CLEARED`
-  (torchlight); a **loss** instead runs the death cinematic (the YOU DIED reveal,
-  above) and settles this same panel in beneath it. Either way: the score in
-  display type, a dim **breakdown line** naming where that number came from
-  (`Labels.scoreBreakdown` — `-9 health, minus 175 still in the dungeon` on a
-  loss, since a death score charges you for monsters you never saw; the health
-  you kept, or cap-plus-final-potion, on a win), the run's final `time m:ss`,
-  a best-score line
-  (`New best!` in torchlight, or `best N` dimmed — from the persisted run
-  history), any achievements just unlocked under a torchlight
-  `ACHIEVEMENT(S) UNLOCKED` heading (a hidden one is revealed the moment it is
-  earned), then **New game** (reshuffles in place, in the same mode),
-  **Trophies**, and **Records**.
-- **Title screen** — `SCOUNDREL` in display type over soot, then New game,
+- **Title screen** — `SCOUNDREL` in Silkscreen at 38px with a 4px hard shadow, then New game,
   **How to play**, Records, and Trophies buttons, and a dim designer-credit
   line. **New game** opens the mode picker; **How to play** starts the tutorial.
   On the very first launch (`!TutorialFlag.isSeen()`) a modal **New here?** prompt
@@ -312,12 +312,12 @@ to 8.
 - **Tutorial** — a scripted, guided run played on the real board
   (`GameScreen` in tutorial mode, given a `TutorialGuide`). It deals the curated
   `TutorialScript` deck, records nothing, and layers guidance on top: each step
-  marks its target — a room card or the Avoid button — with a pulsing **bone
-  frame outline** (bone, not torchlight, so it reads against both the dark cards
-  and the lit Avoid button), and a **contextual callout** of the narration that
-  points above the card, below the Avoid button, or sits centred for
-  rule-explanation beats. Input is **gated** to the current step: only the
-  outlined card responds (no chooser), and Avoid is live only on the step that
+  marks its target — a room card or the Avoid button — with **eight corner ticks**
+  in cream, leaving the edges open (the closed pulsing outline this once described
+  went with the pixel conversion; see the TUTORIAL overlay entry below), and a
+  **contextual callout** of the narration that points above the card, below the
+  Avoid button, or sits under the room for rule-explanation beats. Input is
+  **gated** to the current step: only the marked card responds (no chooser), and Avoid is live only on the step that
   teaches it. Explanation beats carry a **Next**; a persistent **Skip tutorial**
   corner button leaves to the title. Clearing the deck shows a **Tutorial
   complete** screen that prints the run's actual score and reads it back as the
@@ -446,8 +446,17 @@ to 8.
   catalog. All on the pixel kit, drawn in immediate mode, as are the run-end
   panel and the tutorial overlay that `GameScreen` draws over the board.
   `Widgets` is gone with the last of Scene2D.
+- `core/src/main/java/com/tomer/scoundrel/screens/PixelScreen.java` — the shared screen frame
+  described above; the five navigable screens extend it.
+- `core/src/main/java/com/tomer/scoundrel/screens/Ramps.java` / `UiPalette.java` /
+  `Sprites.java` — the eighty ramp colours and the thirty-two drawn-in-code exceptions, and
+  the atlas loader that builds the hurt and rim pages at startup.
+- `core/src/main/java/com/tomer/scoundrel/screens/Frames.java` — the one place time is floored
+  onto the frame grid: `at`, `atPeriod`, `snap`, and the two rates (12 for effects, 6 for
+  idles). It multiplies by the rate rather than dividing by a stored `1/12`, which drifts past
+  the boundary epsilon after an hour of uptime.
 - `core/src/main/java/com/tomer/scoundrel/screens/Backdrop.java` — the ambient
-  layer added first to each stage: torch glow, vignette, and embers.
+  layer drawn first on every screen: torch glow, vignette, and embers.
 - `core/src/main/java/com/tomer/scoundrel/screens/CardHitRegions.java` /
   `TorchFlicker.java` / `Embers.java` / `ClockText.java` / `FeedText.java` /
   `Feed.java` / `Labels.java` / `ResolveEffect.java` / `BoardArt.java` /
@@ -479,15 +488,25 @@ to 8.
   creates the Theme, RunLog and AchievementStore, boots into `TitleScreen`,
   owns disposal.
 - `lwjgl3` launcher — 1280×720 window, title "Scoundrel".
-- `assets/fonts/` — the two typefaces plus OFL license texts.
+- `assets/fonts/` — `Silkscreen-Regular.ttf`, `Silkscreen-Bold.ttf` and the one OFL licence.
+  Nothing else: the vector faces and the default libGDX skin were deleted once nothing loaded
+  them, 881 KB that had been shipping in every build.
 
-## What the illustration pass will change (and what it won't)
+## What survived the illustration pass
 
-The atmosphere and card framing have shipped in `Theme` and `Backdrop`. The one
-remaining visual pass is *illustration* — drawn card art and creature sprites
-inside the existing frames — which again lands mostly in `Theme` (swap the flat
-panels and drawn suit pips for art) and touches no screen logic. What should
-*not* change: the dumb-view rule, the state-rebuild model as the source of
-truth, the legalMoves-driven interaction, and the event-stream feed. If an
-animation needs to know a rule, that's a sign the engine should expose it, not
-the UI re-derive it.
+The illustration pass has landed: 31 hand-drawn objects and 130 idle frames, every screen on
+the pixel kit, Scene2D and both vector faces gone. It changed nearly every line of drawing
+code in the project — and touched **none** of the rules below, which is the useful part.
+
+What did not move, and should not:
+
+- **The dumb-view rule.** The screen calls `newGame` / `legalMoves` / `apply` and nothing else.
+- **State rebuild as the source of truth.** The board is drawn from the state each frame; an
+  effect plays *over* a board that is already final, so no animation ever carries game state.
+- **`legalMoves`-driven interaction.** Avoid's enablement, instant-play versus chooser, and the
+  chooser's contents all derive from it rather than from re-implemented rules.
+- **The event-stream feed**, sharing its observer seam with `runs` and `achievements`.
+
+If an animation needs to know a rule, that is a sign the engine should expose it, not that the
+UI should re-derive it. The pass is the evidence: the effects were built against the event
+stream and the state, and none of them needed a rule.
