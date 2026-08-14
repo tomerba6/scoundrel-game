@@ -47,10 +47,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   beside eight of the nine floors that needed it.
 - Nothing on the converted screens is set below 12px. Silkscreen strokes are 1px, and at the
   ×1.5 scale a 1920×1080 display gets, an 8px glyph loses half of them to rounding.
+- **One screen frame instead of five.** `PixelScreen` owns the batch, viewport, surface,
+  backdrop and press gesture that every navigable screen was declaring for itself, and its
+  `render` is final: the guard that stops a screen drawing after it has navigated — and disposed
+  its own batch — is written once, above a `drawContent` a subclass cannot reach before the
+  check has passed. Getting that wrong takes the JVM down rather than throwing, so it is now
+  structural rather than copied. Two hooks carry the real differences: a modal screen swallows a
+  click that hit none of its targets, and the title overrides ESC to do nothing, having nowhere
+  to go.
+- **The palette rule is enforced, in the version that is true.** The eighty ramp colours govern
+  sprite pixels; the chrome, the potion bottle, the cleaved card's faces and the HUD tints were
+  sampled from the reference render and were never on them. `UiPalette` holds those 32 with
+  their provenance, and a test reads both declaration forms out of the source and fails on a
+  colour in neither.
 
 ### Removed
 - Scene2D, in full: the stage, the `Widgets` button styles, and `Theme`'s drawable helpers.
-- The IM Fell English and Alegreya Sans faces, now that nothing sets type in them.
+- The IM Fell English and Alegreya Sans faces, now that nothing sets type in them — the three
+  TTFs, their licences and the default libGDX skin are out of `assets/` as well, 881 KB that had
+  not been loaded since the conversion.
+- `Theme`'s eight *Ashen* colour tokens, the release-1 palette the ramp system replaced. Only
+  the two the torch is lit in still had a reader.
+
+### Fixed
+
+- **The equipped weapon lands on the rail it becomes.** The flight aimed at (96, 646) while the
+  icon it turns into is centred on (64, 650), so the card came to rest 31px right of the well —
+  more than its own width at the flight's final scale — and then snapped into place. The flight
+  derives its target from the board furniture now, and a test holds the two together.
 
 ## [1.0.0] - 2026-08-05
 
