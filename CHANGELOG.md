@@ -5,7 +5,10 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-08-14
+
+The art release. The engine is unchanged — every rule, score and edge case behaves exactly as it
+did in 1.0 — and everything you look at is new.
 
 ### Added
 - Pixel-art creature, weapon and potion sprites, packed into a texture atlas at build time.
@@ -112,5 +115,6 @@ First complete release: the full base game, playable start to finish.
 - Cards are drawn as typed tiles with rank and suit. Illustrated sprites are in progress.
 - There is no mid-game save or resume — a run is a single sitting.
 
-[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/tomerba6/scoundrel-game/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/tomerba6/scoundrel-game/releases/tag/v1.0.0
