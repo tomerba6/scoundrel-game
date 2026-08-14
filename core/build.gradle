@@ -12,6 +12,17 @@ test {
   // silent in exactly the case it exists for. Declaring it makes the edit
   // re-run the test.
   inputs.file('build.gradle').withPathSensitivity(PathSensitivity.RELATIVE)
+  // Same blind spot, same fix: RimMaskTest and HurtMaskTest compare what the
+  // generators produce against the delivered reference frames under
+  // art-reference/, which live outside this module and so are invisible to
+  // Gradle. Without this, changing the reference art leaves :core:test
+  // UP-TO-DATE and the comparison unrun. Declared conditionally because both
+  // tests are @EnabledIf on the directory existing — a checkout without the
+  // art still builds.
+  def referenceArt = rootProject.file('art-reference/sprites')
+  if (referenceArt.isDirectory()) {
+    inputs.dir(referenceArt).withPathSensitivity(PathSensitivity.RELATIVE)
+  }
 }
 
 jacocoTestReport {
