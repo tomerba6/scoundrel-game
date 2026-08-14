@@ -45,7 +45,9 @@ drawn art, and it took every screen with it.
 - **Guided tutorial** — a scripted 22-step run that teaches every rule, offered once on first
   launch and replayable afterwards.
 - **Persistent progression** — high scores and lifetime statistics across every finished run,
-  ranked per difficulty, with ten achievements derived from the engine's event stream.
+  with ten achievements derived from the engine's event stream. The ledger ranks all modes in
+  one table and tags each row with the mode it was run in; "new best" is judged per mode, so a
+  first Frail run earns it without competing against Standard scores.
 - **Drawn presentation** — sprites that breathe on a shared clock, cards that deal in and sweep
   away, per-card resolve effects, a death cinematic, and a procedural torchlit backdrop with
   live flicker and drifting embers.

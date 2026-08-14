@@ -367,8 +367,12 @@ to 8.
   totals panel. Seven columns: Roman-numeral rank, score (cream, dried blood
   when negative), outcome (`71b45c` cleared / `8c2f22` defeated), **the mode it
   was run in**, date, duration, monsters slain. The mode tag is required
-  reading, not decoration: scores are ranked per mode, so without it a Frail 14
-  beside a Standard 20 is unreadable. An id with no matching mode renders as the
+  reading, not decoration: this table is `HighScores.top`, a **single ranking
+  across every mode**, so a Frail 14 can sit directly beside a Standard 20 and
+  the tag is the only thing that makes the pair legible. Per-mode ranking exists
+  but is used elsewhere — `HighScores.bestForRuleset` is what decides the run-end
+  panel's `NEW BEST`, so a first Frail run earns the badge without troubling the
+  Standard table. The title's best line is `HighScores.best`, overall again. An id with no matching mode renders as the
   raw id rather than taking the screen down. The table's height follows its row
   count, so a short log shrinks the frame instead of leaving it hanging. Empty
   state invites a first run. What a row *says* is the pure `LedgerRow`.
