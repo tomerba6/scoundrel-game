@@ -21,6 +21,28 @@ final class CalloutPlacement {
      *                 is above it, up at it when below
      * @param notchX   the notch's left edge, or -1 when there is no notch
      */
+    /**
+     * The NEXT button's rectangle inside a callout. A record rather than the
+     * {@code int[4]} it used to be — four numbers in an array is four chances to
+     * read w where y was meant.
+     */
+    record Plate(int x, int y, int w, int h) {
+    }
+
+    /**
+     * Where NEXT goes in a callout: right-aligned one pad in from the edge, and
+     * <b>below</b> the last line of narration rather than over it.
+     *
+     * @param labelWidth the measured label, without its padding
+     */
+    static Plate nextPlate(int calloutX, int calloutY, int calloutH, int labelWidth) {
+        int w = labelWidth + 2 * ScreenArt.END_BUTTON_PAD_X;
+        return new Plate(
+                calloutX + ScreenArt.CALLOUT_W - ScreenArt.CALLOUT_PAD_X - w,
+                calloutY + calloutH - ScreenArt.CALLOUT_BOTTOM_PAD - ScreenArt.SKIP_H,
+                w, ScreenArt.SKIP_H);
+    }
+
     record Placement(int x, int y, boolean below, int notchX) {
         boolean hasNotch() {
             return notchX >= 0;

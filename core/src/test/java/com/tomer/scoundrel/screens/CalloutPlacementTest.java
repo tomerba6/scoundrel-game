@@ -106,4 +106,45 @@ class CalloutPlacementTest {
         assertTrue(place(250, 232, 176, 256).hasNotch());
         assertTrue(place(250, 40, 176, 256).hasNotch());
     }
+
+    // --- the NEXT plate ----------------------------------------------------
+    // Characterized before it moved off GameScreen, where it was one of two
+    // methods returning a bare int[] of four numbers meaning x, y, w, h.
+
+    @Test
+    void theNextPlateIsRightAlignedInsideTheCallout() {
+        CalloutPlacement.Plate plate = CalloutPlacement.nextPlate(100, 200, 180, 40);
+
+        assertEquals(100 + ScreenArt.CALLOUT_W - ScreenArt.CALLOUT_PAD_X,
+                plate.x() + plate.w(),
+                "its right edge sits one pad in from the callout's right edge");
+    }
+
+    @Test
+    void theNextPlateSitsBelowTheLastLineRatherThanOverIt() {
+        int calloutY = 200;
+        int calloutH = 180;
+        CalloutPlacement.Plate plate = CalloutPlacement.nextPlate(100, calloutY, calloutH, 40);
+
+        assertEquals(calloutY + calloutH - ScreenArt.CALLOUT_BOTTOM_PAD - ScreenArt.SKIP_H,
+                plate.y());
+        assertEquals(ScreenArt.SKIP_H, plate.h());
+    }
+
+    @Test
+    void theNextPlateWidensWithItsLabel() {
+        int narrow = CalloutPlacement.nextPlate(100, 200, 180, 40).w();
+        int wide = CalloutPlacement.nextPlate(100, 200, 180, 90).w();
+
+        assertEquals(40 + 2 * ScreenArt.END_BUTTON_PAD_X, narrow, "padding on both sides");
+        assertTrue(wide > narrow);
+    }
+
+    @Test
+    void aTallerCalloutPushesItsNextPlateDown() {
+        int shortOne = CalloutPlacement.nextPlate(100, 200, 150, 40).y();
+        int tallOne = CalloutPlacement.nextPlate(100, 200, 220, 40).y();
+
+        assertTrue(tallOne > shortOne, "the plate follows the callout's bottom");
+    }
 }

@@ -255,8 +255,9 @@ public final class GameScreen extends PixelScreen {
                     ScreenArt.SKIP_W, ScreenArt.SKIP_H)) {
                 return SKIP;
             }
-            if (nextPlate() != null && contains(point, nextPlate()[0], nextPlate()[1],
-                    nextPlate()[2], nextPlate()[3])) {
+            CalloutPlacement.Plate next = nextPlate();
+            if (next != null
+                    && contains(point, next.x(), next.y(), next.w(), next.h())) {
                 return NEXT;
             }
         }
@@ -714,17 +715,13 @@ public final class GameScreen extends PixelScreen {
     }
 
     /** The Next plate on an explanation beat, or null on an action beat. */
-    private int[] nextPlate() {
+    private CalloutPlacement.Plate nextPlate() {
         if (!calloutUp || tutorial.current().isAction()) {
             return null;
         }
         CalloutPlacement.Placement at = calloutPlacement();
-        int w = chrome.width(theme.pixelLabel, "NEXT") + 2 * ScreenArt.END_BUTTON_PAD_X;
-        // Below the last line, not over it.
-        return new int[] {at.x() + ScreenArt.CALLOUT_W - ScreenArt.CALLOUT_PAD_X - w,
-                at.y() + calloutH(tutorial.current()) - ScreenArt.CALLOUT_BOTTOM_PAD
-                        - ScreenArt.SKIP_H,
-                w, ScreenArt.SKIP_H};
+        return CalloutPlacement.nextPlate(at.x(), at.y(), calloutH(tutorial.current()),
+                chrome.width(theme.pixelLabel, "NEXT"));
     }
 
     /**
@@ -778,9 +775,9 @@ public final class GameScreen extends PixelScreen {
                     at.y() + ScreenArt.CALLOUT_TEXT_TOP + i * ScreenArt.CALLOUT_LINE_H,
                     ScreenArt.BODY);
         }
-        int[] next = nextPlate();
+        CalloutPlacement.Plate next = nextPlate();
         if (next != null) {
-            chrome.plate(batch, next[0], next[1], next[2], next[3], "NEXT",
+            chrome.plate(batch, next.x(), next.y(), next.w(), next.h(), "NEXT",
                     Chrome.Plate.GOLD, press.sunk() == NEXT);
         }
     }
