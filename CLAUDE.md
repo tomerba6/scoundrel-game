@@ -36,7 +36,13 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
     - `...scoundrel.rules` — actions and rule resolution (pure).
     - `...scoundrel.screens` — the screens (LibGDX-dependent). **All immediate-mode
       now: there is no Scene2D left in the project, and Silkscreen is the only
-      face.** Pure logic is
+      face.** The five navigable screens extend **`PixelScreen`**, which owns the
+      batch, viewport, surface, backdrop, chrome and press gesture and whose
+      `render` is **final** — it runs the post-navigation guard before calling the
+      subclass's `drawContent`, because drawing after a screen has navigated (and
+      disposed its own batch) kills the JVM rather than throwing. Override the
+      hooks (`advance`, `backdropLight`, `modal`, `escape`, `keyPressed`), never
+      the frame. `SpriteLab` stays outside it deliberately. Pure logic is
       kept **out** of the GL classes: leaf helpers are extracted into small,
       headlessly-unit-tested classes (`RoomMotion`, `CardHitRegions`, `ClockText`,
       `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`,

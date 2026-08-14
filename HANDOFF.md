@@ -171,7 +171,9 @@ pixel art is exactly right: an integer-ish upscale of a crisp source.
 > result into screen bounds.
 >
 > One consequence for §3: at ×1.5 a **font size must be even** to land on whole pixels. When
-> Silkscreen goes in, prefer even sizes — 8, 12, 16, 26, 38 — over the odd 11 and 13.
+> Silkscreen goes in, prefer even sizes over the odd 11 and 13. *(Settled at **8, 12, 14, 26,
+> 38** — see §3. This line first guessed 16 for the mock's 13; the shipped answer is 14, and
+> `PixelType` is the authority.)*
 
 **B. Layout computes card width, sprite scale follows.**
 Keep your current pixel math, then pick the sprite scale as
@@ -724,7 +726,7 @@ a one-off.)*
 §8, rim only. Add a debug key that flashes the rim on a card.
 *Verify:* a clean 2px cream outline (1px source × 2), no gaps at the silhouette's diagonals.
 
-**8 — Weapon kill.** *(done — `WeaponKill` is the timeline, `SliceArt` the halves and bar.
+**8 — Weapon kill.** *(done — `WeaponKill` is the timeline, `EffectArt` the halves and bar.
 Note: 0.36s is 4.32 frames at 12fps, so the flash is quantised to the 4 frames it was tuned
 for; held literally the phase change lands mid-frame and the effect slides.)*
 Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
@@ -732,7 +734,7 @@ Rim 0.36 s → slice. Nothing drawn over the card until the flash ends.
 
 **9 — Hurt generation and barehanded.** *(done — `Ramps` holds the 80-colour table, `HurtMask`
 moves each pixel two steps up its own ramp and lays the rim over it, `Barehanded` is the
-exchange and `SliceArt.star()` the burst. Two corrections to §8 below. The stars step once per
+exchange and `EffectArt.star()` the burst. Two corrections to §8 below. The stars step once per
 frame rather than three times across two: three steps inside two frames would change a value
 mid-frame, and nothing here may slide.)*
 §8 in full, then the two-hit exchange.

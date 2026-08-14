@@ -28,7 +28,7 @@ screenshots the actual screen, so the window must be visible and not minimised.
 ## Build and test
 
 ```bash
-./gradlew core:test          # 585 tests: the engine, the observers, the screen helpers
+./gradlew core:test          # the engine, the observers, the screen helpers
 ./gradlew lwjgl3:compileJava # launcher compiles
 ```
 
@@ -169,10 +169,10 @@ These all cost real time in this container.
   reports scaled sizes and every click lands off-target.
 - **`FindWindow` races window creation** during startup; the driver falls back to
   matching `MainWindowTitle` over the process list.
-- **Scene2D world Y points up, client Y points down**: `client_y = 720 - world_y`
-  when converting a coordinate read off the UI code.
-- **Cards resolve on _press_, buttons on _release_** (`Widgets.pressListener`,
-  `PressGesture`). The driver's `click:` sends a full down+up, which satisfies
+- **World Y points up, client Y points down**: `client_y = 720 - world_y` when converting a
+  coordinate read off the UI code. `CardArt.toWorldY` is the conversion the screens use.
+- **Cards resolve on _press_, buttons on _release_** (`PressGesture`; the old
+  `Widgets.pressListener` went with Scene2D). The driver's `click:` sends a full down+up, which satisfies
   both. A menu button also holds its sunk plate for 60ms before acting, so a
   `shot:` taken within ~100ms of a `click:` catches the button still down rather
   than the screen it navigates to — `wait:` at least 300ms after clicking a menu.

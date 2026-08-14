@@ -1,5 +1,24 @@
 # Code Health R1–R6 Implementation Plan
 
+> ## ✅ Executed 2026-08-14 — do not re-run
+>
+> All six items shipped. This file is kept as the record of intent; **the spec is the record of
+> what happened** ([`../specs/2026-08-13-code-health-r1-r6-design.md`](../specs/2026-08-13-code-health-r1-r6-design.md)).
+> Four of its steps did not survive contact with the code:
+>
+> - **Task 10** put the run-end hit test on `EndSummary`. It went to `ButtonRow.indexAt`, beside
+>   the `lay` that produces the slots — this plan named the host before reading the code.
+> - **Tasks 11 and 13** are void. `chooserLabel`/`chooserSlotX`, `calloutLines`/`calloutH`,
+>   `shownDepth` and `orMinusOne` turned out to be adapters over `Labels`, `TextWrap`,
+>   `CalloutPlacement` and `BoardView`, all already extracted and tested. Only `nextPlate` was
+>   real, and it went to `CalloutPlacement`.
+> - **Task 7's death check** said to trigger the death in `SpriteLab`. That would have proved
+>   nothing: `SpriteLab` is the one screen deliberately left unconverted. It was verified by
+>   dying for real instead.
+> - **Task 9's "byte-identical screenshots"** is unachievable — the backdrop has a live flicker
+>   and drifting embers, so no two frames of this game ever match. A same-build noise floor was
+>   measured and compared against instead.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Clear six pieces of structural debt from the Scoundrel codebase — dead assets, a superseded palette, a five-times-copied screen frame, disagreeing board anchors, an unenforced colour rule, and a 1,128-line screen — before release 2 is tagged.

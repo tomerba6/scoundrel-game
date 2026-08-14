@@ -230,7 +230,7 @@ tokens R3 deletes. R3 therefore removes the whole second-form problem.
 **The invariant:** *every named colour constant in `screens` is a member of `Ramps` ∪
 `UiPalette`.*
 
-**`PaletteTest`** — pure and headless, following the file-reading precedent of `RimMaskTest`
+**`UiPaletteTest`** — pure and headless, following the file-reading precedent of `RimMaskTest`
 (`Path.of("..", "art-reference", "sprites")`), so it reads
 `Path.of("src", "main", "java", …, "screens")` relative to the module directory:
 
