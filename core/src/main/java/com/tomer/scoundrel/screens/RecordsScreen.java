@@ -1,13 +1,7 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.AchievementStore;
 import com.tomer.scoundrel.runs.HighScores;
@@ -27,7 +21,7 @@ import java.util.List;
  * what it says and what colour it says it in — are in the pure {@link LedgerRow}
  * and {@link LedgerTotals}, so this class only places things.
  */
-public final class RecordsScreen extends ScreenAdapter {
+public final class RecordsScreen extends PixelScreen {
 
     /** The quiet erase control, as a hit-test id alongside {@link ScreenArt#BACK}. */
     private static final int ERASE = -3;
@@ -43,16 +37,6 @@ public final class RecordsScreen extends ScreenAdapter {
     private static final int DIALOG_BUTTON_Y = 396;
     private static final int DIALOG_BUTTON_GAP = 24;
 
-    private final ScoundrelGame game;
-    private final Theme theme;
-
-    private final PixelViewport viewport;
-    private final SpriteBatch batch = new SpriteBatch();
-    private final PixelSurface surface;
-    private final Backdrop backdrop;
-    private final Chrome chrome;
-    private final PressGesture press = new PressGesture();
-
     private final List<LedgerRow> rows;
     private final List<LedgerTotals.Stat> totals;
     private final String caption;
@@ -64,12 +48,7 @@ public final class RecordsScreen extends ScreenAdapter {
 
     public RecordsScreen(ScoundrelGame game, Theme theme, RunLog runLog,
                          AchievementStore achievements) {
-        this.game = game;
-        this.theme = theme;
-        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        this.surface = new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
-        this.backdrop = new Backdrop(theme);
-        this.chrome = new Chrome(theme);
+        super(game, theme);
 
         List<RunRecord> records = readSafely(runLog);
         List<RunRecord> top = HighScores.top(records, ScreenArt.LEDGER_ROWS);
@@ -103,18 +82,16 @@ public final class RecordsScreen extends ScreenAdapter {
         }
     }
 
-    @Override
-    public void show() {
-        Gdx.input.setInputProcessor(new LedgerInput());
-    }
-
     /**
      * What a window-space point is on. While the confirmation is up it is the
      * only thing that answers — a destructive dialog that let the screen behind
      * it take a press would be the worst place in the game to get that wrong.
+     * {@link #modal()} is the other half of that: a click on none of these is
+     * swallowed rather than passed through.
      */
-    private int hit(int screenX, int screenY) {
-        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+    @Override
+    protected int hit(int screenX, int screenY) {
+        Vector2 point = unproject(screenX, screenY);
         if (confirming) {
             if (dialogButtonContains(0, point.x, point.y)) {
                 return KEEP;
@@ -130,7 +107,8 @@ public final class RecordsScreen extends ScreenAdapter {
         return PressGesture.NONE;
     }
 
-    private void activate(int target) {
+    @Override
+    protected void activate(int target) {
         switch (target) {
             case ScreenArt.BACK -> game.showTitle();
             case ERASE -> confirming = true;
@@ -144,64 +122,25 @@ public final class RecordsScreen extends ScreenAdapter {
         }
     }
 
-    private final class LedgerInput extends InputAdapter {
-        @Override
-        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            return press.press(hit(screenX, screenY)) || confirming;
-        }
+    /** A click on nothing is swallowed while the confirmation is up. */
+    @Override
+    protected boolean modal() {
+        return confirming;
+    }
 
-        @Override
-        public boolean touchDragged(int screenX, int screenY, int pointer) {
-            press.moveOver(hit(screenX, screenY));
-            return false;
-        }
-
-        @Override
-        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            return press.release(hit(screenX, screenY)) || confirming;
-        }
-
-        @Override
-        public boolean keyDown(int keycode) {
-            if (keycode != Input.Keys.ESCAPE) {
-                return false;
-            }
-            // Escape backs out of the dialog before it backs out of the screen.
-            if (confirming) {
-                confirming = false;
-                press.cancel();
-            } else {
-                game.showTitle();
-            }
-            return true;
+    /** Escape backs out of the dialog before it backs out of the screen. */
+    @Override
+    protected void escape() {
+        if (confirming) {
+            confirming = false;
+            press.cancel();
+        } else {
+            game.showTitle();
         }
     }
 
     @Override
-    public void render(float delta) {
-        backdrop.advance(delta);
-
-        // A target acts here rather than the instant it comes up, once it has
-        // been down long enough to have been seen. Leaving disposes this screen
-        // along with its batch and surface, so nothing may be drawn afterwards.
-        int fired = press.advance(delta);
-        if (fired != PressGesture.NONE) {
-            activate(fired);
-            if (game.getScreen() != this) {
-                return;
-            }
-        }
-
-        surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
-        batch.setProjectionMatrix(surface.projection());
-        batch.begin();
-        backdrop.render(batch, 1f);
+    protected void drawContent(float delta) {
         chrome.header(batch, "THE LEDGER", caption,
                 !confirming && press.sunk() == ScreenArt.BACK);
         if (rows.isEmpty()) {
@@ -221,15 +160,6 @@ public final class RecordsScreen extends ScreenAdapter {
         if (confirming) {
             drawConfirmation();
         }
-        batch.end();
-        surface.end();
-
-        ScreenUtils.clear(Color.BLACK);
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
-        batch.begin();
-        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        batch.end();
     }
 
     /** The ten best runs, one frame around the lot of them. */
@@ -384,17 +314,4 @@ public final class RecordsScreen extends ScreenAdapter {
         return count == 1 ? one : many;
     }
 
-    @Override
-    public void resize(int width, int height) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-        viewport.update(width, height, true);
-    }
-
-    @Override
-    public void dispose() {
-        surface.dispose();
-        batch.dispose();
-    }
 }

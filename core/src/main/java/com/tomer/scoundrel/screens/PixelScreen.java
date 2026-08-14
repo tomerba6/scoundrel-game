@@ -133,6 +133,16 @@ public abstract class PixelScreen extends ScreenAdapter {
         return false;
     }
 
+    /**
+     * Whether something modal is up. A modal screen consumes a click that hit
+     * none of its targets, rather than letting it reach what is behind — a
+     * destructive confirmation that let the screen underneath take a press
+     * would be the worst place in the game to get that wrong.
+     */
+    protected boolean modal() {
+        return false;
+    }
+
     protected abstract void drawContent(float delta);
 
     /**
@@ -150,7 +160,7 @@ public abstract class PixelScreen extends ScreenAdapter {
             if (button != Input.Buttons.LEFT) {
                 return false;
             }
-            return press.press(hit(screenX, screenY));
+            return press.press(hit(screenX, screenY)) || modal();
         }
 
         @Override
@@ -164,7 +174,7 @@ public abstract class PixelScreen extends ScreenAdapter {
             if (button != Input.Buttons.LEFT) {
                 return false;
             }
-            return press.release(hit(screenX, screenY));
+            return press.release(hit(screenX, screenY)) || modal();
         }
 
         @Override
