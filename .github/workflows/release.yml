@@ -50,9 +50,21 @@ jobs:
             | Windows (x64) | `Scoundrel-winX64.zip` |
             | macOS (Apple Silicon) | `Scoundrel-macM1.zip` |
 
-            Both builds are **unsigned**, so the first launch shows a warning:
-            on Windows choose **More info → Run anyway**; on macOS right-click
-            the app and choose **Open**.
+            ## Before you download
 
-            See [CHANGELOG.md](https://github.com/tomerba6/scoundrel-game/blob/main/CHANGELOG.md)
-            for what changed.
+            **Both builds are unsigned**, so the first launch shows a warning: on Windows
+            choose **More info → Run anyway**; on macOS right-click the app and choose
+            **Open**.
+
+            **The macOS build has never been launched on a Mac.** It is cross-built on a
+            Windows runner from a downloaded macOS JDK — this job proves it packages, not
+            that it runs. Treat it as untested rather than merely unsigned. Reports either
+            way are welcome.
+
+            There is no mid-game save or resume; a run is a single sitting, by design.
+
+            The full list is under
+            [Known limitations](https://github.com/tomerba6/scoundrel-game/blob/main/CHANGELOG.md#known-limitations)
+            in the changelog, and
+            [CHANGELOG.md](https://github.com/tomerba6/scoundrel-game/blob/main/CHANGELOG.md)
+            has what changed.
