@@ -15,11 +15,20 @@ final class CardFlight {
     /** Effects run at 12fps, and a hop is always a whole number of frames. */
     private static final float FRAME = 1f / Frames.EFFECT_FPS;
 
-    /** The anchors a card can fly to, from the board geometry. */
-    static final int TICKER_X = 640;
-    static final int TICKER_Y = 60;
-    static final int RAIL_X = 96;
-    static final int RAIL_Y = 646;
+    /**
+     * The depth ticker's centre: where a swept room lands, and where a dealt
+     * card comes from.
+     *
+     * <p>Named {@code _CX}/{@code _CY} because {@link HudArt#TICKER_Y} is a
+     * different number for a different thing — the strip's top edge, not a
+     * flight target. They were both {@code TICKER_Y} until this was renamed.
+     *
+     * <p>The rail's anchor is <b>not</b> declared here. It lives in
+     * {@link BoardArt} with the rest of the furniture, and {@link #EQUIP} reads
+     * it from there; a second copy is how it came to be 32px wrong.
+     */
+    static final int TICKER_CX = 640;
+    static final int TICKER_CY = 60;
 
     /**
      * @param toX         where the card lands
@@ -59,7 +68,7 @@ final class CardFlight {
      * already decided to be rid of took two thirds of a second to leave. Three
      * hops of one frame: the room is gone in 250ms, release 1's beat.
      */
-    static final Flight AVOID = new Flight(TICKER_X, TICKER_Y, FRAME, 0f,
+    static final Flight AVOID = new Flight(TICKER_CX, TICKER_CY, FRAME, 0f,
             new int[] {100, 58, 16});
 
     /**
@@ -67,8 +76,10 @@ final class CardFlight {
      * nothing to stagger against. The quoted 0.24s a hop put three quarters of
      * a second between taking a weapon and being able to use it.
      */
-    static final Flight EQUIP = new Flight(RAIL_X, RAIL_Y, FRAME, 0f,
-            new int[] {100, 55, 18});
+    static final Flight EQUIP = new Flight(
+            BoardArt.railIconX() + BoardArt.RAIL_ICON / 2,
+            BoardArt.railIconY() + BoardArt.RAIL_ICON / 2,
+            FRAME, 0f, new int[] {100, 55, 18});
 
     /**
      * A card arriving in the room, growing as it comes, three hops of one

@@ -458,8 +458,8 @@ final class BoardView {
                 CardFlight.Flight deal = CardFlight.dealTo(toX, toY);
                 float t = CardFlight.localTime(deal, index, dealElapsed);
                 if (t >= 0f) { // otherwise it is still waiting its turn
-                    drawFlying(batch, card, deal, CardFlight.TICKER_X - CardArt.CARD_W / 2,
-                            CardFlight.TICKER_Y - CardArt.CARD_H / 2, t);
+                    drawFlying(batch, card, deal, CardFlight.TICKER_CX - CardArt.CARD_W / 2,
+                            CardFlight.TICKER_CY - CardArt.CARD_H / 2, t);
                 }
             }
         }

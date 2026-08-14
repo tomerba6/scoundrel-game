@@ -32,8 +32,8 @@ class CardFlightTest {
     @Test
     void aFlightEndsOnItsAnchor() {
         float last = CardFlight.AVOID.total() - 0.001f;
-        assertEquals(CardFlight.TICKER_X, CardFlight.x(CardFlight.AVOID, 252, last));
-        assertEquals(CardFlight.TICKER_Y, CardFlight.y(CardFlight.AVOID, 220, last));
+        assertEquals(CardFlight.TICKER_CX, CardFlight.x(CardFlight.AVOID, 252, last));
+        assertEquals(CardFlight.TICKER_CY, CardFlight.y(CardFlight.AVOID, 220, last));
     }
 
     @Test
@@ -147,15 +147,15 @@ class CardFlightTest {
         int middle = CardArt.SLOT_Y + CardArt.CARD_H / 2;
         CardFlight.Flight deal = CardFlight.dealTo(centre, middle);
         float end = deal.total();
-        assertEquals(centre, CardFlight.x(deal, CardFlight.TICKER_X, end));
-        assertEquals(middle, CardFlight.y(deal, CardFlight.TICKER_Y, end));
+        assertEquals(centre, CardFlight.x(deal, CardFlight.TICKER_CX, end));
+        assertEquals(middle, CardFlight.y(deal, CardFlight.TICKER_CY, end));
         assertEquals(100, CardFlight.scale(deal, end), "a dealt card ends full size");
     }
 
     @Test
     void aDealStartsSmallAtTheDungeon() {
         CardFlight.Flight deal = CardFlight.dealTo(452, CardArt.SLOT_Y);
-        assertEquals(CardFlight.TICKER_X, CardFlight.x(deal, CardFlight.TICKER_X, 0f));
+        assertEquals(CardFlight.TICKER_CX, CardFlight.x(deal, CardFlight.TICKER_CX, 0f));
         assertTrue(CardFlight.scale(deal, 0f) < 100, "it should grow as it comes");
     }
 
