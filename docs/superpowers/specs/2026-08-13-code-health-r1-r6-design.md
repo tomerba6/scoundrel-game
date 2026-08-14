@@ -25,7 +25,8 @@ This spec covers the code. It does **not** cover the rest of release 2.
 - **B · Doc currency.** `docs/design.md` (601 lines) and `docs/ui.md` (493) have not been
   line-audited. `CHANGELOG.md`'s `[Unreleased]` needs to become a versioned section.
 - **C · Release mechanics.** `gradle.properties` still reads `projectVersion=1.0.0`. The branch
-  is 66 commits ahead of `main`. `release.yml` fires on `push: tags: ['v*']`.
+  is well ahead of `main` — `git rev-list --count main..HEAD`, since any figure written here
+  goes stale the next commit. `release.yml` fires on `push: tags: ['v*']`.
 - **D · Pre-release verification.** A real playthrough of all three modes plus the tutorial.
 
 ## 3. Order
