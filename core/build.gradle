@@ -6,6 +6,12 @@ apply plugin: 'jacoco'
 test {
   useJUnitPlatform()
   finalizedBy jacocoTestReport // always refresh the coverage report after tests
+  // CoverageGateTest reads this file to check that every pure package is in the
+  // gate's includes list below. Gradle cannot see that dependency on its own, so
+  // editing the gate would leave :core:test UP-TO-DATE and the check unrun —
+  // silent in exactly the case it exists for. Declaring it makes the edit
+  // re-run the test.
+  inputs.file('build.gradle').withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 jacocoTestReport {
