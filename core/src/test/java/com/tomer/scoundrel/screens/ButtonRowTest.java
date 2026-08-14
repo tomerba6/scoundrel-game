@@ -94,4 +94,43 @@ class ButtonRowTest {
         assertEquals(644, slots.get(2).x());
         assertEquals(760, slots.get(3).x());
     }
+
+    // --- hit testing -------------------------------------------------------
+    // Characterized before this moved off GameScreen, where a miswired call
+    // site would have left every test green and the buttons dead.
+
+    /** Three 100-wide buttons at x = 0, 110, 220, sitting on world-y 400..440. */
+    private static List<ButtonRow.Slot> row() {
+        return ButtonRow.lay(List.of("A", "B", "C"), 0, 330, 10, s -> 100);
+    }
+
+    @Test
+    void aPointInsideAButtonReturnsItsIndex() {
+        assertEquals(0, ButtonRow.indexAt(row(), 400f, 40, 50f, 420f));
+        assertEquals(1, ButtonRow.indexAt(row(), 400f, 40, 160f, 420f));
+        assertEquals(2, ButtonRow.indexAt(row(), 400f, 40, 270f, 420f));
+    }
+
+    @Test
+    void aPointInTheGapBetweenButtonsHitsNothing() {
+        assertEquals(PressGesture.NONE, ButtonRow.indexAt(row(), 400f, 40, 105f, 420f),
+                "the 10px gap is not a target");
+    }
+
+    @Test
+    void aPointAboveOrBelowTheRowHitsNothing() {
+        assertEquals(PressGesture.NONE, ButtonRow.indexAt(row(), 400f, 40, 50f, 399f));
+        assertEquals(PressGesture.NONE, ButtonRow.indexAt(row(), 400f, 40, 50f, 440f),
+                "the top edge is exclusive, as the original was");
+    }
+
+    @Test
+    void theBandIsInclusiveAtItsBottomEdge() {
+        assertEquals(0, ButtonRow.indexAt(row(), 400f, 40, 50f, 400f));
+    }
+
+    @Test
+    void anEmptyRowHitsNothing() {
+        assertEquals(PressGesture.NONE, ButtonRow.indexAt(List.of(), 400f, 40, 50f, 420f));
+    }
 }

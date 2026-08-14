@@ -53,4 +53,29 @@ final class ButtonRow {
         }
         return List.copyOf(slots);
     }
+
+    /**
+     * Which button a point is on, or {@link PressGesture#NONE}. The row is one
+     * band: every button shares {@code bottom} and {@code height}, so only the x
+     * distinguishes them — and the gaps between them are not targets, which is
+     * why this is a scan rather than arithmetic on a pitch.
+     *
+     * <p>World y points up, so {@code bottom} is the low edge and the band runs
+     * upward from it.
+     *
+     * @param bottom the row's lower edge in world space
+     * @param height how tall each button is
+     */
+    static int indexAt(List<Slot> slots, float bottom, int height, float pointX, float pointY) {
+        if (pointY < bottom || pointY >= bottom + height) {
+            return PressGesture.NONE;
+        }
+        for (int i = 0; i < slots.size(); i++) {
+            Slot slot = slots.get(i);
+            if (pointX >= slot.x() && pointX < slot.x() + slot.width()) {
+                return i;
+            }
+        }
+        return PressGesture.NONE;
+    }
 }

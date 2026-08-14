@@ -243,20 +243,12 @@ public final class GameScreen extends PixelScreen {
      * take the negatives below {@code -1}.
      */
     private int overlayHit(int screenX, int screenY) {
-        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+        Vector2 point = unproject(screenX, screenY);
         if (endSummary != null) {
-            List<ButtonRow.Slot> slots = endSlots();
             float bottom = CardArt.toWorldY(
                     ScreenArt.endButtonsY(!newlyUnlocked.isEmpty()), ScreenArt.END_BUTTON_H);
-            if (point.y >= bottom && point.y < bottom + ScreenArt.END_BUTTON_H) {
-                for (int i = 0; i < slots.size(); i++) {
-                    ButtonRow.Slot slot = slots.get(i);
-                    if (point.x >= slot.x() && point.x < slot.x() + slot.width()) {
-                        return i;
-                    }
-                }
-            }
-            return PressGesture.NONE;
+            return ButtonRow.indexAt(endSlots(), bottom, ScreenArt.END_BUTTON_H,
+                    point.x, point.y);
         }
         if (calloutUp) {
             if (contains(point, ScreenArt.skipX(), ScreenArt.SKIP_Y,
