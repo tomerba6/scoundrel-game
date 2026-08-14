@@ -208,6 +208,11 @@ JaCoCo gate of **90% line / 75% branch on every pure package** — the build fai
 > they go stale. Re-derive rather than repeat: the count is
 > `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`, and the ratios come from
 > `core/build/reports/jacoco/test/jacocoTestReport.xml`, which `./gradlew core:test` refreshes.
+>
+> **Every percentage here is LINE coverage**, because that is what the gate enforces
+> (`counter = 'LINE'`). If you open the HTML report instead, note that its leading `Cov.` column
+> is **instructions**, not lines — a different counter with a different number. For `screens`
+> today: 30.4% instructions, 35.7% branches, **26.2% lines**.
 
 | Package | Line | Branch |
 |---|---|---|
