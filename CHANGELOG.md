@@ -79,6 +79,22 @@ did in 1.0 — and everything you look at is new.
   more than its own width at the flight's final scale — and then snapped into place. The flight
   derives its target from the board furniture now, and a test holds the two together.
 
+### Known limitations
+
+Carried forward from 1.0.0 — the illustrated-sprites limitation it listed is what this release
+resolves.
+
+- **Both builds are unsigned**, so the first launch shows a warning: on Windows choose
+  **More info → Run anyway**; on macOS right-click the app and choose **Open**. Signing was
+  considered and deliberately deferred — macOS notarisation needs a paid Apple Developer
+  membership, and a Windows certificate would not clear SmartScreen until the download
+  reputation built up.
+- **The macOS build has never been launched on a Mac.** It is cross-built on a Windows runner
+  from a downloaded macOS JDK, and the release pipeline proves only that it packages, not that
+  it runs. Treat it as untested rather than merely unsigned.
+- **There is no mid-game save or resume** — a run is a single sitting. This is the shape of the
+  game rather than an omission, and it is not planned.
+
 ## [1.0.0] - 2026-08-05
 
 First complete release: the full base game, playable start to finish.
