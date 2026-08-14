@@ -1,13 +1,7 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.Achievement;
 import com.tomer.scoundrel.achievements.AchievementStore;
@@ -30,17 +24,7 @@ import java.util.Map;
  * {@link TrophyEntry}; this class places the ten of them and the header's
  * progress bar.
  */
-public final class TrophiesScreen extends ScreenAdapter {
-
-    private final ScoundrelGame game;
-    private final Theme theme;
-
-    private final PixelViewport viewport;
-    private final SpriteBatch batch = new SpriteBatch();
-    private final PixelSurface surface;
-    private final Backdrop backdrop;
-    private final Chrome chrome;
-    private final PressGesture press = new PressGesture();
+public final class TrophiesScreen extends PixelScreen {
 
     private final List<TrophyEntry> entries;
     /** Each entry's description, already broken into the lines its row holds. */
@@ -48,12 +32,7 @@ public final class TrophiesScreen extends ScreenAdapter {
     private final int earned;
 
     public TrophiesScreen(ScoundrelGame game, Theme theme, AchievementStore store) {
-        this.game = game;
-        this.theme = theme;
-        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        this.surface = new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
-        this.backdrop = new Backdrop(theme);
-        this.chrome = new Chrome(theme);
+        super(game, theme);
 
         Map<String, Instant> unlocked = readSafely(store);
         List<TrophyEntry> built = new ArrayList<>();
@@ -84,68 +63,21 @@ public final class TrophiesScreen extends ScreenAdapter {
         }
     }
 
-    @Override
-    public void show() {
-        Gdx.input.setInputProcessor(new TrophiesInput());
-    }
-
     /** Only the header's back plate is a target; the rows are a reading. */
-    private int hit(int screenX, int screenY) {
-        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+    @Override
+    protected int hit(int screenX, int screenY) {
+        Vector2 point = unproject(screenX, screenY);
         return ScreenArt.backContains(point.x, point.y) ? ScreenArt.BACK : PressGesture.NONE;
     }
 
-    private final class TrophiesInput extends InputAdapter {
-        @Override
-        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            return press.press(hit(screenX, screenY));
-        }
-
-        @Override
-        public boolean touchDragged(int screenX, int screenY, int pointer) {
-            press.moveOver(hit(screenX, screenY));
-            return false;
-        }
-
-        @Override
-        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            return press.release(hit(screenX, screenY));
-        }
-
-        @Override
-        public boolean keyDown(int keycode) {
-            if (keycode == Input.Keys.ESCAPE) {
-                game.showTitle();
-                return true;
-            }
-            return false;
-        }
+    /** BACK is the only target, so what was released does not need checking. */
+    @Override
+    protected void activate(int target) {
+        game.showTitle();
     }
 
     @Override
-    public void render(float delta) {
-        backdrop.advance(delta);
-
-        // Leaving disposes this screen along with its batch and surface, so
-        // nothing may be drawn after the press acts.
-        int fired = press.advance(delta);
-        if (fired != PressGesture.NONE) {
-            activate();
-            if (game.getScreen() != this) {
-                return;
-            }
-        }
-
-        surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
-        batch.setProjectionMatrix(surface.projection());
-        batch.begin();
-        backdrop.render(batch, 1f);
+    protected void drawContent(float delta) {
         // The count goes beside the bar rather than into the header's own
         // caption slot, which the bar is standing in.
         chrome.header(batch, "TROPHIES", "", press.sunk() == ScreenArt.BACK);
@@ -153,19 +85,6 @@ public final class TrophiesScreen extends ScreenAdapter {
         for (int i = 0; i < entries.size(); i++) {
             drawEntry(entries.get(i), i);
         }
-        batch.end();
-        surface.end();
-
-        ScreenUtils.clear(Color.BLACK);
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
-        batch.begin();
-        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        batch.end();
-    }
-
-    private void activate() {
-        game.showTitle();
     }
 
     /**
@@ -227,19 +146,5 @@ public final class TrophiesScreen extends ScreenAdapter {
                 x + ScreenArt.TROPHY_W - ScreenArt.TROPHY_STATUS_INSET,
                 y + ScreenArt.TROPHY_TITLE_DY,
                 entry.earned() ? ScreenArt.CELL_QUIET : ScreenArt.TROPHY_LOCKED_TEXT, 1f);
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-        viewport.update(width, height, true);
-    }
-
-    @Override
-    public void dispose() {
-        surface.dispose();
-        batch.dispose();
     }
 }
