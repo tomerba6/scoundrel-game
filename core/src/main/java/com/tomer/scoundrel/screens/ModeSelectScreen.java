@@ -2,12 +2,7 @@ package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.rules.GameModes;
@@ -24,16 +19,7 @@ import java.util.Locale;
  * panels are laid out from {@link ScreenArt} and drawn with {@link Chrome},
  * like every other screen outside the board.
  */
-public final class ModeSelectScreen extends ScreenAdapter {
-
-    private final ScoundrelGame game;
-    private final Theme theme;
-
-    private final PixelViewport viewport;
-    private final SpriteBatch batch = new SpriteBatch();
-    private final PixelSurface surface;
-    private final Backdrop backdrop;
-    private final Chrome chrome;
+public final class ModeSelectScreen extends PixelScreen {
 
     private final List<GameMode> modes = GameModes.all();
     /**
@@ -53,21 +39,9 @@ public final class ModeSelectScreen extends ScreenAdapter {
     private int restingX = -1;
     private int restingY = -1;
     private boolean pointerMoved;
-    /** Which panel or plate is held, and when a release has earned the right to act. */
-    private final PressGesture press = new PressGesture();
 
     public ModeSelectScreen(ScoundrelGame game, Theme theme) {
-        this.game = game;
-        this.theme = theme;
-        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        this.surface = new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
-        this.backdrop = new Backdrop(theme);
-        this.chrome = new Chrome(theme);
-    }
-
-    @Override
-    public void show() {
-        Gdx.input.setInputProcessor(new PickerInput());
+        super(game, theme);
     }
 
     /**
@@ -75,8 +49,9 @@ public final class ModeSelectScreen extends ScreenAdapter {
      * as {@link ScreenArt#BACK}, or nothing. One id space, because the gesture
      * matches a release against a press by equality.
      */
-    private int hit(int screenX, int screenY) {
-        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+    @Override
+    protected int hit(int screenX, int screenY) {
+        Vector2 point = unproject(screenX, screenY);
         if (ScreenArt.backContains(point.x, point.y)) {
             return ScreenArt.BACK;
         }
@@ -84,7 +59,8 @@ public final class ModeSelectScreen extends ScreenAdapter {
     }
 
     /** What a released target does. Only reached once its press has been seen. */
-    private void activate(int target) {
+    @Override
+    protected void activate(int target) {
         if (target == ScreenArt.BACK) {
             game.showTitle();
             return;
@@ -97,80 +73,31 @@ public final class ModeSelectScreen extends ScreenAdapter {
      * see {@link PressGesture}. The keys do not: a key has no travel to slide
      * off, so there is nothing to take back.
      */
-    private final class PickerInput extends InputAdapter {
-        @Override
-        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            return press.press(hit(screenX, screenY));
+    @Override
+    protected boolean keyPressed(int keycode) {
+        // The number in each panel's well is not decoration.
+        int index = keycode - Input.Keys.NUM_1;
+        if (index >= 0 && index < modes.size()) {
+            game.showGame(modes.get(index));
+            return true;
         }
+        return false;
+    }
 
-        @Override
-        public boolean touchDragged(int screenX, int screenY, int pointer) {
-            press.moveOver(hit(screenX, screenY));
-            return false;
-        }
-
-        @Override
-        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            return press.release(hit(screenX, screenY));
-        }
-
-        @Override
-        public boolean keyDown(int keycode) {
-            if (keycode == Input.Keys.ESCAPE) {
-                game.showTitle();
-                return true;
-            }
-            // The number in each panel's well is not decoration.
-            int index = keycode - Input.Keys.NUM_1;
-            if (index >= 0 && index < modes.size()) {
-                game.showGame(modes.get(index));
-                return true;
-            }
-            return false;
-        }
+    /** The gold frame tracks the pointer, so it moves with the clocks. */
+    @Override
+    protected void advance(float delta) {
+        super.advance(delta);
+        followPointer();
     }
 
     @Override
-    public void render(float delta) {
-        backdrop.advance(delta);
-
-        // A target acts here rather than the instant it comes up, once it has
-        // been down long enough to have been seen. Both of them navigate, and
-        // navigating disposes this screen along with its batch and surface — so
-        // nothing may be drawn afterwards.
-        int fired = press.advance(delta);
-        if (fired != PressGesture.NONE) {
-            activate(fired);
-            if (game.getScreen() != this) {
-                return;
-            }
-        }
-        followPointer();
-
-        surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
-        batch.setProjectionMatrix(surface.projection());
-        batch.begin();
-        backdrop.render(batch, 1f);
+    protected void drawContent(float delta) {
         chrome.header(batch, "NEW GAME", "CHOOSE YOUR DESCENT",
                 press.sunk() == ScreenArt.BACK);
         for (int i = 0; i < modes.size(); i++) {
             drawPanel(modes.get(i), i);
         }
-        batch.end();
-        surface.end();
-
-        ScreenUtils.clear(Color.BLACK);
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
-        batch.begin();
-        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        batch.end();
     }
 
     /**
@@ -271,19 +198,5 @@ public final class ModeSelectScreen extends ScreenAdapter {
         chrome.text(batch, theme.pixelLabel, mode.description().toUpperCase(Locale.ROOT),
                 cx + ScreenArt.DESC_DX, cy + ScreenArt.DESC_DY,
                 ScreenArt.BODY, ScreenArt.BODY_ALPHA);
-    }
-
-    @Override
-    public void resize(int width, int height) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-        viewport.update(width, height, true);
-    }
-
-    @Override
-    public void dispose() {
-        surface.dispose();
-        batch.dispose();
     }
 }
