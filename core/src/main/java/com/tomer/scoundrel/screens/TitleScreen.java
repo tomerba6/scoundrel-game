@@ -1,15 +1,9 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.runs.HighScores;
 import com.tomer.scoundrel.runs.RunLog;
@@ -30,7 +24,7 @@ import java.util.OptionalInt;
  * <em>this</em> game rather than a card game in general, so it is not
  * decoration and should not be cut for tidiness.
  */
-public final class TitleScreen extends ScreenAdapter {
+public final class TitleScreen extends PixelScreen {
 
     private static final String WORDMARK = "SCOUNDREL";
     /**
@@ -51,24 +45,14 @@ public final class TitleScreen extends ScreenAdapter {
      */
     private static final String PORTRAIT_STEM = "creature_14_the_debt_clubs_idle";
 
-    private final ScoundrelGame game;
-    private final Theme theme;
     private final Sprites sprites;
     private final RunLog runLog;
-
-    private final PixelViewport viewport;
-    private final SpriteBatch batch = new SpriteBatch();
-    private final PixelSurface surface;
-    private final Backdrop backdrop;
-    private final Chrome chrome;
 
     private final List<Entry> menu;
     private final String bestLine;
     private float elapsed;
     /** The one-time first-run prompt, over the menu. */
     private boolean offeringTutorial;
-    /** Which button is held, and when a release has earned the right to act. */
-    private final PressGesture press = new PressGesture();
 
     /** One menu row: what it says and what it does. */
     private record Entry(String label, Runnable action) {
@@ -81,14 +65,9 @@ public final class TitleScreen extends ScreenAdapter {
     /** {@code offerTutorial} pops the one-time first-run prompt over the menu. */
     public TitleScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog,
                        boolean offerTutorial) {
-        this.game = game;
-        this.theme = theme;
+        super(game, theme);
         this.sprites = sprites;
         this.runLog = runLog;
-        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        this.surface = new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
-        this.backdrop = new Backdrop(theme);
-        this.chrome = new Chrome(theme);
         this.offeringTutorial = offerTutorial;
         this.menu = List.of(
                 new Entry("NEW GAME", game::showModeSelect),
@@ -122,56 +101,39 @@ public final class TitleScreen extends ScreenAdapter {
         }
     }
 
-    @Override
-    public void show() {
-        Gdx.input.setInputProcessor(new MenuInput());
-    }
-
     /**
      * Which button a window-space point is on, in whichever column is live —
      * the prompt is modal, so it is the only one that answers while it is up.
      * The two columns therefore share one index space.
      */
-    private int hit(int screenX, int screenY) {
-        Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+    @Override
+    protected int hit(int screenX, int screenY) {
+        Vector2 point = unproject(screenX, screenY);
         return offeringTutorial
                 ? ScreenArt.promptButtonAt(point.x, point.y)
                 : ScreenArt.buttonAt(ScreenArt.COLUMN_X, menu.size(), point.x, point.y);
     }
 
     /**
-     * The menu acts on release, and only where the press began — see
-     * {@link PressGesture}. All three events feed the same gesture; what it
-     * decides is read back in {@link #render} and in the draws.
+     * While the first-run prompt is up, nothing behind it responds — to a press
+     * that misses its two buttons either.
      */
-    private final class MenuInput extends InputAdapter {
-        @Override
-        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            // Modal: while the prompt is up, nothing behind it responds — to a
-            // press that misses its two buttons either.
-            return press.press(hit(screenX, screenY)) || offeringTutorial;
-        }
+    @Override
+    protected boolean modal() {
+        return offeringTutorial;
+    }
 
-        @Override
-        public boolean touchDragged(int screenX, int screenY, int pointer) {
-            press.moveOver(hit(screenX, screenY));
-            return false;
-        }
-
-        @Override
-        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-            if (button != Input.Buttons.LEFT) {
-                return false;
-            }
-            return press.release(hit(screenX, screenY)) || offeringTutorial;
-        }
+    /**
+     * The title is where ESC goes, so here it does nothing. Every other screen
+     * inherits the base's leave-to-title; this one would only rebuild itself.
+     */
+    @Override
+    protected void escape() {
     }
 
     /** What a released button does. Only reached once its press has been seen. */
-    private void activate(int index) {
+    @Override
+    protected void activate(int index) {
         if (offeringTutorial) {
             if (index == 0) {
                 game.showTutorial();
@@ -184,41 +146,20 @@ public final class TitleScreen extends ScreenAdapter {
         menu.get(index).action().run();
     }
 
+    /** The Debt's idle runs off this screen's own clock, not the backdrop's. */
     @Override
-    public void render(float delta) {
+    protected void advance(float delta) {
+        super.advance(delta);
         elapsed += delta;
-        backdrop.advance(delta);
+    }
 
-        // A button acts here rather than the instant it comes up, once its plate
-        // has been down long enough to have been seen. Acting navigates, and
-        // navigating disposes this screen along with its batch and surface — so
-        // nothing may be drawn afterwards.
-        int fired = press.advance(delta);
-        if (fired != PressGesture.NONE) {
-            activate(fired);
-            if (game.getScreen() != this) {
-                return;
-            }
-        }
-
-        surface.begin(new Color((CardArt.BACKDROP << 8) | 0xff));
-        batch.setProjectionMatrix(surface.projection());
-        batch.begin();
-        backdrop.render(batch, 1f);
+    @Override
+    protected void drawContent(float delta) {
         drawPortrait();
         drawColumn();
         if (offeringTutorial) {
             drawPrompt();
         }
-        batch.end();
-        surface.end();
-
-        ScreenUtils.clear(Color.BLACK);
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
-        batch.begin();
-        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        batch.end();
     }
 
     /** The Debt in its well, breathing on the same 6 fps clock the board uses. */
@@ -319,17 +260,4 @@ public final class TitleScreen extends ScreenAdapter {
                 Chrome.Plate.DARK, sunk == 1);
     }
 
-    @Override
-    public void resize(int width, int height) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-        viewport.update(width, height, true);
-    }
-
-    @Override
-    public void dispose() {
-        surface.dispose();
-        batch.dispose();
-    }
 }
