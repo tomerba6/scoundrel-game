@@ -3,15 +3,12 @@ package com.tomer.scoundrel.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.Achievement;
 import com.tomer.scoundrel.achievements.AchievementContext;
@@ -59,17 +56,12 @@ import java.util.Random;
  * way on the menu kit ({@link Chrome}) and hit-tested by this screen; there is
  * no stage under any of them.
  */
-public final class GameScreen extends ScreenAdapter {
+public final class GameScreen extends PixelScreen {
 
-    /** The stage background the art specifies, behind the torchlit glow. */
-    private static final Color BACKDROP = new Color(
-            (CardArt.BACKDROP << 8) | 0xff);
     /** Dried blood, the one colour YOU DIED is ever set in. */
     private static final Color DEATH_TITLE = new Color((0x8c2f22 << 8) | 0xff);
     private static final String DEATH_TITLE_TEXT = "YOU DIED";
 
-    private final ScoundrelGame game;
-    private final Theme theme;
     private final GameMode mode;
     private final Ruleset rules;
     private final ScoundrelEngine engine;
@@ -77,26 +69,12 @@ public final class GameScreen extends ScreenAdapter {
     private final AchievementStore achievements;
     private final TutorialGuide tutorial; // null unless this is the guided tutorial
 
-    private final PixelViewport viewport;
-    private final SpriteBatch batch = new SpriteBatch();
-    /**
-     * The board is drawn onto this at 1:1 and scaled to the window once, so
-     * every element is resampled together rather than each draw rounding on its
-     * own — see {@link PixelSurface}.
-     */
-    private final PixelSurface surface =
-            new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
-    private final Backdrop backdrop;
     private final BoardView board;
     private final BoardHud hud;
     private final Sprites sprites;
     private final Feed feed = new Feed();
     /** Measures the death title, so it can be placed by its centre. */
     private final GlyphLayout titleLayout = new GlyphLayout();
-    /** The menu kit, for the two overlays — they are screens five and six of §11. */
-    private final Chrome chrome;
-    /** Which overlay button is held, and when a release has earned the right to act. */
-    private final PressGesture press = new PressGesture();
 
     private GameState state;
     private RunRecorder recorder;
@@ -145,8 +123,7 @@ public final class GameScreen extends ScreenAdapter {
 
     private GameScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog,
                        AchievementStore achievements, GameMode mode, TutorialGuide tutorial) {
-        this.game = game;
-        this.theme = theme;
+        super(game, theme);
         this.sprites = sprites;
         this.runLog = runLog;
         this.achievements = achievements;
@@ -154,11 +131,8 @@ public final class GameScreen extends ScreenAdapter {
         this.tutorial = tutorial;
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
-        this.viewport = new PixelViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        this.backdrop = new Backdrop(theme);
         this.board = new BoardView(theme, sprites);
         this.hud = new BoardHud(theme);
-        this.chrome = new Chrome(theme);
         startRun();
         board.dealFresh(state.room());
         syncBoard();
@@ -324,28 +298,25 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     @Override
-    public void render(float delta) {
-        // An overlay button acts here rather than the instant it comes up, once
-        // its plate has been down long enough to have been seen. Most of them
-        // navigate, and navigating disposes this screen along with its batch and
-        // surface — so nothing may be drawn afterwards.
-        int fired = press.advance(delta);
-        if (fired != PressGesture.NONE) {
-            activateOverlay(fired);
-            if (game.getScreen() != this) {
-                return;
-            }
-        }
-        advance(delta);
+    protected int hit(int screenX, int screenY) {
+        return overlayHit(screenX, screenY);
+    }
 
-        // Everything at 1:1 on the surface's own grid first.
-        surface.begin(BACKDROP);
-        batch.setProjectionMatrix(surface.projection());
-        batch.begin();
+    @Override
+    protected void activate(int target) {
+        activateOverlay(target);
+    }
+
+    /** The torch gutters out as the death plays; every other screen burns at 1. */
+    @Override
+    protected float backdropLight() {
+        return deathElapsed >= 0f ? DeathCinematic.torchLight(deathElapsed) : 1f;
+    }
+
+    @Override
+    protected void drawContent(float delta) {
         // The death shakes the board but not the dark it happens in, so the
-        // backdrop is drawn before the jolt is applied.
-        backdrop.render(batch,
-                deathElapsed >= 0f ? DeathCinematic.torchLight(deathElapsed) : 1f);
+        // backdrop — drawn by the base, before this — never takes the jolt.
         int shake = deathElapsed >= 0f ? DeathCinematic.shakeX(deathElapsed) : 0;
         batch.getTransformMatrix().translate(shake, 0, 0);
         batch.setTransformMatrix(batch.getTransformMatrix());
@@ -367,20 +338,19 @@ public final class GameScreen extends ScreenAdapter {
         } else if (calloutUp) {
             drawTutorialOverlay();
         }
-        batch.end();
-        surface.end();
-
-        // Then that one image to the window, in one scale.
-        ScreenUtils.clear(Color.BLACK);
-        viewport.apply();
-        batch.setProjectionMatrix(viewport.getCamera().combined);
-        batch.begin();
-        surface.draw(batch, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        batch.end();
     }
 
-    /** Moves every clock on: the board, the bar, the feed and the death. */
-    private void advance(float delta) {
+    /**
+     * Moves every clock on: the board, the bar, the feed and the death. Named
+     * apart from the base's {@code advance} hook, which this overrides to call
+     * it — the backdrop is one of the clocks it already moves.
+     */
+    @Override
+    protected void advance(float delta) {
+        advanceClocks(delta);
+    }
+
+    private void advanceClocks(float delta) {
         backdrop.advance(delta);
         board.update(delta);
         feed.update(delta);
@@ -553,18 +523,11 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     @Override
-    public void resize(int width, int height) {
-        if (width <= 0 || height <= 0) {
-            return; // minimized window
-        }
-        viewport.update(width, height, true);
-    }
-
-    @Override
     public void dispose() {
+        // This screen's own first, then the frame's — the base frees the surface
+        // and the batch the board was drawing into.
         board.dispose();
-        surface.dispose();
-        batch.dispose();
+        super.dispose();
     }
 
     /**
