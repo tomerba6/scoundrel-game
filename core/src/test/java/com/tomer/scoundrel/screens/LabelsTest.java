@@ -116,4 +116,33 @@ class LabelsTest {
         assertTrue(blurb.contains("20 + 4"), blurb);
         assertTrue(blurb.contains("negative"), "it should recap the losing score too: " + blurb);
     }
+
+    /**
+     * The card's header shows the playing-card rank, its footer the ordered
+     * value the rules use — a Queen reads Q up top and 12 below, which is the
+     * only place the game explains that mapping.
+     */
+    @Test
+    void ranksReadAsPlayingCardsAboveTheirValue() {
+        assertEquals("2", Labels.rank(2));
+        assertEquals("10", Labels.rank(10));
+        assertEquals("J", Labels.rank(11));
+        assertEquals("Q", Labels.rank(12));
+        assertEquals("K", Labels.rank(13));
+        assertEquals("A", Labels.rank(14));
+    }
+
+    @Test
+    void everyDealtValueHasARank() {
+        for (int value = 2; value <= 14; value++) {
+            assertFalse(Labels.rank(value).isBlank(), "no rank for " + value);
+        }
+    }
+
+    @Test
+    void theTypeLabelIsTheOneInTheCardHeader() {
+        assertEquals("MONSTER", Labels.cardType(CardType.MONSTER));
+        assertEquals("WEAPON", Labels.cardType(CardType.WEAPON));
+        assertEquals("POTION", Labels.cardType(CardType.POTION));
+    }
 }

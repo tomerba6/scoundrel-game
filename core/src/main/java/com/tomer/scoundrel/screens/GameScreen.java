@@ -1,25 +1,14 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Group;
-import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.Touchable;
-import com.badlogic.gdx.scenes.scene2d.actions.Actions;
-import com.badlogic.gdx.scenes.scene2d.ui.Cell;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Stack;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.VerticalGroup;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.utils.ScreenUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.Align;
 import com.tomer.scoundrel.ScoundrelGame;
 import com.tomer.scoundrel.achievements.Achievement;
 import com.tomer.scoundrel.achievements.AchievementContext;
@@ -49,698 +38,787 @@ import com.tomer.scoundrel.tutorial.TutorialScript;
 import com.tomer.scoundrel.tutorial.TutorialStep;
 
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.OptionalInt;
 import java.util.Random;
 
-import static com.tomer.scoundrel.screens.Widgets.dim;
-import static com.tomer.scoundrel.screens.Widgets.label;
-import static com.tomer.scoundrel.screens.Widgets.mutedButton;
-import static com.tomer.scoundrel.screens.Widgets.torchButton;
 
 /**
- * The one in-game screen: draws the current GameState and (in later slices)
- * translates clicks into engine moves. Contains no rule logic — everything it
- * knows about the game comes from the state, the ruleset, and legalMoves().
- * The whole board is rebuilt from the state after every move.
+ * The one in-game screen: draws the current GameState and translates clicks
+ * into engine moves. Contains no rule logic — everything it knows about the
+ * game comes from the state, the ruleset, and legalMoves().
+ *
+ * <p>The board itself is drawn in immediate mode, straight onto a batch at the
+ * design resolution, because the art is specified as pixels at fixed positions
+ * and a layout engine's job is to compute positions. The overlays with buttons —
+ * the end panel, the move chooser, the tutorial callout — are drawn the same
+ * way on the menu kit ({@link Chrome}) and hit-tested by this screen; there is
+ * no stage under any of them.
  */
-public final class GameScreen extends ScreenAdapter {
+public final class GameScreen extends PixelScreen {
 
-    private final ScoundrelGame game;
-    private final Theme theme;
+    /** Dried blood, the one colour YOU DIED is ever set in. */
+    private static final Color DEATH_TITLE = new Color((0x8c2f22 << 8) | 0xff);
+    private static final String DEATH_TITLE_TEXT = "YOU DIED";
+
     private final GameMode mode;
     private final Ruleset rules;
     private final ScoundrelEngine engine;
-    private final Stage stage;
     private final RunLog runLog;
     private final AchievementStore achievements;
     private final TutorialGuide tutorial; // null unless this is the guided tutorial
-    private final Table root = new Table();
-    private final VerticalGroup feed = new VerticalGroup();
-    private final Choreographer choreographer;
-    private final Map<Card, Table> roomTiles = new LinkedHashMap<>();
-    private Actor tickerTicks;
-    private Table hpBar;
-    private Image hpFill;
-    private Cell<Image> hpFillCell;
-    private Label hpNumber;
-    private Label timerLabel;
-    private TextButton avoidButton;
-    private Table weaponMini;
+
+    private final BoardView board;
+    private final BoardHud hud;
+    private final Sprites sprites;
+    private final Feed feed = new Feed();
+    /** Measures the death title, so it can be placed by its centre. */
+    private final GlyphLayout titleLayout = new GlyphLayout();
+
     private GameState state;
     private RunRecorder recorder;
+    /** Frozen off the finished record, so the panel quotes exactly what was filed. */
     private long finalRunSeconds;
+    private int finalDamageTaken;
     private AchievementTracker tracker;
     private String endBestLine;
     private List<Achievement> newlyUnlocked = List.of();
-    private Actor endOverlay;
-    private Actor tutorialLayer;
-    private boolean dealInPending;
-    private boolean deathPending;
-    private Actor deathLayer;
-    private Actor backdrop;
-    private Runnable settleDeath;
+    /** The run-end panel, built once the run settles; null while it is still on. */
+    private EndSummary endSummary;
+    /** The tutorial's callout is up whenever the guide has a beat left to show. */
+    private boolean calloutUp;
+    /** The open move chooser: the moves offered, and the card they are about. */
+    private List<Move> chooserMoves = List.of();
+    private Card chooserCard;
+    private int chooserPlateW;
+    /** The last potion drunk, which is what the marker shows once one has been. */
+    private Card lastPotion;
+    /** What was in the rail before this move, for as long as the new one is in the air. */
+    private EquippedWeapon weaponBeforeMove;
+
+    // --- what the health bar is doing, and the death ---
+
+    /** What the health bar is doing, what it is doing it between, and since when. */
+    private HealthReadout.Phase barPhase = HealthReadout.Phase.REST;
+    private HealthReadout.Change barChange = HealthReadout.Change.NONE;
+    private float barElapsed;
+    /** The death cinematic's clock and the slot the fatal blow landed in. */
+    private float deathElapsed = -1f;
+    private int killerSlotX = -1;
+    /** Withheld until the cinematic ends, so the score does not pre-empt it. */
+    private boolean endPending;
 
     /** A normal run in the given mode, recorded to the run log. */
-    public GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
+    public GameScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog,
                       AchievementStore achievements, GameMode mode) {
-        this(game, theme, runLog, achievements, mode, null);
+        this(game, theme, sprites, runLog, achievements, mode, null);
     }
 
     /** The guided tutorial: a scripted deck with narration, never recorded. */
-    public GameScreen(ScoundrelGame game, Theme theme, GameMode mode, TutorialGuide tutorial) {
-        this(game, theme, null, null, mode, tutorial);
+    public GameScreen(ScoundrelGame game, Theme theme, Sprites sprites,
+                      GameMode mode, TutorialGuide tutorial) {
+        this(game, theme, sprites, null, null, mode, tutorial);
     }
 
-    private GameScreen(ScoundrelGame game, Theme theme, RunLog runLog,
+    private GameScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog,
                        AchievementStore achievements, GameMode mode, TutorialGuide tutorial) {
-        this.game = game;
-        this.theme = theme;
+        super(game, theme);
+        this.sprites = sprites;
         this.runLog = runLog;
         this.achievements = achievements;
         this.mode = mode;
         this.tutorial = tutorial;
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
-        this.stage = new Stage(new FitViewport(Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT));
-        backdrop = new Backdrop(theme);
-        stage.addActor(backdrop);
-        this.choreographer = new Choreographer(stage, theme, this::resolveCardAt);
+        this.board = new BoardView(theme, sprites);
+        this.hud = new BoardHud(theme);
         startRun();
-
-        root.setFillParent(true);
-        stage.addActor(root);
-
-        // The fading feed floats top-right, above the board and out of the
-        // way of clicks; its lines outlive board rebuilds.
-        feed.columnRight();
-        feed.space(4);
-        Table feedAnchor = new Table();
-        feedAnchor.setFillParent(true);
-        feedAnchor.top().right().padTop(96).padRight(28);
-        feedAnchor.add(feed);
-        feedAnchor.setTouchable(Touchable.disabled);
-        stage.addActor(feedAnchor);
-
-        rebuild();
+        board.dealFresh(state.room());
+        syncBoard();
     }
 
     @Override
     public void show() {
-        Gdx.input.setInputProcessor(stage);
+        // One processor now: the overlays are drawn by this screen, so they are
+        // hit-tested by it too, ahead of the board.
+        Gdx.input.setInputProcessor(new BoardInput());
+    }
+
+    /** Clicks on an overlay first, then the board: a card, or the Avoid plate. */
+    private final class BoardInput extends InputAdapter {
+        @Override
+        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            if (button != Input.Buttons.LEFT) {
+                return false;
+            }
+            // A click through a cinematic settles it. The state underneath is
+            // already final, so skipping is always safe — and the same click
+            // still resolves whatever it landed on, so none is ever spent
+            // purely on dismissing motion.
+            if (deathElapsed >= 0f) {
+                settleEnd();
+                return true;
+            }
+            // The overlays are buttons, so they act on release like every other
+            // button — but only the run end is modal. The tutorial's callout
+            // deliberately lets everything except Skip and Next through, since
+            // playing the board is the whole point of it.
+            if (press.press(overlayHit(screenX, screenY)) || endSummary != null) {
+                return true;
+            }
+            Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
+            // An open chooser takes the press first. One that lands on a plate
+            // resolves it; one that lands anywhere else dismisses the chooser
+            // AND still resolves whatever card it hit, so a press is never
+            // spent merely closing the popup.
+            if (chooserCard != null) {
+                int picked = ChooserArt.indexAt(chooserSlotX(), chooserPlateW,
+                        chooserMoves.size(), point.x, point.y);
+                List<Move> offered = chooserMoves;
+                closeChooser();
+                if (picked >= 0) {
+                    applyMove(offered.get(picked));
+                    return true;
+                }
+            }
+            if (board.isPlaying()) {
+                board.skip();
+            }
+            if (state.status() != Status.IN_PROGRESS) {
+                return false;
+            }
+            if (HudArt.avoidContains(point.x, point.y) && avoidAllowed()) {
+                applyMove(new Move.AvoidRoom());
+                return true;
+            }
+            Card card = board.cardAt(point.x, point.y);
+            if (card != null) {
+                onCardClicked(card);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean touchDragged(int screenX, int screenY, int pointer) {
+            press.moveOver(overlayHit(screenX, screenY));
+            return false;
+        }
+
+        @Override
+        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+            if (button != Input.Buttons.LEFT) {
+                return false;
+            }
+            return press.release(overlayHit(screenX, screenY)) || endSummary != null;
+        }
+    }
+
+    // --- what the overlays offer, and what a press on one does ---
+
+    private static final int SKIP = -3;
+    private static final int NEXT = -4;
+
+    /** The four ways on from a finished run, in the render's order. */
+    private static final List<String> END_BUTTONS =
+            List.of("NEW GAME", "MAIN MENU", "TROPHIES", "THE LEDGER");
+    /** The tutorial's own two, which go somewhere gentler than a fresh run. */
+    private static final List<String> TUTORIAL_END_BUTTONS =
+            List.of("PLAY FOR REAL", "MAIN MENU");
+
+    private List<String> endButtons() {
+        return tutorial != null ? TUTORIAL_END_BUTTONS : END_BUTTONS;
+    }
+
+    private List<ButtonRow.Slot> endSlots() {
+        return ButtonRow.lay(endButtons(), ScreenArt.END_X, ScreenArt.END_W,
+                ScreenArt.END_BUTTON_GAP,
+                label -> chrome.width(theme.pixelLabel, label) + 2 * ScreenArt.END_BUTTON_PAD_X);
+    }
+
+    /**
+     * What a window-space point is on, in whichever overlay is up. One id space:
+     * the end panel's buttons are their own index, the tutorial's two controls
+     * take the negatives below {@code -1}.
+     */
+    private int overlayHit(int screenX, int screenY) {
+        Vector2 point = unproject(screenX, screenY);
+        if (endSummary != null) {
+            float bottom = CardArt.toWorldY(
+                    ScreenArt.endButtonsY(!newlyUnlocked.isEmpty()), ScreenArt.END_BUTTON_H);
+            return ButtonRow.indexAt(endSlots(), bottom, ScreenArt.END_BUTTON_H,
+                    point.x, point.y);
+        }
+        if (calloutUp) {
+            if (contains(point, ScreenArt.skipX(), ScreenArt.SKIP_Y,
+                    ScreenArt.SKIP_W, ScreenArt.SKIP_H)) {
+                return SKIP;
+            }
+            CalloutPlacement.Plate next = nextPlate();
+            if (next != null
+                    && contains(point, next.x(), next.y(), next.w(), next.h())) {
+                return NEXT;
+            }
+        }
+        return PressGesture.NONE;
+    }
+
+    private static boolean contains(Vector2 point, int x, int y, int w, int h) {
+        float bottom = CardArt.toWorldY(y, h);
+        return point.x >= x && point.x < x + w && point.y >= bottom && point.y < bottom + h;
+    }
+
+    /** What a released overlay button does. Only reached once its press has been seen. */
+    private void activateOverlay(int target) {
+        if (target == SKIP) {
+            game.showTitle();
+            return;
+        }
+        if (target == NEXT) {
+            tutorial.next();
+            syncBoard();
+            return;
+        }
+        String label = endButtons().get(target);
+        switch (label) {
+            case "NEW GAME" -> startNewGame();
+            case "PLAY FOR REAL" -> game.showModeSelect();
+            case "MAIN MENU" -> game.showTitle();
+            case "TROPHIES" -> game.showTrophies();
+            default -> game.showRecords();
+        }
     }
 
     @Override
-    public void render(float delta) {
-        ScreenUtils.clear(Theme.SOOT);
-        // The live run timer ticks up while a (non-tutorial) run is in progress;
-        // it freezes at the final time once the run ends.
-        if (timerLabel != null && recorder != null && state.status() == Status.IN_PROGRESS) {
-            timerLabel.setText("TIME " + ClockText.format(recorder.elapsedSeconds()));
-        }
-        stage.act(delta);
-        stage.draw();
+    protected int hit(int screenX, int screenY) {
+        return overlayHit(screenX, screenY);
     }
 
     @Override
-    public void resize(int width, int height) {
-        if (width <= 0 || height <= 0) {
-            return; // minimized window
+    protected void activate(int target) {
+        activateOverlay(target);
+    }
+
+    /** The torch gutters out as the death plays; every other screen burns at 1. */
+    @Override
+    protected float backdropLight() {
+        return deathElapsed >= 0f ? DeathCinematic.torchLight(deathElapsed) : 1f;
+    }
+
+    @Override
+    protected void drawContent(float delta) {
+        // The death shakes the board but not the dark it happens in, so the
+        // backdrop — drawn by the base, before this — never takes the jolt.
+        int shake = deathElapsed >= 0f ? DeathCinematic.shakeX(deathElapsed) : 0;
+        batch.getTransformMatrix().translate(shake, 0, 0);
+        batch.setTransformMatrix(batch.getTransformMatrix());
+        drawHud();
+        board.draw(batch);
+        drawChooser();
+        drawFeed();
+        batch.getTransformMatrix().translate(-shake, 0, 0);
+        batch.setTransformMatrix(batch.getTransformMatrix());
+        if (deathElapsed >= 0f) {
+            drawDeath();
         }
-        stage.getViewport().update(width, height, true);
+        // The overlays are drawn onto the surface with everything else now, so
+        // they land on the same pixel grid the board does. As Scene2D in the
+        // vector faces they were drawn to the window instead, at a different
+        // scale, which is why they never quite matched the board's edges.
+        if (endSummary != null) {
+            drawEndPanel();
+        } else if (calloutUp) {
+            drawTutorialOverlay();
+        }
+    }
+
+    /**
+     * Moves every clock on: the board, the bar, the feed and the death. Named
+     * apart from the base's {@code advance} hook, which this overrides to call
+     * it — the backdrop is one of the clocks it already moves.
+     */
+    @Override
+    protected void advance(float delta) {
+        advanceClocks(delta);
+    }
+
+    private void advanceClocks(float delta) {
+        backdrop.advance(delta);
+        board.update(delta);
+        feed.update(delta);
+        board.setHovered(hoveredCard());
+        advanceBar(delta);
+        if (deathElapsed >= 0f) {
+            deathElapsed += delta;
+            if (DeathCinematic.finished(deathElapsed)) {
+                deathElapsed = -1f;
+                settleEnd();
+            }
+        }
+    }
+
+    /** The card under the pointer, so only it animates. */
+    private Card hoveredCard() {
+        if (state.status() != Status.IN_PROGRESS || endSummary != null) {
+            return null;
+        }
+        Vector2 point = viewport.unproject(
+                new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+        return board.cardAt(point.x, point.y);
+    }
+
+    private void drawHud() {
+        drawHealth();
+        drawDepthGauge();
+        hud.drawAvoid(batch, avoidAllowed());
+        drawRail();
+        hud.drawPotionMarker(batch, potionMarkerRegion(),
+                state.potionsUsedThisRoom() >= rules.potionsPerTurn());
+    }
+
+    /** The ticks and the line under them — the one gauge of how far you got. */
+    private void drawDepthGauge() {
+        int depth = shownDepth();
+        hud.drawTicker(batch, depth, rules.deck().cards().size());
+        hud.drawDepthLine(batch, depth,
+                tutorial == null ? ClockText.format(currentRunSeconds()) : null);
+    }
+
+    /**
+     * How deep the dungeon looks, which is not always how deep it is. The engine
+     * settles the whole move at once, so its count drops before a single card
+     * has moved; on screen a card is only back in the deck once it has flown
+     * there, and only out of it once it has landed on the table.
+     *
+     * <p>Both corrections are needed and they run in opposite directions, which
+     * is what makes an avoided room read properly: the strip grows by four as
+     * the old room goes in, then shrinks by four as the new one comes out, and
+     * ends exactly where the engine says it should.
+     */
+    private int shownDepth() {
+        return state.dungeon().size() + board.rising() - board.sweeping();
+    }
+
+    /**
+     * The bar's clock. Only a change runs one — a bar at rest, or one holding
+     * for a bottle that has not landed, has nothing to advance.
+     */
+    private void advanceBar(float delta) {
+        if (barPhase != HealthReadout.Phase.HEALING
+                && barPhase != HealthReadout.Phase.BLEEDING) {
+            return;
+        }
+        barElapsed += delta;
+        boolean over = barPhase == HealthReadout.Phase.HEALING
+                ? HpPulse.healFinished(barChange.fromWidth(), barChange.toWidth(), barElapsed)
+                : HpPulse.damageFinished(barChange.fromWidth(), barChange.toWidth(), barElapsed);
+        if (over) {
+            barPhase = HealthReadout.Phase.REST;
+        }
+    }
+
+    /** The bar, mid-change, holding, or at rest — the decision is out in {@link HealthReadout}. */
+    private void drawHealth() {
+        HealthReadout readout = HealthReadout.of(
+                barPhase, state.health(), rules.healthCap(), barChange, barElapsed);
+        hud.drawHealth(batch, readout.number(), rules.healthCap(),
+                readout.healing(), readout.bleeding(), readout.offsetX(), readout.fill());
+    }
+
+    /**
+     * Dying: a red flare over whatever killed you, the board shaking (applied
+     * by the caller), and the screen going out by ordered dither with YOU DIED
+     * growing over it. Pattern, never alpha — the board thins out rather than
+     * dimming, so it reads as the game failing and not as a dialog covering it.
+     */
+    private void drawDeath() {
+        if (DeathCinematic.flaring(deathElapsed) && killerSlotX >= 0) {
+            batch.setColor(0.55f, 0.18f, 0.13f, DeathCinematic.flareStrength(deathElapsed));
+            batch.draw(theme.whiteRegion(), killerSlotX,
+                    CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H),
+                    CardArt.CARD_W, CardArt.CARD_H);
+            batch.setColor(1f, 1f, 1f, 1f);
+        }
+        int level = DeathCinematic.ditherLevel(deathElapsed);
+        if (level > 0) {
+            batch.draw(board.dither(level, (int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT),
+                    0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
+        }
+        // Over the dither, not under it: the dark takes the whole board and
+        // leaves the gauge that says how close you got, until that goes too.
+        if (DeathCinematic.tickerShowing(deathElapsed)) {
+            drawDepthGauge();
+        }
+        if (DeathCinematic.titleShowing(deathElapsed)) {
+            // Whole multiples only, and placed by its own centre so it grows
+            // outward from a fixed line instead of downward from a fixed top.
+            // The smallest face in the game, blown up by a whole number. The
+            // multiples are the only clean sizes there are, so the smaller the
+            // face the more of them fit between "far away" and "in your face".
+            BitmapFont font = theme.pixelSmall;
+            font.getData().setScale(DeathCinematic.titleZoom(deathElapsed));
+            titleLayout.setText(font, DEATH_TITLE_TEXT);
+            int top = BoardArt.DEATH_TITLE_CENTRE_Y - Math.round(titleLayout.height / 2f);
+            font.setColor(DEATH_TITLE);
+            font.draw(batch, DEATH_TITLE_TEXT, 0, CardArt.toWorldY(top, 0),
+                    Theme.WORLD_WIDTH, Align.center, false);
+            font.getData().setScale(1f);
+            font.setColor(Color.WHITE);
+        }
+    }
+
+    /** The cinematic is over (or was clicked through): show the score. */
+    private void settleEnd() {
+        deathElapsed = -1f;
+        if (endPending) {
+            endPending = false;
+            syncBoard();
+        }
+    }
+
+    /**
+     * Equipped weapon, its slain stack, and how much bite it has left — as the
+     * board shows it, not as the engine has already settled it. A weapon still
+     * hopping down to the well has not arrived, and a monster still being
+     * cleaved has not died, so neither the icon nor the chip beside it may
+     * appear yet.
+     */
+    private void drawRail() {
+        EquippedWeapon weapon = board.railAhead() ? weaponBeforeMove : state.weapon();
+        if (weapon == null) {
+            hud.drawRail(batch, null, "BAREHANDED", null, null);
+            return;
+        }
+        Card held = weapon.weapon();
+        hud.drawRail(batch, sprites.region(CardSprites.regionName(held)),
+                CardSprites.displayName(held) + " " + held.value(),
+                weapon.slain(),
+                Labels.weaponThreshold(weapon).toUpperCase(Locale.ROOT));
+    }
+
+    /**
+     * The marker shows the potion you drank once you have drunk one, and a
+     * plain draught while the room's is still going. Never dimmed: an alpha
+     * over the dark board would make colours that are on no ramp.
+     */
+    private TextureRegion potionMarkerRegion() {
+        Card shown = lastPotion != null && state.potionsUsedThisRoom() > 0
+                ? lastPotion
+                : new Card("5H", CardType.POTION, 5);
+        return sprites.region(CardSprites.regionName(shown));
+    }
+
+    private void drawFeed() {
+        for (int i = 0; i < feed.size(); i++) {
+            hud.drawFeedLine(batch, feed.textAt(i), i, feed.alphaAt(i));
+        }
     }
 
     @Override
     public void dispose() {
-        stage.dispose();
-    }
-
-    /** Rebuilds the whole board from the current state. */
-    private void rebuild() {
-        if (endOverlay != null) {
-            endOverlay.remove();
-            endOverlay = null;
-        }
-        if (deathLayer != null) {
-            deathLayer.remove();
-            deathLayer = null;
-            settleDeath = null;
-            // Undo the death's board shake and snuffed torch.
-            root.clearActions();
-            root.setPosition(0, 0);
-            backdrop.clearActions();
-            backdrop.getColor().a = 1f;
-        }
-        if (tutorialLayer != null) {
-            tutorialLayer.remove();
-            tutorialLayer = null;
-        }
-        root.clearChildren();
-        root.top();
-        root.add(topStrip()).growX().height(72).pad(12, 24, 0, 24);
-        root.row();
-        root.add(roomRow()).grow();
-        root.row();
-        root.add(bottomStrip()).growX().height(64).pad(0, 24, 12, 24);
-        if (state.status() != Status.IN_PROGRESS && !deathPending) {
-            // A death withholds the overlay: playDeath runs the cinematic first
-            // and settles the score + buttons in at its end.
-            endOverlay = tutorial != null ? buildTutorialComplete() : buildEndOverlay();
-            stage.addActor(endOverlay);
-        } else if (tutorial != null && !tutorial.isComplete()) {
-            root.validate(); // real tile and button positions for the glow and callout
-            tutorialLayer = buildTutorialLayer();
-            stage.addActor(tutorialLayer);
-        }
-        if (dealInPending && state.status() == Status.IN_PROGRESS) {
-            // The opening room has no previous slots, so every card flies in from
-            // the dungeon (the depth ticker) — the same choreography as a refill.
-            dealInPending = false;
-            root.validate(); // force a real layout so the tile destinations are set
-            choreographer.playDealIn(roomTiles, Map.of(), tickerCenter());
-        }
-    }
-
-    /** Dim screen with the outcome, the score, and the way back in. */
-    private Actor buildEndOverlay() {
-        boolean won = state.status() == Status.WON;
-        Table overlay = new Table();
-        overlay.setFillParent(true);
-        // A Table is childrenOnly by default, which would let presses fall
-        // straight through to the dead board behind it.
-        overlay.setTouchable(Touchable.enabled);
-        overlay.setBackground(theme.solid(dim(Theme.SOOT, 0.85f)));
-        overlay.add(label(won ? "DUNGEON CLEARED" : "DEFEATED",
-                theme.title, won ? Theme.TORCHLIGHT : Theme.DRIED_BLOOD)).padBottom(4);
-        overlay.row();
-        overlay.add(buildEndPanel());
-        return overlay;
+        // This screen's own first, then the frame's — the base frees the surface
+        // and the batch the board was drawing into.
+        board.dispose();
+        super.dispose();
     }
 
     /**
-     * The score, best line, unlocked banner, and the four navigation buttons —
-     * no title, no background. Shared by the instant end overlay and the death
-     * cinematic, which settles this panel in beneath its own YOU DIED reveal.
+     * Pushes the current state onto the board and rebuilds whichever overlay
+     * belongs on top of it. Called after every move; the board itself is drawn
+     * from the state each frame, so there is nothing else to rebuild.
      */
-    private Table buildEndPanel() {
-        Table panel = new Table();
-        panel.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(2);
-        panel.row();
-        // Where that number came from — a death score charges you for monsters
-        // still face-down, which is otherwise unexplained on screen.
-        panel.add(label(Labels.scoreBreakdown(state.score(), state.health(),
-                        rules.healthCap(), state.status() == Status.WON),
-                theme.body, dim(Theme.BONE, 0.55f))).padBottom(6);
-        panel.row();
-        panel.add(label("time " + ClockText.format(finalRunSeconds), theme.body, dim(Theme.BONE, 0.7f)))
-                .padBottom(8);
-        panel.row();
-        if (endBestLine != null) {
-            Color bestColor = endBestLine.equals("New best!")
-                    ? Theme.TORCHLIGHT : dim(Theme.BONE, 0.6f);
-            panel.add(label(endBestLine, theme.bodyBold, bestColor)).padBottom(24);
-            panel.row();
-        }
-        if (!newlyUnlocked.isEmpty()) {
-            panel.add(unlockedBanner()).padBottom(24);
-            panel.row();
-        }
-        TextButton newGame = torchButton(theme, "New game");
-        newGame.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                startNewGame();
-            }
-        });
-        panel.add(newGame).padBottom(10);
-        panel.row();
-        TextButton mainMenu = torchButton(theme, "Main menu");
-        mainMenu.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTitle();
-            }
-        });
-        panel.add(mainMenu).padBottom(10);
-        panel.row();
-        TextButton trophies = torchButton(theme, "Trophies");
-        trophies.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTrophies();
-            }
-        });
-        panel.add(trophies).padBottom(10);
-        panel.row();
-        TextButton records = torchButton(theme, "Records");
-        records.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showRecords();
-            }
-        });
-        panel.add(records);
-        return panel;
-    }
-
-    /**
-     * The death cinematic. The fatal blow flares red on the killer's card and
-     * shakes the whole board; the screen then bleeds dark from the edges as the
-     * torch snuffs out; YOU DIED fades in with a slow grow, holds, and the score
-     * + buttons settle in beneath it. A click fast-forwards to that settled screen.
-     */
-    private void playDeath(Vector2 killerSlot) {
-        Group layer = new Group();
-        layer.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        layer.setTouchable(Touchable.enabled); // seals off the dead board underneath
-
-        float bleedAt = Theme.DEATH_BLOW;
-        float revealAt = bleedAt + Theme.DEATH_DIM;
-        float settleAt = revealAt + Theme.DEATH_REVEAL + Theme.DEATH_HOLD;
-
-        // The cold-dark void, bled in after the blow.
-        Image scrim = new Image(theme.solid(dim(Theme.SOOT, 0.86f)));
-        scrim.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        scrim.getColor().a = 0f;
-        scrim.addAction(Actions.delay(bleedAt, Actions.fadeIn(Theme.DEATH_DIM)));
-        layer.addActor(scrim);
-
-        // Blood creeping in from the edges.
-        Image bleed = new Image(theme.vignette(Theme.DRIED_BLOOD));
-        bleed.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        bleed.getColor().a = 0f;
-        bleed.addAction(Actions.delay(bleedAt * 0.5f, Actions.fadeIn(Theme.DEATH_DIM)));
-        layer.addActor(bleed);
-
-        // The torch dies: the backdrop's living light fades to a cold ember.
-        backdrop.addAction(Actions.delay(bleedAt, Actions.alpha(0.12f, Theme.DEATH_DIM)));
-
-        // The amplified final blow: a red flash, a heavy board shake, and a large
-        // crimson burst over the card that killed you.
-        Image flash = new Image(theme.solid(Theme.DRIED_BLOOD));
-        flash.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        flash.getColor().a = 0f;
-        flash.addAction(Actions.sequence(
-                Actions.alpha(0.42f, 0.06f), Actions.alpha(0f, 0.3f)));
-        layer.addActor(flash);
-        shakeBoard();
-        Image burst = null;
-        if (killerSlot != null) {
-            burst = new Image(theme.burstRegion());
-            float bs = 150f;
-            burst.setColor(Theme.DRIED_BLOOD);
-            burst.setSize(bs, bs);
-            burst.setOrigin(bs / 2f, bs / 2f);
-            burst.setPosition(killerSlot.x + Theme.CARD_WIDTH / 2f - bs / 2f,
-                    killerSlot.y + Theme.CARD_HEIGHT / 2f - bs / 2f);
-            burst.getColor().a = 0f;
-            burst.setScale(0.4f);
-            burst.addAction(Actions.parallel(
-                    Actions.sequence(Actions.alpha(1f, Theme.DEATH_BLOW * 0.25f),
-                            Actions.alpha(0f, Theme.DEATH_BLOW * 0.75f)),
-                    Actions.scaleTo(1.7f, 1.7f, Theme.DEATH_BLOW, Interpolation.pow2Out)));
-            layer.addActor(burst);
-        }
-
-        // YOU DIED — big serif, dried blood, a slow fade with a gentle grow.
-        Label text = label("YOU DIED", theme.display, Theme.DRIED_BLOOD);
-        text.pack();
-        Group textWrap = new Group();
-        textWrap.setSize(text.getWidth(), text.getHeight());
-        textWrap.setTransform(true);
-        textWrap.setOrigin(text.getWidth() / 2f, text.getHeight() / 2f);
-        textWrap.setPosition((Theme.WORLD_WIDTH - text.getWidth()) / 2f, 430);
-        textWrap.addActor(text);
-        textWrap.getColor().a = 0f;
-        textWrap.setScale(1.25f);
-        float finalScale = 1.7f;
-        textWrap.addAction(Actions.delay(revealAt, Actions.parallel(
-                Actions.fadeIn(Theme.DEATH_REVEAL, Interpolation.pow2),
-                Actions.scaleTo(finalScale, finalScale, Theme.DEATH_REVEAL, Interpolation.pow2Out))));
-        layer.addActor(textWrap);
-
-        // Score + buttons settle in beneath, after the reveal has held a beat.
-        Table panel = buildEndPanel();
-        panel.pack();
-        panel.setPosition((Theme.WORLD_WIDTH - panel.getWidth()) / 2f, 110);
-        panel.setTouchable(Touchable.disabled); // no clicking invisible buttons yet
-        panel.getColor().a = 0f;
-        layer.addActor(panel);
-
-        // A catcher on top takes the fast-forward click during the animation;
-        // once settled it is removed and the buttons beneath receive clicks.
-        Actor catcher = new Actor();
-        catcher.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        catcher.addListener(Widgets.pressListener(this::settleDeathNow));
-        layer.addActor(catcher);
-
-        // Whether the reveal plays out or a click fast-forwards it, the end is the
-        // same: the buttons become live and the fast-forward catcher is retired.
-        Runnable enable = () -> {
-            panel.setTouchable(Touchable.childrenOnly);
-            catcher.remove();
-            settleDeath = null;
-        };
-        panel.addAction(Actions.sequence(
-                Actions.delay(settleAt), Actions.fadeIn(Theme.DEATH_SETTLE), Actions.run(enable)));
-
-        Image burstRef = burst;
-        settleDeath = () -> {
-            root.clearActions();
-            root.setPosition(0, 0);
-            backdrop.clearActions();
-            backdrop.getColor().a = 0.12f;
-            scrim.clearActions();
-            scrim.getColor().a = 1f;
-            bleed.clearActions();
-            bleed.getColor().a = 1f;
-            flash.remove();
-            if (burstRef != null) {
-                burstRef.remove();
-            }
-            textWrap.clearActions();
-            textWrap.getColor().a = 1f;
-            textWrap.setScale(finalScale);
-            panel.clearActions();
-            panel.getColor().a = 1f;
-            enable.run();
-        };
-
-        stage.addActor(layer);
-        deathLayer = layer;
-        deathPending = false;
-    }
-
-    /** A heavy, decaying shake of the whole board — the impact of the fatal blow. */
-    private void shakeBoard() {
-        float a = 18f;
-        root.addAction(Actions.sequence(
-                Actions.moveBy(a, 0, 0.04f),
-                Actions.moveBy(-2f * a, 6, 0.06f),
-                Actions.moveBy(1.7f * a, -10, 0.05f),
-                Actions.moveBy(-1.4f * a, 8, 0.05f),
-                Actions.moveBy(a, -4, 0.05f),
-                Actions.moveBy(-0.6f * a, 0, 0.05f),
-                Actions.moveTo(0, 0, 0.05f)));
-    }
-
-    /** Fast-forward the death cinematic to its settled screen; harmless if already there. */
-    private void settleDeathNow() {
-        if (settleDeath != null) {
-            Runnable done = settleDeath;
-            settleDeath = null;
-            done.run();
+    private void syncBoard() {
+        board.setRoom(state.room());
+        // The room it was anchored to has just changed under it.
+        closeChooser();
+        // A press held on the old overlay must not act on whatever replaces it.
+        press.cancel();
+        endSummary = null;
+        calloutUp = false;
+        if (state.status() != Status.IN_PROGRESS) {
+            endSummary = tutorial != null
+                    ? EndSummary.tutorial(state.score(), state.health())
+                    : EndSummary.of(state.status(), state.score(), finalRunSeconds,
+                            "New best!".equals(endBestLine),
+                            state.monstersRemaining(), finalDamageTaken);
+        } else {
+            calloutUp = tutorial != null && !tutorial.isComplete();
         }
     }
 
-    /**
-     * The achievements this run just earned, listed under a torchlight heading.
-     * A hidden achievement is revealed here the moment it is earned — hiding
-     * only ever applies to the not-yet-earned on the trophies screen.
-     */
-    private Actor unlockedBanner() {
-        Table banner = new Table();
-        banner.add(label(newlyUnlocked.size() == 1 ? "ACHIEVEMENT UNLOCKED" : "ACHIEVEMENTS UNLOCKED",
-                theme.small, Theme.TORCHLIGHT)).padBottom(6);
-        for (Achievement earned : newlyUnlocked) {
-            banner.row();
-            banner.add(label(earned.title(), theme.bodyBold, Theme.BONE)).padBottom(2);
-        }
-        return banner;
+    /** Whether Avoid is live: the tutorial gates it, otherwise the rules do. */
+    private boolean avoidAllowed() {
+        return tutorial != null
+                ? tutorialExpects(new Move.AvoidRoom())
+                : engine.legalMoves(state).contains(new Move.AvoidRoom());
     }
+
 
     private void startNewGame() {
-        choreographer.finish();
         startRun();
-        feed.clearChildren();
-        rebuild();
+        feed.clear();
+        board.dealFresh(state.room());
+        syncBoard();
     }
 
-    // --- the guided tutorial's overlay ---
+    // --- the run-end panel: screen five of §11 ---
 
-    /** Glow on the current step's target, a callout of its narration, and Skip. */
-    private Actor buildTutorialLayer() {
-        Group layer = new Group();
-        layer.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        // Only the callout's buttons and Skip are hit targets; a full-bleed Group
-        // otherwise swallows every click before it reaches the card underneath.
-        layer.setTouchable(Touchable.childrenOnly);
-        TutorialStep step = tutorial.current();
+    /**
+     * One panel over the modal dim, covering both outcomes — §11 is explicit
+     * that a death is the same layout with the gold accents swapped to dried
+     * blood, so there is one method here and not two.
+     */
+    private void drawEndPanel() {
+        boolean withTrophies = !newlyUnlocked.isEmpty();
+        int top = ScreenArt.endY(withTrophies);
+        int h = ScreenArt.endH(withTrophies);
+        chrome.dim(batch);
+        chrome.frame(batch, ScreenArt.END_X, top, ScreenArt.END_W, h);
+        chrome.face(batch, ScreenArt.END_X + ScreenArt.THICK, top + ScreenArt.THICK,
+                ScreenArt.END_W - 2 * ScreenArt.THICK, h - 2 * ScreenArt.THICK,
+                ScreenArt.FACE_PANEL);
 
-        Actor target = tutorialTarget(step);
-        Vector2 targetCentre = null;
-        float targetHeight = 0;
-        if (target != null) {
-            Vector2 corner = target.localToStageCoordinates(new Vector2(0, 0));
-            float w = target.getWidth();
-            float h = target.getHeight();
-            targetCentre = new Vector2(corner.x + w / 2f, corner.y + h / 2f);
-            targetHeight = h;
-            layer.addActor(frameHighlight(corner.x, corner.y, w, h));
+        int centre = ScreenArt.END_X + ScreenArt.END_W / 2;
+        chrome.centredOn(batch, theme.pixelLabel, endSummary.eyebrow(), centre,
+                top + ScreenArt.END_EYEBROW_DY, endSummary.accent(), 1f);
+        // A hard offset, not a blur — the same rule the wordmark follows.
+        chrome.centredOn(batch, theme.pixelDisplay, endSummary.headline(), centre,
+                top + ScreenArt.END_HEADLINE_DY + ScreenArt.END_HEADLINE_SHADOW_DY,
+                ScreenArt.WORDMARK_SHADOW, 1f);
+        chrome.centredOn(batch, theme.pixelDisplay, endSummary.headline(), centre,
+                top + ScreenArt.END_HEADLINE_DY, endSummary.headlineColour(), 1f);
+
+        drawEndStats(top);
+        if (endSummary.newBest()) {
+            String badge = "NEW BEST";
+            int w = chrome.width(theme.pixelLabel, badge) + 2 * ScreenArt.END_BADGE_PAD_X;
+            int x = centre - w / 2;
+            int y = top + ScreenArt.END_BADGE_DY;
+            chrome.face(batch, x, y, w, ScreenArt.END_BADGE_H, endSummary.accent());
+            chrome.centred(batch, theme.pixelLabel, badge, x, y, w,
+                    ScreenArt.END_BADGE_H, ScreenArt.GOLD_LABEL, 1f);
+        }
+        // The rule only separates the trophy band from what is above it, so with
+        // no trophies there is nothing for it to separate.
+        if (withTrophies) {
+            chrome.rule(batch, ScreenArt.END_RULE_X, top + ScreenArt.END_RULE_DY,
+                    ScreenArt.END_RULE_W);
+            drawUnlocked(top);
         }
 
-        Table callout = buildCallout(step);
-        callout.pack();
-        positionCallout(callout, targetCentre, targetHeight);
-        layer.addActor(callout);
-
-        TextButton skip = mutedButton(theme, "Skip tutorial");
-        skip.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTitle();
-            }
-        });
-        skip.pack();
-        // Bottom-right, but lifted clear of the potion marker in the bottom strip.
-        skip.setPosition(Theme.WORLD_WIDTH - skip.getWidth() - 20, 90);
-        layer.addActor(skip);
-        return layer;
+        int sunk = press.sunk();
+        List<ButtonRow.Slot> slots = endSlots();
+        int buttonsY = ScreenArt.endButtonsY(withTrophies);
+        for (int i = 0; i < slots.size(); i++) {
+            ButtonRow.Slot slot = slots.get(i);
+            chrome.plate(batch, slot.x(), buttonsY, slot.width(),
+                    ScreenArt.END_BUTTON_H, slot.label(),
+                    i == 0 ? Chrome.Plate.GOLD : Chrome.Plate.DARK, i == sunk);
+        }
     }
 
-    /** The board actor the current step points at: a room card, the Avoid button, or none. */
-    private Actor tutorialTarget(TutorialStep step) {
+    /** Three figures in one shared frame, split by 2px dividers. */
+    private void drawEndStats(int top) {
+        int y = top + ScreenArt.END_STATS_DY;
+        chrome.frame(batch, ScreenArt.END_STATS_X, y,
+                ScreenArt.END_STATS_W, ScreenArt.END_STATS_H);
+        chrome.face(batch, ScreenArt.END_STATS_X + ScreenArt.THICK, y + ScreenArt.THICK,
+                ScreenArt.END_STATS_W - 2 * ScreenArt.THICK,
+                ScreenArt.END_STATS_H - 2 * ScreenArt.THICK, ScreenArt.FACE_TABLE);
+        List<EndSummary.Cell> cells = endSummary.cells();
+        for (int i = 0; i < cells.size(); i++) {
+            int x = ScreenArt.endCellX(i);
+            int w = ScreenArt.endCellW();
+            if (i > 0) {
+                chrome.face(batch, x - ScreenArt.THICK, y + ScreenArt.THICK,
+                        ScreenArt.THICK, ScreenArt.END_STATS_H - 2 * ScreenArt.THICK,
+                        ScreenArt.FRAME);
+            }
+            chrome.centred(batch, theme.pixelSmall, cells.get(i).label(), x,
+                    y + ScreenArt.END_STAT_LABEL_DY, w, 12, ScreenArt.CELL_QUIET, 1f);
+            chrome.centred(batch, theme.pixelTitle, cells.get(i).value(), x,
+                    y + ScreenArt.END_STAT_VALUE_DY, w, 26, cells.get(i).colour(), 1f);
+        }
+    }
+
+    /**
+     * The trophies this run just earned. A hidden one is revealed here the
+     * moment it is won — hiding only ever applies to the not-yet-earned on the
+     * trophies screen.
+     */
+    private void drawUnlocked(int top) {
+        chrome.centredOn(batch, theme.pixelSmall, "TROPHIES UNLOCKED",
+                ScreenArt.END_X + ScreenArt.END_W / 2, top + ScreenArt.END_UNLOCKED_DY,
+                endSummary.accent(), 1f);
+        int shown = Math.min(newlyUnlocked.size(), ScreenArt.END_TROPHIES_SHOWN);
+        for (int i = 0; i < shown; i++) {
+            Achievement earned = newlyUnlocked.get(i);
+            int y = ScreenArt.endTrophyY(i);
+            chrome.face(batch, ScreenArt.END_UNLOCKED_X, y, ScreenArt.END_TROPHY_SEAL,
+                    ScreenArt.END_TROPHY_SEAL, endSummary.accent());
+            String name = earned.title().toUpperCase(Locale.ROOT);
+            int nameX = ScreenArt.END_UNLOCKED_X + ScreenArt.END_TROPHY_NAME_DX;
+            chrome.textInRow(batch, theme.pixelLabel, name, nameX, y,
+                    ScreenArt.END_TROPHY_SEAL, ScreenArt.BODY, 1f);
+            chrome.textInRow(batch, theme.pixelSmall,
+                    earned.description().toUpperCase(Locale.ROOT),
+                    nameX + chrome.width(theme.pixelLabel, name) + ScreenArt.END_TROPHY_DESC_GAP,
+                    y, ScreenArt.END_TROPHY_SEAL, ScreenArt.CELL_QUIET, 1f);
+        }
+    }
+
+    // --- the tutorial overlay: screen six ---
+
+    /**
+     * The board rectangle the current step points at — a room card, the Avoid
+     * plate, or none for an explanation beat. Design space with y downward,
+     * because that is what the ticks and the callout are specified in.
+     */
+    private int[] tutorialTarget(TutorialStep step) {
         if (step.expectedMove() instanceof Move.CardMove cardMove) {
-            return roomTiles.get(cardMove.targetCard());
+            int index = state.room().indexOf(cardMove.targetCard());
+            if (index < 0) {
+                return null;
+            }
+            return new int[] {(int) board.slotX(index), CardArt.SLOT_Y,
+                    CardArt.CARD_W, CardArt.CARD_H};
         }
         if (step.expectedMove() instanceof Move.AvoidRoom) {
-            return avoidButton;
+            return new int[] {HudArt.AVOID_X, HudArt.AVOID_Y, HudArt.AVOID_W, HudArt.AVOID_H};
         }
         return null; // an explanation beat with no single focus
     }
 
-    /**
-     * A crisp outline hugging the target's frame, gently pulsing. Bone, not
-     * torchlight, so it stands out against both the dark cards and the lit Avoid
-     * button (a torchlight ring would vanish into the button's own colour).
-     */
-    private Actor frameHighlight(float x, float y, float w, float h) {
-        float gap = 3f;        // clearance between the target's edge and the outline
-        float thickness = 4f;
-        float fx = x - gap - thickness;
-        float fy = y - gap - thickness;
-        float fw = w + 2 * (gap + thickness);
-        float fh = h + 2 * (gap + thickness);
-        Group frame = new Group();
-        frame.setTouchable(Touchable.disabled);
-        frame.addActor(bar(fx, fy, fw, thickness));                  // bottom
-        frame.addActor(bar(fx, fy + fh - thickness, fw, thickness)); // top
-        frame.addActor(bar(fx, fy, thickness, fh));                  // left
-        frame.addActor(bar(fx + fw - thickness, fy, thickness, fh)); // right
-        frame.addAction(Actions.forever(Actions.sequence(
-                Actions.alpha(1f, 0.55f), Actions.alpha(0.45f, 0.55f))));
-        return frame;
+    /** The narration, already broken into the lines the callout will hold. */
+    private List<String> calloutLines(TutorialStep step) {
+        return TextWrap.wrap(step.narration().toUpperCase(Locale.ROOT),
+                ScreenArt.calloutTextWidth(), ScreenArt.CALLOUT_MAX_LINES,
+                s -> chrome.width(theme.pixelBody, s));
     }
 
-    private Image bar(float x, float y, float w, float h) {
-        Image bar = new Image(theme.solid(Theme.BONE));
-        bar.setBounds(x, y, w, h);
-        return bar;
+    private int calloutH(TutorialStep step) {
+        return ScreenArt.calloutH(calloutLines(step).size(), !step.isAction());
     }
 
-    private Table buildCallout(TutorialStep step) {
-        Table callout = new Table();
-        callout.setBackground(theme.solid(Theme.STONE));
-        callout.pad(14, 18, 14, 18);
-        Label text = label(step.narration(), theme.body, Theme.BONE);
-        text.setWrap(true);
-        callout.add(text).width(320);
-        if (!step.isAction()) {
-            callout.row();
-            TextButton next = torchButton(theme, "Next");
-            next.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    tutorial.next();
-                    rebuild();
-                }
-            });
-            callout.add(next).right().padTop(12);
+    private CalloutPlacement.Placement calloutPlacement() {
+        TutorialStep step = tutorial.current();
+        int[] target = tutorialTarget(step);
+        int h = calloutH(step);
+        if (target == null) {
+            return CalloutPlacement.belowRow(CardArt.SLOT_Y, CardArt.CARD_H,
+                    ScreenArt.CALLOUT_W, h, ScreenArt.CALLOUT_GAP,
+                    (int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
         }
-        return callout;
+        return CalloutPlacement.place(target[0], target[1], target[2], target[3],
+                ScreenArt.CALLOUT_W, h, ScreenArt.CALLOUT_GAP, (int) Theme.WORLD_WIDTH);
     }
 
-    /** Above the target if it fits, else below; centred when there is no target. */
-    private void positionCallout(Table callout, Vector2 targetCentre, float targetHeight) {
-        float w = callout.getWidth();
-        float h = callout.getHeight();
-        if (targetCentre == null) {
-            callout.setPosition((Theme.WORLD_WIDTH - w) / 2f, (Theme.WORLD_HEIGHT - h) / 2f);
-            return;
+    /** The Next plate on an explanation beat, or null on an action beat. */
+    private CalloutPlacement.Plate nextPlate() {
+        if (!calloutUp || tutorial.current().isAction()) {
+            return null;
         }
-        float x = clamp(targetCentre.x - w / 2f, 16, Theme.WORLD_WIDTH - w - 16);
-        float above = targetCentre.y + targetHeight / 2f + 18;
-        float y = above + h <= Theme.WORLD_HEIGHT - 16
-                ? above
-                : targetCentre.y - targetHeight / 2f - h - 18;
-        callout.setPosition(x, y);
-    }
-
-    private static float clamp(float value, float lo, float hi) {
-        return Math.max(lo, Math.min(hi, value));
+        CalloutPlacement.Placement at = calloutPlacement();
+        return CalloutPlacement.nextPlate(at.x(), at.y(), calloutH(tutorial.current()),
+                chrome.width(theme.pixelLabel, "NEXT"));
     }
 
     /**
-     * The tutorial's end: nothing is recorded, but the run's real score is shown
-     * and read back as the rule that produced it — scoring is the rule players
-     * find most confusing, so the last thing they see is a worked example.
+     * The board dims under the dither, the card being taught keeps a viewfinder
+     * of eight corner ticks, and the narration sits in a callout pointing at it.
      */
-    private Actor buildTutorialComplete() {
-        Table overlay = new Table();
-        overlay.setFillParent(true);
-        overlay.setTouchable(Touchable.enabled);
-        overlay.setBackground(theme.solid(dim(Theme.SOOT, 0.85f)));
-        overlay.add(label("TUTORIAL COMPLETE", theme.title, Theme.TORCHLIGHT)).padBottom(10);
-        overlay.row();
-        overlay.add(label("score " + state.score(), theme.display, Theme.BONE)).padBottom(6);
-        overlay.row();
-        Label blurb = label(
-                Labels.tutorialScore(state.score(), rules.healthCap())
-                        + " Good luck down there.",
-                theme.body, Theme.BONE);
-        blurb.setWrap(true);
-        blurb.setAlignment(com.badlogic.gdx.utils.Align.center);
-        overlay.add(blurb).width(560).padBottom(26);
-        overlay.row();
-        TextButton play = torchButton(theme, "Play for real");
-        play.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showModeSelect();
+    private void drawTutorialOverlay() {
+        // Only the opening beat veils the board. That step is pure introduction —
+        // there is nothing on the board to do yet, so pulling the eye to the
+        // words is right. From step two on the board is left exactly as it looks
+        // in a real run, because the point of a tutorial is to teach *this*
+        // game, and a permanently dimmed board teaches a game nobody plays. The
+        // corner ticks do the pointing from there.
+        if (tutorial.stepNumber() == 1) {
+            chrome.veil(batch);
+        }
+        TutorialStep step = tutorial.current();
+        int[] target = tutorialTarget(step);
+        if (target != null) {
+            for (CornerTicks.Tick tick : CornerTicks.around(target[0], target[1],
+                    target[2], target[3])) {
+                chrome.face(batch, tick.x(), tick.y(), tick.w(), tick.h(),
+                        ScreenArt.TICK_COLOUR);
             }
-        });
-        overlay.add(play).padBottom(10);
-        overlay.row();
-        TextButton menu = torchButton(theme, "Main menu");
-        menu.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                game.showTitle();
+        }
+        drawCallout(step);
+        chrome.plate(batch, ScreenArt.skipX(), ScreenArt.SKIP_Y, ScreenArt.SKIP_W,
+                ScreenArt.SKIP_H, "SKIP TUTORIAL", Chrome.Plate.DARK, press.sunk() == SKIP);
+    }
+
+    private void drawCallout(TutorialStep step) {
+        CalloutPlacement.Placement at = calloutPlacement();
+        int h = calloutH(step);
+        chrome.frame(batch, at.x(), at.y(), ScreenArt.CALLOUT_W, h);
+        chrome.face(batch, at.x() + ScreenArt.THICK, at.y() + ScreenArt.THICK,
+                ScreenArt.CALLOUT_W - 2 * ScreenArt.THICK, h - 2 * ScreenArt.THICK,
+                ScreenArt.FACE_PANEL);
+        if (at.hasNotch()) {
+            drawNotch(at, h);
+        }
+
+        int textX = at.x() + ScreenArt.CALLOUT_PAD_X;
+        chrome.text(batch, theme.pixelSmall,
+                "STEP " + tutorial.stepNumber() + " OF " + tutorial.stepCount(),
+                textX, at.y() + ScreenArt.CALLOUT_STEP_TOP, ScreenArt.HEADING);
+        drawStepDots(at);
+
+        List<String> lines = calloutLines(step);
+        for (int i = 0; i < lines.size(); i++) {
+            chrome.text(batch, theme.pixelBody, lines.get(i), textX,
+                    at.y() + ScreenArt.CALLOUT_TEXT_TOP + i * ScreenArt.CALLOUT_LINE_H,
+                    ScreenArt.BODY);
+        }
+        CalloutPlacement.Plate next = nextPlate();
+        if (next != null) {
+            chrome.plate(batch, next.x(), next.y(), next.w(), next.h(), "NEXT",
+                    Chrome.Plate.GOLD, press.sunk() == NEXT);
+        }
+    }
+
+    /**
+     * A staircase, not a triangle: the notch steps in two pixels a row so it is
+     * built from whole blocks. A real triangle would need a rotation, and a
+     * rotated pixel is a blurred pixel (HANDOFF §10).
+     */
+    private void drawNotch(CalloutPlacement.Placement at, int h) {
+        int rows = CalloutPlacement.NOTCH_H / 2;
+        int step = CalloutPlacement.NOTCH_W / (2 * rows);
+        for (int row = 0; row < rows; row++) {
+            int w = CalloutPlacement.NOTCH_W - 2 * row * step;
+            if (w <= 0) {
+                break;
             }
-        });
-        overlay.add(menu);
-        return overlay;
-    }
-
-    // --- top strip: health, depth ticker, avoid ---
-
-    private Actor topStrip() {
-        Table strip = new Table();
-        strip.add(healthGroup()).left();
-        strip.add(depthTicker()).expandX();
-        strip.add(avoidButton()).right();
-        return strip;
-    }
-
-    private Actor healthGroup() {
-        Table group = new Table();
-        group.add(label("HP", theme.bodyBold, Theme.BONE)).padRight(8);
-        group.add(healthBar()).width(160).height(14).padRight(8);
-        hpNumber = label(String.valueOf(state.health()), theme.bodyBold, Theme.BONE);
-        group.add(hpNumber);
-        return group;
-    }
-
-    /** Bone at full health, charring toward dried blood as it drops. */
-    private Actor healthBar() {
-        float fraction = Math.max(0f, Math.min(1f, state.health() / (float) rules.healthCap()));
-        Color fill = new Color(Theme.DRIED_BLOOD).lerp(Theme.BONE, fraction);
-        hpBar = new Table();
-        hpBar.setBackground(theme.solid(Theme.STONE));
-        hpBar.left().pad(2);
-        hpFill = new Image(theme.solid(fill));
-        hpFillCell = hpBar.add(hpFill).width(156 * fraction).height(10);
-        return hpBar;
-    }
-
-    /**
-     * Paints the bar and number for an arbitrary health value — not necessarily
-     * the current state's. Lets a potion heal hold the pre-heal reading during
-     * the flask's flight and only tick up once it lands.
-     */
-    private void renderHealth(int value) {
-        float fraction = Math.max(0f, Math.min(1f, value / (float) rules.healthCap()));
-        hpNumber.setText(String.valueOf(value));
-        hpFill.setDrawable(theme.solid(new Color(Theme.DRIED_BLOOD).lerp(Theme.BONE, fraction)));
-        hpFillCell.width(156 * fraction);
-        hpBar.invalidate();
-    }
-
-    /** Damage: the bar shudders and the number flashes dried blood. */
-    private void pulseDamage() {
-        hpBar.addAction(Actions.sequence(
-                Actions.moveBy(5, 0, 0.04f),
-                Actions.moveBy(-10, 0, 0.07f),
-                Actions.moveBy(8, 0, 0.05f),
-                Actions.moveBy(-3, 0, 0.04f)));
-        hpNumber.addAction(Actions.sequence(
-                Actions.color(new Color(Theme.DRIED_BLOOD), 0.05f),
-                Actions.color(Color.WHITE, 0.5f)));
-    }
-
-    /** Healing: the fill glows back in and the number flashes herbal. */
-    private void pulseHeal() {
-        hpFill.getColor().a = 0.35f;
-        hpFill.addAction(Actions.alpha(1f, 0.45f));
-        hpNumber.addAction(Actions.sequence(
-                Actions.color(new Color(Theme.HERBAL), 0.05f),
-                Actions.color(Color.WHITE, 0.5f)));
-    }
-
-    /**
-     * The depth ticker — one tick per card the dungeon started with; lit
-     * ticks are what is still face-down below you. Avoided rooms visibly
-     * return their ticks to the pile.
-     */
-    private Actor depthTicker() {
-        Color consumed = Color.valueOf("3a3229");
-        int remaining = state.dungeon().size();
-        int total = rules.deck().cards().size();
-        Table ticker = new Table();
-        Table ticks = new Table();
-        tickerTicks = ticks;
-        for (int i = 0; i < total; i++) {
-            Color c = i < remaining ? Theme.TORCHLIGHT : consumed;
-            ticks.add(new Image(theme.solid(c))).width(4).height(16).padRight(2);
+            int x = at.notchX() + (CalloutPlacement.NOTCH_W - w) / 2;
+            // Above the callout when it sits below the card, below it when above.
+            int y = at.below() ? at.y() - 2 * (row + 1) : at.y() + h + 2 * row;
+            chrome.face(batch, x, y, w, 2, ScreenArt.FACE_PANEL);
         }
-        ticker.add(ticks);
-        ticker.row();
-        ticker.add(label("depth: " + remaining + " cards", theme.small, dim(Theme.BONE, 0.6f)))
-                .padTop(4);
-        // The live run timer sits under the depth — a real run only; the tutorial
-        // has no recorder and is left untimed.
-        timerLabel = null;
-        if (tutorial == null) {
-            ticker.row();
-            timerLabel = label("TIME " + ClockText.format(currentRunSeconds()),
-                    theme.small, dim(Theme.BONE, 0.6f));
-            ticker.add(timerLabel).padTop(2);
+    }
+
+    /** One dot a beat, filled up to the current one — progress you can count. */
+    private void drawStepDots(CalloutPlacement.Placement at) {
+        int count = tutorial.stepCount();
+        int span = count * ScreenArt.DOT_PITCH - (ScreenArt.DOT_PITCH - ScreenArt.DOT_SIZE);
+        int x = at.x() + ScreenArt.CALLOUT_W - ScreenArt.CALLOUT_PAD_X - span;
+        int y = at.y() + ScreenArt.CALLOUT_STEP_TOP;
+        for (int i = 0; i < count; i++) {
+            chrome.face(batch, x + i * ScreenArt.DOT_PITCH, y,
+                    ScreenArt.DOT_SIZE, ScreenArt.DOT_SIZE,
+                    i < tutorial.stepNumber() ? ScreenArt.DOT_ON : ScreenArt.DOT_OFF);
         }
-        return ticker;
+    }
+
+    /** True when the tutorial's current step expects exactly this move. */
+    private boolean tutorialExpects(Move move) {
+        return tutorial != null && !tutorial.isComplete()
+                && move.equals(tutorial.current().expectedMove());
     }
 
     /** Seconds shown by the timer: live while a run is in progress, frozen after. */
@@ -751,70 +829,10 @@ public final class GameScreen extends ScreenAdapter {
         return recorder != null ? recorder.elapsedSeconds() : 0;
     }
 
-    private Actor avoidButton() {
-        avoidButton = torchButton(theme, "Avoid");
-        // In the tutorial, Avoid is live only on the step that teaches it.
-        boolean enabled = tutorial != null
-                ? tutorialExpects(new Move.AvoidRoom())
-                : engine.legalMoves(state).contains(new Move.AvoidRoom());
-        avoidButton.setDisabled(!enabled);
-        avoidButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                applyMove(new Move.AvoidRoom());
-            }
-        });
-        return avoidButton;
-    }
-
-    /** True when the tutorial's current step expects exactly this move. */
-    private boolean tutorialExpects(Move move) {
-        return tutorial != null && !tutorial.isComplete()
-                && move.equals(tutorial.current().expectedMove());
-    }
-
-    // --- center: the room ---
-
-    private Actor roomRow() {
-        roomTiles.clear();
-        Table row = new Table();
-        for (Card card : state.room()) {
-            row.add(cardTile(card)).size(Theme.CARD_WIDTH, Theme.CARD_HEIGHT).pad(12);
-        }
-        return row;
-    }
-
-    private Actor cardTile(Card card) {
-        Table tile = CardTiles.build(theme, card);
-        roomTiles.put(card, tile);
-        // Press, not click: fast play releases the button mid-travel.
-        tile.addListener(Widgets.pressListener(() -> onCardClicked(card, tile)));
-        return tile;
-    }
-
-    /**
-     * A click that skipped an animation also resolves the card it landed on,
-     * so no click is ever spent purely on dismissing the motion. The board is
-     * already settled and laid out by the time this runs.
-     */
-    private void resolveCardAt(float stageX, float stageY) {
-        if (state.status() != Status.IN_PROGRESS) {
-            return;
-        }
-        List<CardHitRegions.CardRect> rects = new ArrayList<>();
-        roomTiles.forEach((card, tile) -> {
-            Vector2 corner = tile.localToStageCoordinates(new Vector2(0, 0));
-            rects.add(new CardHitRegions.CardRect(card, corner.x, corner.y,
-                    tile.getWidth(), tile.getHeight()));
-        });
-        Card card = CardHitRegions.cardAt(rects, stageX, stageY);
-        if (card != null) {
-            onCardClicked(card, roomTiles.get(card));
-        }
-    }
+    // --- resolving a card ---
 
     /** One legal move plays immediately; two or more open the chooser. */
-    private void onCardClicked(Card card, Actor tile) {
+    private void onCardClicked(Card card) {
         if (tutorial != null) {
             // In the tutorial only the highlighted card responds, and it makes
             // exactly the scripted move — no chooser to wander into.
@@ -831,48 +849,53 @@ public final class GameScreen extends ScreenAdapter {
         if (moves.size() == 1) {
             applyMove(moves.get(0));
         } else if (moves.size() > 1) {
-            showChooser(moves, tile);
+            showChooser(moves, card);
         }
     }
 
     /**
-     * Button stack over the pressed card. A press outside it dismisses the
-     * chooser AND resolves whatever card it landed on, so the press is never
-     * spent merely closing the popup. The popup carries no padding, so its
-     * whole area is button: a press inside it can neither fall through to the
-     * catcher (which would just re-open the chooser) nor land on inert frame.
+     * A stack of the board's own gold plates over the pressed card, one per
+     * legal move. Every plate takes the widest label's width, measured once
+     * here rather than per frame — a ragged stack reads as two unrelated
+     * buttons instead of as a choice between two things.
      */
-    private void showChooser(List<Move> moves, Actor tile) {
-        Group overlay = new Group();
-        Actor catcher = new Actor();
-        catcher.setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        catcher.addListener(Widgets.pressListenerAt((stageX, stageY) -> {
-            overlay.remove();
-            resolveCardAt(stageX, stageY);
-        }));
-        overlay.addActor(catcher);
-
-        Table popup = new Table();
-        popup.setBackground(theme.solid(Theme.STONE));
-        popup.pad(0);
-        popup.defaults().growX().space(0);
-        for (Move move : moves) {
-            TextButton button = torchButton(theme, Labels.move(move));
-            // Press, like the cards: the chooser sits on the hot path for every
-            // armed monster, so it must not drop a fast click either.
-            button.addListener(Widgets.pressListener(() -> {
-                overlay.remove();
-                applyMove(move);
-            }));
-            popup.add(button);
-            popup.row();
+    private void showChooser(List<Move> moves, Card card) {
+        chooserMoves = List.copyOf(moves);
+        chooserCard = card;
+        int widest = 0;
+        for (Move move : chooserMoves) {
+            widest = Math.max(widest, hud.labelWidth(chooserLabel(move)));
         }
-        popup.pack();
-        Vector2 center = tile.localToStageCoordinates(
-                new Vector2(tile.getWidth() / 2f, tile.getHeight() / 2f));
-        popup.setPosition(center.x - popup.getWidth() / 2f, center.y - popup.getHeight() / 2f);
-        overlay.addActor(popup);
-        stage.addActor(overlay);
+        chooserPlateW = ChooserArt.plateW(widest);
+    }
+
+    /** Uppercase, like every other label the pixel board sets. */
+    private static String chooserLabel(Move move) {
+        return Labels.move(move).toUpperCase(Locale.ROOT);
+    }
+
+    /** The slot the chooser is anchored to, following its card if the room moves. */
+    private int chooserSlotX() {
+        int index = state.room().indexOf(chooserCard);
+        return board.slotX(Math.max(0, index));
+    }
+
+    private void drawChooser() {
+        if (chooserCard == null) {
+            return;
+        }
+        int x = chooserSlotX();
+        for (int i = 0; i < chooserMoves.size(); i++) {
+            hud.drawPlate(batch, ChooserArt.plateX(x, chooserPlateW),
+                    ChooserArt.plateY(i, chooserMoves.size()),
+                    chooserPlateW, ChooserArt.PLATE_H,
+                    chooserLabel(chooserMoves.get(i)), true);
+        }
+    }
+
+    private void closeChooser() {
+        chooserMoves = List.of();
+        chooserCard = null;
     }
 
     /** Fresh run. The tutorial plays its scripted deck and records nothing. */
@@ -886,8 +909,15 @@ public final class GameScreen extends ScreenAdapter {
             tracker = new AchievementTracker(rules.cardsResolvedPerTurn());
         }
         endBestLine = null;
+        // Cleared per run: if the record ever fails to build, the panel must
+        // show zeroes rather than the previous run's figures.
+        finalRunSeconds = 0;
+        finalDamageTaken = 0;
+        lastPotion = null;
+        weaponBeforeMove = null;
         newlyUnlocked = List.of();
-        dealInPending = true; // the opening room deals in from the dungeon like any other
+        barPhase = HealthReadout.Phase.REST;
+        barChange = HealthReadout.Change.NONE;
     }
 
     /**
@@ -905,7 +935,9 @@ public final class GameScreen extends ScreenAdapter {
             newlyUnlocked = List.of();
             return;
         }
-        finalRunSeconds = record.seconds(); // the timer freezes here, exactly as recorded
+        // The timer freezes here, and the damage total with it — both exactly as recorded.
+        finalRunSeconds = record.seconds();
+        finalDamageTaken = record.damageTaken();
         try {
             OptionalInt bestBefore = HighScores.bestForRuleset(runLog.readAll(), mode.id());
             runLog.append(record);
@@ -940,6 +972,14 @@ public final class GameScreen extends ScreenAdapter {
         if (tutorial != null && !tutorial.accepts(move)) {
             return; // only the current step's highlighted move is allowed
         }
+        if (move instanceof Move.TakePotion potion) {
+            lastPotion = potion.targetCard();
+        }
+        int healthBefore = state.health();
+        List<Card> roomBefore = state.room();
+        weaponBeforeMove = state.weapon();
+        board.beginMove();
+
         MoveResult result = engine.apply(state, move);
         state = result.state();
         if (tutorial != null) {
@@ -954,177 +994,87 @@ public final class GameScreen extends ScreenAdapter {
         for (GameEvent event : result.events()) {
             String line = FeedText.line(event);
             if (line != null) {
-                pushFeedLine(line);
+                feed.push(line);
             }
         }
-        Map<String, Vector2> previousSlots = captureRoomSlots();
-        // Death is always a monster fight (health only drops in combat) and never
-        // happens in the tutorial. Withhold the overlay and play the cinematic.
+
         boolean died = tutorial == null && state.status() == Status.LOST;
-        Vector2 killerSlot = died && move instanceof Move.CardMove cm
-                ? previousSlots.get(cm.targetCard().id())
-                : null;
-        deathPending = died;
-        rebuild();
+        board.setRoom(state.room());
+        playEffect(move, result, roomBefore, died);
+        pulseHealth(healthBefore, ResolveEffect.damageTaken(result.events()),
+                ResolveEffect.healed(result.events()));
+
         if (died) {
-            playDeath(killerSlot);
+            // Withhold the score: the cinematic runs over the dead board first.
+            endPending = true;
+            deathElapsed = 0f;
+            killerSlotX = move instanceof Move.CardMove cm
+                    ? orMinusOne(board.previousSlotX(cm.targetCard().id()))
+                    : -1;
+        } else {
+            syncBoard();
         }
-        if (state.status() == Status.IN_PROGRESS) {
-            int damage = ResolveEffect.damageTaken(result.events());
-            int healed = ResolveEffect.healed(result.events());
-            if (damage > 0) {
-                pulseDamage();
-            } else if (healed > 0) {
-                // The heal — count, fill, and green flash — all land with the
-                // potion, not on the click: hold the pre-heal reading during the
-                // flight, then tick up when the flask spills onto the bar.
-                int landed = state.health();
-                renderHealth(landed - healed);
-                hpBar.addAction(Actions.delay(Theme.POTION_FLIGHT, Actions.run(() -> {
-                    renderHealth(landed);
-                    pulseHeal();
-                })));
-            }
-            boolean roomDealt = result.events().stream()
-                    .anyMatch(e -> e instanceof GameEvent.RoomDealt);
-            root.validate(); // force a fresh layout so tile destinations are real
-            // The effect is chosen purely by move type (see ResolveEffect); the
-            // slot fetch and the deal-in-after are the UI wiring. A missing slot
-            // (defensive — a resolved card is always in previousSlots) falls back
-            // to the plain deal-in, exactly as the old chain did.
-            switch (ResolveEffect.of(move)) {
-                case AVOID -> {
-                    List<Card> avoided = result.events().stream()
-                            .filter(e -> e instanceof GameEvent.RoomAvoided)
-                            .map(e -> ((GameEvent.RoomAvoided) e).room())
-                            .findFirst().orElse(null);
-                    if (avoided != null) {
-                        choreographer.playAvoid(avoided, previousSlots, roomTiles, tickerCenter());
-                    }
-                }
-                case STRIKE -> {
-                    Card struck = ((Move.FightBarehanded) move).targetCard();
-                    Vector2 slot = previousSlots.get(struck.id());
-                    if (slot != null) {
-                        choreographer.playBarehanded(struck, slot, roomTiles, previousSlots,
-                                tickerCenter(), roomDealt);
-                    } else if (roomDealt) {
-                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
-                    }
-                }
-                case EQUIP -> {
-                    Card equipped = ((Move.TakeWeapon) move).targetCard();
-                    Vector2 slot = previousSlots.get(equipped.id());
-                    if (slot != null && weaponMini != null) {
-                        choreographer.playEquip(equipped, slot, weaponMini, roomTiles,
-                                previousSlots, tickerCenter(), roomDealt);
-                    } else if (roomDealt) {
-                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
-                    }
-                }
-                case POTION -> {
-                    Card drunk = ((Move.TakePotion) move).targetCard();
-                    Vector2 slot = previousSlots.get(drunk.id());
-                    boolean wasted = result.events().stream()
-                            .anyMatch(e -> e instanceof GameEvent.PotionWasted);
-                    if (slot != null) {
-                        choreographer.playPotion(drunk, slot, hpBar, wasted, roomTiles,
-                                previousSlots, tickerCenter(), roomDealt);
-                    } else if (roomDealt) {
-                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
-                    }
-                }
-                case SLICE -> {
-                    Card slain = ((Move.FightWithWeapon) move).targetCard();
-                    Vector2 slot = previousSlots.get(slain.id());
-                    if (slot != null) {
-                        choreographer.playSlice(slot, roomTiles, previousSlots,
-                                tickerCenter(), roomDealt);
-                    } else if (roomDealt) {
-                        choreographer.playDealIn(roomTiles, previousSlots, tickerCenter());
-                    }
+    }
+
+    private static int orMinusOne(Integer value) {
+        return value == null ? -1 : value;
+    }
+
+    /**
+     * The effect is chosen purely by move type; the rest is the wiring. Every
+     * one of them ends by dealing the room back in, so a refill follows without
+     * being asked for.
+     */
+    private void playEffect(Move move, MoveResult result, List<Card> roomBefore, boolean fatal) {
+        switch (ResolveEffect.of(move)) {
+            case AVOID -> board.playSweep(roomBefore);
+            case STRIKE -> board.playStrike(((Move.FightBarehanded) move).targetCard(), fatal);
+            case SLICE -> board.playSlice(((Move.FightWithWeapon) move).targetCard(), fatal);
+            case EQUIP -> board.playEquip(((Move.TakeWeapon) move).targetCard());
+            case POTION -> {
+                Card drunk = ((Move.TakePotion) move).targetCard();
+                boolean wasted = result.events().stream()
+                        .anyMatch(e -> e instanceof GameEvent.PotionWasted);
+                // A wasted potion goes nowhere near the bar: it spills where it
+                // stood. Sending it to a bar that then does not move read as the
+                // heal being broken rather than as the potion being wasted.
+                if (wasted) {
+                    board.playSpill(drunk);
+                } else {
+                    board.playPotion(drunk, this::startHeal);
                 }
             }
         }
     }
 
-    /** Stage positions of the outgoing room tiles, keyed by card id. */
-    private Map<String, Vector2> captureRoomSlots() {
-        Map<String, Vector2> slots = new HashMap<>();
-        roomTiles.forEach((card, tile) ->
-                slots.put(card.id(), tile.localToStageCoordinates(new Vector2(0, 0))));
-        return slots;
-    }
-
-    /** Where dealt cards fly from: the depth ticker is the dungeon. */
-    private Vector2 tickerCenter() {
-        return tickerTicks.localToStageCoordinates(
-                new Vector2(tickerTicks.getWidth() / 2f, tickerTicks.getHeight() / 2f));
-    }
-
-    // --- the fading feed ---
-
-    private void pushFeedLine(String text) {
-        Label line = label(text, theme.body, dim(Theme.BONE, 0.9f));
-        line.addAction(Actions.sequence(
-                Actions.delay(4f), Actions.fadeOut(1.5f), Actions.removeActor()));
-        feed.addActor(line);
-        while (feed.getChildren().size > 4) {
-            feed.removeActorAt(0, false);
+    /**
+     * Damage drains the bar straight away — the blow has already landed. A
+     * drink does not: the bar holds its old reading until {@link BoardView}
+     * calls back to say the bottle has poured, so the fill has a visible cause
+     * and is only ever shown once.
+     */
+    private void pulseHealth(int before, int damage, int healed) {
+        barElapsed = 0f;
+        if (damage > 0) {
+            setBarChange(before, state.health());
+            barPhase = HealthReadout.Phase.BLEEDING;
+        } else if (healed > 0) {
+            setBarChange(before, state.health());
+            barPhase = HealthReadout.Phase.HELD;
+        } else {
+            barPhase = HealthReadout.Phase.REST;
         }
     }
 
-    // --- bottom strip: trophy rail and potion marker ---
-
-    private Actor bottomStrip() {
-        Table strip = new Table();
-        strip.add(trophyRail()).left();
-        strip.add().expandX();
-        strip.add(potionMarker()).right();
-        return strip;
+    private void setBarChange(int from, int to) {
+        barChange = new HealthReadout.Change(
+                HudArt.barFillWidth(from, rules.healthCap()),
+                HudArt.barFillWidth(to, rules.healthCap()), from, to);
     }
 
-    /** Equipped weapon, its slain stack, and the degradation plate. */
-    private Actor trophyRail() {
-        Table rail = new Table();
-        weaponMini = null;
-        EquippedWeapon weapon = state.weapon();
-        if (weapon == null) {
-            rail.add(label("Barehanded", theme.body, dim(Theme.BONE, 0.6f)));
-            return rail;
-        }
-        // The weapon is a big battleaxe with its value stamped inside the blades —
-        // no card frame; this is the shape the equip flight settles into. (Its
-        // slain still read as card-panel chips below.)
-        Image battleaxe = new Image(theme.axeRegion());
-        battleaxe.setColor(Theme.IRON);
-        Table axeLayer = new Table();
-        axeLayer.add(battleaxe).size(72, 72);
-        Table numLayer = new Table();
-        numLayer.add(label(String.valueOf(weapon.weapon().value()), theme.bodyBold, Theme.SOOT))
-                .expand().top().padTop(9);
-        Table slot = new Table();
-        slot.add(new Stack(axeLayer, numLayer)).size(72, 72);
-        weaponMini = slot;
-        rail.add(slot).size(72, 72).padRight(10);
-        for (Card slain : weapon.slain()) {
-            Table chip = new Table();
-            chip.setBackground(theme.solid(Theme.CARD_MONSTER));
-            chip.add(label(String.valueOf(slain.value()), theme.small, Theme.BONE));
-            rail.add(chip).size(26, 36).padRight(4);
-        }
-        Table plate = new Table();
-        plate.setBackground(theme.solid(Theme.TORCHLIGHT));
-        plate.add(label(Labels.weaponThreshold(weapon), theme.bodyBold, Theme.SOOT)).pad(2, 10, 2, 10);
-        rail.add(plate).padLeft(8);
-        return rail;
+    /** The bottle has tipped: release the reading the bar has been holding. */
+    private void startHeal() {
+        barPhase = HealthReadout.Phase.HEALING;
+        barElapsed = 0f;
     }
-
-    private Actor potionMarker() {
-        boolean used = state.potionsUsedThisRoom() >= rules.potionsPerTurn();
-        return used
-                ? label("• potion used this turn", theme.body, Theme.TORCHLIGHT)
-                : label("potion ready", theme.body, dim(Theme.BONE, 0.4f));
-    }
-
 }

@@ -41,6 +41,10 @@ public class W {
   [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
+  [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint f, IntPtr e);
+  [DllImport("user32.dll")] public static extern uint MapVirtualKey(uint code, uint mapType);
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+  [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int hh, bool repaint);
   public struct RECT { public int Left, Top, Right, Bottom; }
   public struct POINT { public int X, Y; }
 }
@@ -139,6 +143,81 @@ function Click([int]$x, [int]$y) {
   Write-Output ("CLICK {0},{1}" -f $x, $y)
 }
 
+# The two halves of a click, separately, so a held button can be screenshotted.
+# Menu buttons act on release and draw themselves sunk while held, and a whole
+# Click is over long before a Shot could catch that. Pair them with move: to
+# drive a press that slides off its button and is taken back.
+function Down([int]$x, [int]$y) {
+  [void][W]::SetCursorPos($origin.X + $x, $origin.Y + $y)
+  Start-Sleep -Milliseconds 150
+  [W]::mouse_event(0x0002, 0, 0, 0, [IntPtr]::Zero)   # LEFTDOWN
+  Start-Sleep -Milliseconds 120
+  Write-Output ("DOWN {0},{1}" -f $x, $y)
+}
+
+# A negative x means release where the pointer already is.
+function Up([int]$x, [int]$y) {
+  if ($x -ge 0) {
+    [void][W]::SetCursorPos($origin.X + $x, $origin.Y + $y)
+    Start-Sleep -Milliseconds 150
+  }
+  [W]::mouse_event(0x0004, 0, 0, 0, [IntPtr]::Zero)   # LEFTUP
+  Start-Sleep -Milliseconds 120
+  Write-Output ("UP {0},{1}" -f $x, $y)
+}
+
+# Debug and view-toggle bindings are polled per frame by the game (F11 fullscreen,
+# F9 the sprite inspector, Esc to leave a screen), so they need real key events
+# rather than clicks. Named rather than numeric so actions stay readable.
+$VK = @{
+  "ESC" = 0x1B; "ENTER" = 0x0D; "SPACE" = 0x20; "TAB" = 0x09; "R" = 0x52; "K" = 0x4B; "S" = 0x53; "B" = 0x42; "A" = 0x41; "E" = 0x45; "D" = 0x44; "H" = 0x48; "P" = 0x50; "X" = 0x58;
+  "F1" = 0x70; "F2" = 0x71; "F3" = 0x72; "F4" = 0x73; "F5" = 0x74; "F6" = 0x75;
+  "F7" = 0x76; "F8" = 0x77; "F9" = 0x78; "F10" = 0x79; "F11" = 0x7A; "F12" = 0x7B
+}
+
+# Resize to a target CLIENT size, for checking layout across window sizes.
+# MoveWindow sizes the whole window including any border, so measure the
+# difference and compensate -- asking for 1600x900 and silently getting a
+# 1584x861 client would quietly invalidate whatever the shot is meant to prove.
+function Resize([int]$targetW, [int]$targetH) {
+  $wr = New-Object W+RECT; [void][W]::GetWindowRect($h, [ref]$wr)
+  $cr = New-Object W+RECT; [void][W]::GetClientRect($h, [ref]$cr)
+  $chromeW = ($wr.Right - $wr.Left) - ($cr.Right - $cr.Left)
+  $chromeH = ($wr.Bottom - $wr.Top) - ($cr.Bottom - $cr.Top)
+  [void][W]::MoveWindow($h, $wr.Left, $wr.Top, $targetW + $chromeW, $targetH + $chromeH, $true)
+  Start-Sleep -Milliseconds 700
+  $after = New-Object W+RECT; [void][W]::GetClientRect($h, [ref]$after)
+  $aw = $after.Right - $after.Left; $ah = $after.Bottom - $after.Top
+  # Later Shot calls must use the new size, not the one read at startup.
+  $script:cw = $aw; $script:ch = $ah
+  $o = New-Object W+POINT; $o.X = 0; $o.Y = 0
+  [void][W]::ClientToScreen($h, [ref]$o)
+  $script:origin = $o
+  Write-Output ("RESIZE client {0}x{1} at screen {2},{3}" -f $aw, $ah, $o.X, $o.Y)
+}
+
+function Key([string]$name) {
+  $n = $name.ToUpper()
+  # Any single letter is its own virtual-key code, so the table only has to
+  # carry the named keys. It used to list the letters too, and adding a lab
+  # binding then meant editing this file before the key would do anything.
+  if ((-not $VK.ContainsKey($n)) -and $n -match '^[A-Z0-9]$') {
+    $VK[$n] = [int][char]$n
+  }
+  if (-not $VK.ContainsKey($n)) { Write-Output ("UNKNOWN KEY {0}" -f $name); return }
+  $code = [byte]$VK[$n]
+  # Send the real scan code rather than 0. GLFW does map a zero scancode back
+  # via MapVirtualKey, but it calls that path a HACK for synthetic messages, so
+  # supplying the true one keeps us on its normal route. Note this is NOT what
+  # makes a press land -- see the swallowed-first-key note in SKILL.md.
+  $scan = [byte]([W]::MapVirtualKey([uint32]$code, 0))   # MAPVK_VK_TO_VSC
+  [W]::keybd_event($code, $scan, 0, [IntPtr]::Zero)      # down
+  Start-Sleep -Milliseconds 90
+  [W]::keybd_event($code, $scan, 2, [IntPtr]::Zero)      # KEYEVENTF_KEYUP
+  Start-Sleep -Milliseconds 150
+  Write-Output ("KEY {0} (vk 0x{1:X2} scan 0x{2:X2})" -f $n, $code, $scan)
+}
+
 foreach ($a in $Actions.Split(",")) {
   if ($a -eq "") { continue }
   # Split on the FIRST colon only -- screenshot paths contain "C:\".
@@ -147,6 +226,25 @@ foreach ($a in $Actions.Split(",")) {
   } elseif ($a.StartsWith("click:")) {
     $c = $a.Substring(6).Split(":")
     Click ([int]$c[0]) ([int]$c[1])
+  } elseif ($a.StartsWith("down:")) {
+    $d = $a.Substring(5).Split(":")
+    Down ([int]$d[0]) ([int]$d[1])
+  } elseif ($a -eq "up") {
+    Up -1 -1
+  } elseif ($a.StartsWith("up:")) {
+    $u = $a.Substring(3).Split(":")
+    Up ([int]$u[0]) ([int]$u[1])
+  } elseif ($a.StartsWith("move:")) {
+    # Cursor move with no button, for hover states.
+    $m = $a.Substring(5).Split(":")
+    [void][W]::SetCursorPos($origin.X + [int]$m[0], $origin.Y + [int]$m[1])
+    Start-Sleep -Milliseconds 200
+    Write-Output ("MOVE {0},{1}" -f $m[0], $m[1])
+  } elseif ($a.StartsWith("resize:")) {
+    $r = $a.Substring(7).Split(":")
+    Resize ([int]$r[0]) ([int]$r[1])
+  } elseif ($a.StartsWith("key:")) {
+    Key $a.Substring(4)
   } elseif ($a.StartsWith("wait:")) {
     Start-Sleep -Milliseconds ([int]$a.Substring(5))
     Write-Output ("WAIT {0}" -f $a.Substring(5))

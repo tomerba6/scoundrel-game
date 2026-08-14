@@ -29,4 +29,16 @@ public record GameState(
     public boolean roomResolutionStarted() {
         return cardsResolvedThisTurn > 0;
     }
+
+    /**
+     * How many monsters are still face-down in the dungeon.
+     *
+     * <p>The same cards a loss score is charged for — the room's are not
+     * counted, nor the weapons and potions down there with them. It is the one
+     * figure that explains a death score, which is otherwise an unexplained
+     * negative number on the run-end panel.
+     */
+    public int monstersRemaining() {
+        return (int) dungeon.stream().filter(card -> card.type() == CardType.MONSTER).count();
+    }
 }

@@ -154,6 +154,8 @@ Thumbs.db
 *#*#
 /.kotlin/
 /assets/assets.txt
+## Built by the packAtlas task from assets/atlas/ — derived, not source.
+/assets/sprites/
 
 ## Special cases:
 

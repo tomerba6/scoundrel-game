@@ -586,7 +586,7 @@ flowchart LR
         direction TB
         ach["Achievements"]
         stats["Stats<br/>live + persisted totals"]
-        ui["UI (Scene2D)"]
+        ui["UI (immediate mode)"]
         hs["High-score store"]
     end
 

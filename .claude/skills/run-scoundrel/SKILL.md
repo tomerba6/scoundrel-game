@@ -28,7 +28,7 @@ screenshots the actual screen, so the window must be visible and not minimised.
 ## Build and test
 
 ```bash
-./gradlew core:test          # 183 tests, the pure rules engine + observers
+./gradlew core:test          # the engine, the observers, the screen helpers
 ./gradlew lwjgl3:compileJava # launcher compiles
 ```
 
@@ -64,8 +64,29 @@ Then **look at the PNG** with the Read tool. A blank frame means it never came u
 
 ### 3. Click and screenshot
 
-Actions are comma-separated and run in order: `click:<x>:<y>`, `wait:<ms>`,
-`shot:<path>`.
+Actions are comma-separated and run in order: `click:<x>:<y>`, `move:<x>:<y>`,
+`down:<x>:<y>`, `up` / `up:<x>:<y>`, `key:<name>`, `wait:<ms>`, `shot:<path>`,
+`resize:<w>:<h>`.
+
+`down:`/`up:` are the two halves of a click, so a **held** button can be
+screenshotted — `click:` is over long before a `shot:` could catch it. Menu
+buttons draw themselves sunk while held and act on release, so a press that
+slides off and is taken back is driven as
+`down:731:349,shot:...,move:250:650,shot:...,up:250:650`. Bare `up` releases
+wherever the pointer already is. Always pair them in one chain: a `down:` with
+no `up:` leaves the OS mouse button stuck down for whatever runs next.
+
+`key:` takes `ESC`, `ENTER`, `SPACE`, `TAB`, any single letter or digit, or
+`F1`-`F12` — the bindings the game polls per frame rather than through Scene2D:
+**F11** toggles fullscreen, **F9** opens the developer sprite inspector
+(`SpriteLab`), **Esc** leaves it.
+
+Inside the lab, one key per effect, acting on whatever card the pointer is over:
+**K** weapon kill, **B** barehanded, **A** avoid sweep, **E** equip, **P** potion,
+**W** wasted potion, **D** hit, **H** heal, **X** death, **Tab** the all-sprites
+sheet, **S** slow motion (÷8). Sub-second effects cannot be frame-grabbed at
+their own speed — turn **S** on first, then trigger, and pace the `shot:`s at
+eight times the timing you are checking.
 
 ```powershell
 & powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 `
@@ -84,20 +105,26 @@ Client pixels, origin **top-left**, window 1280x720.
 
 | Screen | Target | x, y |
 |---|---|---|
-| Title | New game / Records / Trophies | 640,346 / 640,390 / 640,434 |
-| Mode picker | Standard / Relentless / Frail | 176,153 / 176,204 / 176,255 |
-| Mode picker | Back | 92,680 |
-| Game board | Avoid button | 1214,48 |
-| Game board | card centres, y = 363 | see formula below |
+| Title (pixel) | New game / How to play / The ledger / Trophies | 731,349 / 731,405 / 731,461 / 731,517 |
+| Title (pixel) | First-run prompt: Play tutorial / Maybe later | 640,349 / 640,405 |
+| Mode picker (pixel) | Standard / Relentless / Frail | 638,159 / 638,262 / 638,365 |
+| Mode picker (pixel) | `ESC · BACK` in the header band | 1174,45 |
+| Game board | Avoid button | 1198,46 |
+| Game board | card centres, y = 342 | see formula below |
+| End overlay | New game / Main menu / Trophies / Records | 639,423 / 639,464 / 639,505 / 639,546 |
 
-The room row is **centred**, so card centres shift as the room shrinks. Cards are
-170 wide on 194 pitch; for `n` cards the i-th centre (0-based) is:
+The room row is **centred**, so card centres shift as the room shrinks. Since the
+pixel conversion cards are **176 wide on a 200 pitch**; for `n` cards the i-th
+centre (0-based) is:
 
 ```
-x = 640 - (n * 194) / 2 + 97 + (i * 194)
+x = 640 - (n * 200) / 2 + 88 + (i * 200)
 ```
 
-Verified: n=4 gives 349, 543, 737, 931; n=3 gives 446, 640, 834.
+Verified: n=4 gives 340, 540, 740, 940; n=3 gives 440, 640, 840; n=2 gives
+540, 740; n=1 gives 640. **A click between those centres lands in the 24px gap
+and does nothing** — which looks exactly like a bug in whatever you just changed.
+Recompute for the current room size before blaming the code.
 
 ## Gotchas
 
@@ -114,14 +141,41 @@ These all cost real time in this container.
   the caller forces foreground properly. `drive.ps1` does the
   `AttachThreadInput` dance for this; a naive `SetForegroundWindow` is refused
   and costs you a click.
+- **Toggle keys carry state between calls.** `S` (slow motion), `R` and `Tab` flip
+  whatever the game is already in, and the game outlives a `drive.ps1` call. A
+  second chain that "turns slow motion on" actually turns it off, and every
+  timed capture then lands in the wrong place — which looks exactly like the
+  effect being broken. Either do the whole sequence in one chain, or read the
+  on-screen state (the ROOM line prints `[SLOW 1/8]`) before assuming.
+- **Do the whole capture in one `drive.ps1` call.** Windows refuses
+  `SetForegroundWindow` from a background process, so once the game loses focus
+  the driver cannot get it back and exits `NOT_FOREGROUND` until a human clicks
+  the window. The game *has* focus right after `lwjgl3:run`, so a single long
+  action chain — toggle, trigger, and every `shot:` — works unattended, while
+  splitting the same steps across several calls stalls partway. Chain
+  aggressively; there is no cost to a long `-Actions` string.
+- **The same swallowing hits `key:`, and worse right after launch.** A single
+  `key:F9` in the first invocation after `lwjgl3:run` was dropped twice during
+  this skill's own verification — the window exists well before the game loop is
+  reading input. Send it twice (`key:F9,wait:600,key:F9`); the toggles that
+  matter are guarded against re-entry, so a second press is a no-op rather than
+  an undo. **Always confirm the screen actually changed** before measuring
+  anything in the shot — a dropped key leaves you screenshotting the title screen
+  and measuring the wrong pixels.
+- **`Shot` uses the client size read at invocation start.** If an action resizes
+  the window mid-run (any `key:F11`), the following `shot:` captures a stale
+  rectangle. Take the screenshot in a *separate* `drive.ps1` call after a resize.
 - **`SetProcessDPIAware()` is mandatory** before any coordinate work, or Windows
   reports scaled sizes and every click lands off-target.
 - **`FindWindow` races window creation** during startup; the driver falls back to
   matching `MainWindowTitle` over the process list.
-- **Scene2D world Y points up, client Y points down**: `client_y = 720 - world_y`
-  when converting a coordinate read off the UI code.
-- **Cards resolve on _press_, buttons on _release_** (`Widgets.pressListener`).
-  The driver sends a full down+up, which satisfies both.
+- **World Y points up, client Y points down**: `client_y = 720 - world_y` when converting a
+  coordinate read off the UI code. `CardArt.toWorldY` is the conversion the screens use.
+- **Cards resolve on _press_, buttons on _release_** (`PressGesture`; the old
+  `Widgets.pressListener` went with Scene2D). The driver's `click:` sends a full down+up, which satisfies
+  both. A menu button also holds its sunk plate for 60ms before acting, so a
+  `shot:` taken within ~100ms of a `click:` catches the button still down rather
+  than the screen it navigates to — `wait:` at least 300ms after clicking a menu.
 - **A card with more than one legal move opens a chooser popup** centred on that
   card (e.g. "Barehanded" / "Use weapon" for a monster while armed). Scripted
   play needs a second click to pick one.
@@ -129,10 +183,33 @@ These all cost real time in this container.
   disabled in Relentless mode, and disabled mid-room in every mode.
 - **Action strings split on the first colon only**, because screenshot paths
   contain `C:\`.
+- **A screen that switches itself mid-frame must stop rendering.** `game.showX()`
+  disposes the screen that called it, batch and textures included. Returning
+  from a *helper* rather than from `render` lets the rest of the frame draw
+  through freed memory — an `EXCEPTION_ACCESS_VIOLATION` in native code that
+  kills the JVM instead of throwing. If the window vanishes mid-chain, check
+  `/tmp/scoundrel-run.log` for an `hs_err_pid*.log` before assuming the driver
+  lost it.
 - **Screenshots capture screen pixels, not the window's buffer.** Anything
   floating above the window lands in the PNG - a desktop notification toast
   occluded the bottom-right corner during this skill's own verification run. If
   a region looks wrong, re-take the shot before believing it.
+- **In borderless fullscreen, `CopyFromScreen` goes stale.** Four shots across
+  three `drive.ps1` calls came back **byte-identical** while the game was
+  demonstrably navigating between screens — it ended on a screen none of them
+  showed. It reads exactly like input being ignored, and it is not. Verify a
+  fullscreen change with **one** shot taken right after entering fullscreen, do
+  the navigating windowed, and `md5sum` the PNGs before believing a sequence of
+  them. Windowed capture is unaffected.
+- **Leaving fullscreen draws one frame at the wrong scale.** *Entering* is a
+  single clean resize to the display mode. *Leaving* is two, because
+  `setUndecorated(false)` puts the caption bar back while the window is still
+  full width — traced as `1920x1080 scale=1.5` on the way in, then
+  `1920x1050 scale=1.0` and `1280x720 scale=1.0` on the way out. That middle
+  line is one frame of a 1280x720 image with 320px bars, and it is easy to
+  screenshot by accident and read as the settled state. It is not: verify
+  fullscreen scaling on a shot taken *while still fullscreen*, and confirm it
+  against a `bars=0,0` reading rather than against a PNG.
 
 ## Troubleshooting
 

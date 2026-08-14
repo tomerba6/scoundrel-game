@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -67,5 +68,37 @@ class TutorialGuideTest {
         g.next();
         assertTrue(g.isComplete());
         assertThrows(IllegalStateException.class, g::current);
+    }
+
+    /**
+     * The callout says STEP n OF m and draws a dot per beat, so the guide has to
+     * be able to count. One-based, because it is read by a player and not an
+     * index — "step 0 of 3" is a bug report waiting to happen.
+     */
+    @Test
+    void theStepNumberIsOneBasedAndTheCountIsEveryBeat() {
+        TutorialGuide g = guide();
+        assertEquals(3, g.stepCount());
+        assertEquals(1, g.stepNumber());
+        g.next();
+        assertEquals(2, g.stepNumber());
+        g.onMoveApplied(FIGHT);
+        assertEquals(3, g.stepNumber());
+        assertEquals(3, g.stepCount(), "the count never moves");
+    }
+
+    /**
+     * A finished tutorial must still answer, because the completion panel is
+     * drawn from the same guide the callout was.
+     */
+    @Test
+    void aFinishedGuideStillReportsItsLastStepRatherThanRunningOff() {
+        TutorialGuide g = guide();
+        g.next();
+        g.onMoveApplied(FIGHT);
+        g.next();
+        assertTrue(g.isComplete());
+        assertEquals(3, g.stepNumber(), "clamped to the last beat, not 4");
+        assertEquals(3, g.stepCount());
     }
 }

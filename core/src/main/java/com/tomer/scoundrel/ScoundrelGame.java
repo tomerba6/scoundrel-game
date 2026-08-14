@@ -15,6 +15,8 @@ import com.tomer.scoundrel.tutorial.TutorialScript;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.ModeSelectScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
+import com.tomer.scoundrel.screens.SpriteLab;
+import com.tomer.scoundrel.screens.Sprites;
 import com.tomer.scoundrel.screens.Theme;
 import com.tomer.scoundrel.screens.TitleScreen;
 import com.tomer.scoundrel.screens.TrophiesScreen;
@@ -32,20 +34,24 @@ public class ScoundrelGame extends Game {
     private static final int WINDOWED_HEIGHT = 720;
 
     private Theme theme;
+    private Sprites sprites;
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
-    private boolean fullscreen = true; // launched borderless-fullscreen by the launcher
+    // The launcher starts windowed at the design resolution while the art
+    // conversion is in progress; flip both back together when it lands.
+    private boolean fullscreen = false;
 
     @Override
     public void create() {
         theme = new Theme();
+        sprites = new Sprites();
         Path home = Path.of(System.getProperty("user.home"), ".scoundrel");
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
         tutorialFlag = new TutorialFlag(home.resolve("tutorial.seen"));
         // First ever launch offers the tutorial; afterward it lives under "How to play".
-        switchTo(new TitleScreen(this, theme, !tutorialFlag.isSeen()));
+        switchTo(new TitleScreen(this, theme, sprites, runLog, !tutorialFlag.isSeen()));
     }
 
     @Override
@@ -58,6 +64,11 @@ public class ScoundrelGame extends Game {
                     || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT));
         if (Gdx.input.isKeyJustPressed(Input.Keys.F11) || altEnter) {
             toggleFullscreen();
+        }
+        // F9 opens the developer sprite inspector. Polled here for the same
+        // reason as F11, and guarded so it can't stack on top of itself.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F9) && !(getScreen() instanceof SpriteLab)) {
+            switchTo(new SpriteLab(this, theme, sprites));
         }
         super.render(); // draws the current screen
     }
@@ -75,7 +86,7 @@ public class ScoundrelGame extends Game {
     }
 
     public void showTitle() {
-        switchTo(new TitleScreen(this, theme));
+        switchTo(new TitleScreen(this, theme, sprites, runLog));
     }
 
     /** Records that the first-run tutorial prompt has been answered (played or skipped). */
@@ -89,7 +100,7 @@ public class ScoundrelGame extends Game {
     }
 
     public void showGame(GameMode mode) {
-        switchTo(new GameScreen(this, theme, runLog, achievements, mode));
+        switchTo(new GameScreen(this, theme, sprites, runLog, achievements, mode));
     }
 
     /**
@@ -99,7 +110,8 @@ public class ScoundrelGame extends Game {
      */
     public void showTutorial() {
         tutorialFlag.markSeen();
-        switchTo(new GameScreen(this, theme, GameModes.STANDARD, new TutorialGuide(TutorialScript.steps())));
+        switchTo(new GameScreen(this, theme, sprites, GameModes.STANDARD,
+                new TutorialGuide(TutorialScript.steps())));
     }
 
     public void showRecords() {
@@ -136,6 +148,7 @@ public class ScoundrelGame extends Game {
         if (getScreen() != null) {
             getScreen().dispose();
         }
+        sprites.dispose();
         theme.dispose();
     }
 }

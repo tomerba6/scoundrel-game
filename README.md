@@ -6,8 +6,8 @@
 [![Java 21](https://img.shields.io/badge/Java-21-e76f00.svg)](https://openjdk.org/projects/jdk/21/)
 [![libGDX](https://img.shields.io/badge/libGDX-1.14-c0392b.svg)](https://libgdx.com/)
 
-A desktop implementation of **Scoundrel**, a single-player roguelike card game — built in Java
-with libGDX, on a rules engine that is pure, headless and tested to 98.6%.
+A desktop implementation of **Scoundrel**, a single-player roguelike card game — hand-drawn
+pixel art over a rules engine that is pure, headless and driven entirely by tests.
 
 Scoundrel is a solitaire dungeon crawl played with a trimmed deck of 44 cards. You descend
 through a dungeon of face-up cards, fighting monsters, swapping weapons and drinking potions,
@@ -16,6 +16,25 @@ risk with the hand the shuffle deals you.
 
 ![The board](docs/images/board.png)
 
+## What's new in 2.0
+
+Release 1 played the whole game in flat coloured tiles. Release 2 is the same engine wearing
+drawn art, and it took every screen with it.
+
+- **31 hand-drawn objects** — 13 creatures, 9 weapons, 9 potions — drawn as **44 base sprites**
+  at 64×64, since every creature exists in both corrupted suits, plus **130 idle frames**. All
+  packed into an atlas at build time. Every pixel sits on a locked 80-colour ramp system; the
+  struck and outlined frames are generated in Java at load rather than shipped.
+- **Every screen redrawn** on the same pixel kit — title, mode select, ledger, trophies, the
+  run-end panel and the tutorial overlay. **Scene2D is gone from the project entirely**, and
+  with it both vector typefaces: Silkscreen is now the only face in the game.
+- **A fixed 1280×720 design space**, rendered once to an offscreen surface and scaled to the
+  window in one step, on a viewport that snaps to half-scales so pixel art never lands on a
+  fractional grid.
+- **Motion on a frame grid.** Nothing tweens: effects hold at 12 fps and idles at 6, floored in
+  one place. The death cinematic is the slowest thing in the game on purpose — every other
+  effect was cut to pay for it.
+
 ## Features
 
 - **The complete ruleset** — room dealing, avoiding, armed and bare-handed combat, weapon
@@ -23,12 +42,15 @@ risk with the hand the shuffle deals you.
   cap-plus-final-potion edge case.
 - **Three difficulty modes** — Standard, Relentless and Frail, built as alternate rulesets rather
   than branches in the engine.
-- **Guided tutorial** — a scripted first run that teaches every rule, offered once on first
+- **Guided tutorial** — a scripted 22-step run that teaches every rule, offered once on first
   launch and replayable afterwards.
 - **Persistent progression** — high scores and lifetime statistics across every finished run,
-  ranked per difficulty, with ten achievements derived from the engine's event stream.
-- **Animated presentation** — cards deal in and sweep away, per-card resolve effects, HP pulses,
-  a death cinematic, and a procedural torchlit backdrop with live flicker and drifting embers.
+  with ten achievements derived from the engine's event stream. The ledger ranks all modes in
+  one table and tags each row with the mode it was run in; "new best" is judged per mode, so a
+  first Frail run earns it without competing against Standard scores.
+- **Drawn presentation** — sprites that breathe on a shared clock, cards that deal in and sweep
+  away, per-card resolve effects, a death cinematic, and a procedural torchlit backdrop with
+  live flicker and drifting embers.
 - **Ships as a real application** — self-contained Windows and macOS builds that need no Java
   installed, borderless fullscreen with an F11 toggle, and crash reports written to disk.
 
@@ -79,20 +101,26 @@ Three difficulty modes ship: **Standard**, **Relentless** (avoiding is forbidden
 
 <table>
   <tr>
+    <td width="50%"><img src="docs/images/tutorial.png" alt="The guided tutorial"></td>
     <td width="50%"><img src="docs/images/modes.png" alt="Mode select"></td>
-    <td width="50%"><img src="docs/images/records.png" alt="The Ledger"></td>
   </tr>
   <tr>
+    <td align="center"><em>A scripted run that teaches every rule, corner ticks on the card it means</em></td>
     <td align="center"><em>Three rulesets, no engine changes</em></td>
-    <td align="center"><em>Persisted high scores and lifetime totals</em></td>
   </tr>
   <tr>
+    <td width="50%"><img src="docs/images/records.png" alt="The Ledger"></td>
     <td width="50%"><img src="docs/images/trophies.png" alt="Trophies"></td>
-    <td width="50%"><img src="docs/images/title.png" alt="Title screen"></td>
   </tr>
   <tr>
+    <td align="center"><em>Persisted high scores and lifetime totals, ranked per mode</em></td>
     <td align="center"><em>Achievements derived from the engine's event stream</em></td>
-    <td align="center"><em>Procedural torchlit backdrop</em></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/images/title.png" alt="Title screen"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><em>The Debt, idling at ×3 — the only sprite on any menu</em></td>
   </tr>
 </table>
 
@@ -102,12 +130,12 @@ Three difficulty modes ship: **Standard**, **Relentless** (avoiding is forbidden
 |---|---|
 | **Language** | Java 21 (records, sealed types, pattern matching for `switch`) |
 | **Framework** | [libGDX](https://libgdx.com/) 1.14 with the LWJGL3 desktop backend |
-| **UI** | Scene2D, with a backdrop built from `Pixmap`-generated textures at load — no image assets |
+| **UI** | Immediate-mode pixel art over a `Pixmap`-generated backdrop; hand-drawn sprites packed into an atlas at build time. No Scene2D, no layout engine — the art is specified as pixels at fixed positions |
 | **Build** | Gradle 9 multi-module, wrapper committed |
 | **Testing** | JUnit 5, JaCoCo coverage gate |
 | **CI/CD** | GitHub Actions — checks on every PR, tag-triggered release builds |
 | **Packaging** | [construo](https://github.com/fourlastor-alexandria/construo) — self-contained archives with a trimmed JDK per platform |
-| **Fonts** | IM Fell English and Alegreya Sans, rasterised at runtime via FreeType |
+| **Fonts** | Silkscreen, rasterised at runtime via FreeType — 1-bit, unhinted, nearest-filtered, at whole pixel sizes |
 
 No third-party dependency does any game logic; the rules are entirely first-party code.
 
@@ -128,7 +156,7 @@ context and no render loop. Everything else follows from that.
 core/
   model/         cards, deck, game state — plain records, no behaviour beyond invariants
   rules/         moves, resolution, scoring — pure functions over state
-  screens/       Scene2D views (libGDX-bound) — draw state, translate input into moves
+  screens/       immediate-mode views (libGDX-bound) — draw state, translate input into moves
   runs/          run recording, high scores, lifetime stats  ─┐ pure, and observe the
   achievements/  achievement definitions and evaluation       ├─ engine from outside;
   tutorial/      the scripted first run and its gating        ─┘ model/rules never
@@ -139,7 +167,7 @@ lwjgl3/          desktop launcher, ~300 lines, no game logic
 Four decisions carry most of the weight:
 
 **Moves are functions of state.** `engine.apply(state, move)` returns a new state *and the events
-that occurred* — monster slain, potion wasted, weapon broken, room avoided, game won. Nothing
+that occurred* — monster defeated, potion wasted, weapon degraded, room avoided, game won. Nothing
 mutates in place, so any position is reproducible and testable in isolation.
 
 **Features observe the event stream from outside.** Achievements, statistics and high scores are
@@ -156,32 +184,56 @@ Resolving dispatches to that effect rather than switching on suit, so a new card
 definition, not a new `case` in the engine.
 
 The UI layer only draws state and turns input into moves. Where a screen grew logic that could be
-tested — text formatting, hit regions, easing curves, resolve-effect selection — it was extracted
-into a small pure class (`Motion`, `CardHitRegions`, `ClockText`, `FeedText`, `Labels`,
-`ResolveEffect`, `TorchFlicker`, `Embers`) with a characterization test written *before* the move,
-leaving the screens as thin views.
+tested — text formatting, hit regions, frame timelines, which clock a card is on — it was extracted
+into a small pure class (`RoomMotion`, `CardHitRegions`, `ClockText`, `FeedText`, `Labels`,
+`ResolveEffect`, `TorchFlicker`, `Embers`, `Frames`, `ButtonRow`) with a characterization test
+written *before* the move, leaving the screens as thin views. Where a helper needs a font, the
+measuring is passed in as a function so the arithmetic stays headless.
+
+The five navigable screens share one `PixelScreen` base whose `render` is **final**. That is not
+tidiness: activating a menu target navigates, navigating disposes the screen, and drawing one more
+frame afterwards reads freed native memory and kills the JVM rather than throwing. The guard sits
+above a `drawContent` a subclass cannot reach until the check has passed, so the mistake stopped
+being expressible.
 
 Full design notes, including the locked edge-case decisions and Mermaid diagrams, are in
 [`docs/design.md`](docs/design.md); the UI layer is documented in [`docs/ui.md`](docs/ui.md).
 
 ## Testing
 
-260 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
+599 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
 JaCoCo gate of **90% line / 75% branch on every pure package** — the build fails below it.
+
+> Every figure in this section is a measurement, not a claim, and the branch moves fast enough that
+> they go stale. Re-derive rather than repeat: the count is
+> `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`, and the ratios come from
+> `core/build/reports/jacoco/test/jacocoTestReport.xml`, which `./gradlew core:test` refreshes.
 
 | Package | Line | Branch |
 |---|---|---|
 | `model` | 100.0% | 100.0% |
-| `rules` | 99.0% | 93.1% |
+| `rules` | 99.1% | 93.1% |
 | `runs` | 98.7% | 96.3% |
 | `achievements` | 98.3% | 97.5% |
 | `tutorial` | 97.5% | 86.4% |
 
-`screens` is deliberately **excluded** from the gate and sits near 8%. It is GL-bound — it needs a
-window, a GPU and real pixels — so it is verified by driving the actual game and screenshotting it
-instead. Gating it would enforce a meaningless number and reward writing tests that assert nothing.
-The badge above therefore reports coverage of the *gated* packages, not the whole repository, which
-is the figure the build actually holds itself to.
+`screens` is deliberately **excluded** from the gate. It is GL-bound — it needs a window, a GPU and
+real pixels — so it is verified by driving the actual game and screenshotting it instead. Gating it
+would enforce a meaningless number and reward writing tests that assert nothing. The badge above
+therefore reports coverage of the *gated* packages, not the whole repository, which is the figure
+the build actually holds itself to.
+
+That said, the number is not meaningless as a *progress* signal, because the pure helpers extracted
+out of the GL classes stay in the same package. `screens` splits cleanly in two:
+
+| Inside `screens` | Classes | Lines | Line coverage |
+|---|---|---|---|
+| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `UiPalette`, …) | 43 | 819 | 96.7% |
+| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, the screens themselves) | 19 | 2,229 | 0.3% |
+
+The package reads 26.2% overall, and that number rises by *extraction* rather than by new tests
+against rendering — 43 of its 62 classes now have no libGDX import at all. The ratio is the useful
+reading: it says how much of the UI layer has stopped being untestable.
 
 The engine's determinism is used deliberately: the tutorial's scripted run, for instance, is proven
 by playing every one of its moves through the real engine in a test and asserting the narration's
@@ -191,7 +243,7 @@ the rules.
 ## Development
 
 ```sh
-./gradlew core:test        # 260 tests, headless, ~1s of execution
+./gradlew core:test        # 599 tests, headless, ~1s of execution
 ./gradlew core:check       # tests + the JaCoCo gate; HTML report at
                            #   core/build/reports/jacoco/test/html/
 ./gradlew lwjgl3:run       # play the current working tree
@@ -207,7 +259,7 @@ construction, so there is never a reason not to.
 **UI is verified by screenshot, not by test.** Rendering cannot be asserted meaningfully in JUnit,
 so changes to `screens` are checked by launching the real game, driving it with synthesised input
 and reading the pixels back. When a screen accumulates logic that *could* be tested — a formatter,
-a hit region, an easing curve — that logic gets extracted into a pure class with a characterization
+a hit region, a frame timeline — that logic gets extracted into a pure class with a characterization
 test written before the move, rather than left where it cannot be reached.
 
 Design notes live in [`docs/design.md`](docs/design.md) and [`docs/ui.md`](docs/ui.md), and are
@@ -215,14 +267,25 @@ kept in sync with the code rather than written once.
 
 ## Roadmap
 
+Shipped in **1.0** — the game, complete and playable:
+
 - [x] Pure model and rules engine — dealing, avoiding, combat, degradation, scoring
-- [x] Scene2D UI, card motion, per-card resolve effects, death cinematic
+- [x] Card motion, per-card resolve effects, death cinematic
 - [x] Procedural torchlit atmosphere — glow, flicker, drifting embers
 - [x] Persisted high scores, lifetime statistics, achievements
 - [x] Three difficulty modes as alternate rulesets
 - [x] Guided tutorial that teaches every rule, including scoring
 - [x] CI, coverage gate, self-contained desktop builds
-- [ ] Pixel-art creature sprites, weapons and potions *(in progress)*
+
+Shipped in **2.0** — the art, and everything it dragged with it:
+
+- [x] Pixel-art creatures, weapons and potions, with idle animation
+- [x] Every screen redrawn on the pixel kit; Scene2D and both vector faces removed
+- [x] A fixed design space rendered through an offscreen surface, on a snapping viewport
+- [x] One shared screen frame, and a palette rule the build enforces
+
+Not planned, and deliberately so: mid-game save/resume, a replay format, online scores. A run is
+a single sitting, which is the shape of the game.
 
 ## Author
 

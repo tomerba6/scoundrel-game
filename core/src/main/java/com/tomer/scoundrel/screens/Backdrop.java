@@ -1,16 +1,17 @@
 package com.tomer.scoundrel.screens;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.Touchable;
 
 /**
  * The dungeon's ambient light, drawn behind every screen: a warm torch glow
  * over a darkening vignette, both procedural textures from the {@link Theme}.
- * Added first to a stage so it sits under the UI; purely decorative and never a
- * hit target.
+ * Purely decorative and never a hit target.
+ *
+ * <p>It used to be a Scene2D {@code Actor} so a stage could hold it. Nothing in
+ * the game has a stage any more, so it is a plain object the screens advance and
+ * draw themselves.
  */
-final class Backdrop extends Actor {
+final class Backdrop {
 
     // The glow, centred a little above the world middle like an overhead torch.
     private static final float GLOW_SIZE = 1180f;
@@ -23,23 +24,22 @@ final class Backdrop extends Actor {
 
     Backdrop(Theme theme) {
         this.theme = theme;
-        setBounds(0, 0, Theme.WORLD_WIDTH, Theme.WORLD_HEIGHT);
-        setTouchable(Touchable.disabled);
     }
 
-    @Override
-    public void act(float delta) {
+    void advance(float delta) {
         elapsed += delta;
         embers.update(delta);
-        super.act(delta);
     }
 
-    @Override
-    public void draw(Batch batch, float parentAlpha) {
-        // The actor's own alpha dims the living fire — the glow and embers — so a
-        // death can snuff the torch (fade it to near zero) while the dark vignette
-        // stays. Normally it is 1, so nothing changes.
-        float light = getColor().a;
+    /**
+     * Draws straight onto a batch — the screens are drawn in immediate mode and
+     * need their backdrop under them, not over them.
+     *
+     * @param light how alive the fire is; 1 normally, near zero once it is snuffed
+     *              by a death, which dims the glow and the embers but not the
+     *              vignette, so the dark stays while the fire goes out
+     */
+    void render(Batch batch, float light) {
         float gx = (Theme.WORLD_WIDTH - GLOW_SIZE) / 2f;
         float gy = (Theme.WORLD_HEIGHT - GLOW_SIZE) / 2f + GLOW_Y_OFFSET;
         float glowAlpha = GLOW_ALPHA * TorchFlicker.intensityAt(elapsed) * light;
