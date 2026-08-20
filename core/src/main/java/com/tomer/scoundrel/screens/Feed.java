@@ -7,7 +7,7 @@ import java.util.List;
  * The event feed down the right margin: a few lines that hold, fade and go.
  *
  * <p>Pure state with no widgets, so it can be tested headlessly and so the fade
- * is something decided rather than something Scene2D happens to do. The fade
+ * is something decided rather than something a toolkit happens to do. The fade
  * runs in whole steps: a continuous one puts the text on a slightly different
  * colour every frame, which at this resolution reads as the letters crawling.
  */

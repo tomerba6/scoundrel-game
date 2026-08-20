@@ -15,7 +15,7 @@ import java.util.OptionalInt;
 
 /**
  * The launch screen and navigation anchor. Drawn in immediate mode from the
- * menu kit ({@link Chrome}, {@link ScreenArt}) rather than laid out by Scene2D,
+ * menu kit ({@link Chrome}, {@link ScreenArt}) rather than by a layout engine,
  * for the same reason the board is: the art is specified as pixels at fixed
  * positions, and a layout engine's job is to compute positions.
  *

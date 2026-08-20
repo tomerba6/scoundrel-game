@@ -295,10 +295,12 @@ public final class Theme implements Disposable {
      * with no supersampling, nearest-filtered, unhinted, un-gamma'd and with
      * anti-aliasing off entirely.
      *
-     * <p>Every one of those is the opposite of what {@link #generate} does, and
-     * for good reason — the vector faces are drawn 3× and scaled down so they
-     * stay smooth when the viewport upscales. Doing that to Silkscreen would
-     * take a face that is already exactly right at 1:1 and blur it.
+     * <p>Every one of those is the opposite of what release 1 did to the vector
+     * faces, and for good reason: those were rasterised at 3× and scaled back
+     * down so they stayed smooth when the viewport upscaled them. Doing that to
+     * Silkscreen would take a face that is already exactly right at 1:1 and blur
+     * it. Same problem, opposite answer, because the art changed kind — and the
+     * generator that did the 3× went with the faces themselves.
      */
     private static BitmapFont generatePixel(FreeTypeFontGenerator generator, int size) {
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();

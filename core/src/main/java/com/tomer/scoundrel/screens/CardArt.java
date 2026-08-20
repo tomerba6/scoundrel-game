@@ -11,8 +11,8 @@ import com.tomer.scoundrel.model.CardType;
  * nothing but draw calls.
  *
  * <p>Coordinates are 1280×720 with <b>y measured downward</b> from the top of
- * the stage, which is how the art is specified. Scene2D measures y upward, so
- * {@link #toWorldY} converts, in one place.
+ * the screen, which is how the art is specified. The viewport measures y
+ * upward, so {@link #toWorldY} converts, in one place.
  */
 final class CardArt {
 
@@ -93,8 +93,8 @@ final class CardArt {
     }
 
     /**
-     * Design-space y (down from the top) to Scene2D world y (up from the
-     * bottom), for an element {@code height} tall.
+     * Design-space y (down from the top) to world y (up from the bottom), for
+     * an element {@code height} tall.
      */
     static int toWorldY(int designY, int height) {
         return (int) Theme.WORLD_HEIGHT - designY - height;

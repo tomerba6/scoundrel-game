@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * stays self-consistent, so an integration regression between the engine and its
  * observers surfaces here rather than only in a hand-run of the game.
  *
- * <p>The Scene2D layer above this (the actual drawing, animations, and input
+ * <p>The drawing layer above this (the actual rendering, animations, and input
  * routing in {@code GameScreen}) is GL-bound and is verified by screenshot
  * instead; this covers the non-visual pipeline it sits on.
  */

@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Pure geometry for "which card is under this point". Used by skip-and-act:
  * the click that dismisses an animation must also resolve the card it landed
- * on. Free of Scene2D so it can be unit tested headlessly.
+ * on. Free of LibGDX so it can be unit tested headlessly.
  */
 final class CardHitRegions {
 

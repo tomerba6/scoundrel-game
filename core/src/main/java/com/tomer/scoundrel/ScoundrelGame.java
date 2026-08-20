@@ -38,9 +38,10 @@ public class ScoundrelGame extends Game {
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
-    // The launcher starts windowed at the design resolution while the art
-    // conversion is in progress; flip both back together when it lands.
-    private boolean fullscreen = false;
+    // The launcher starts the game borderless-fullscreen, so this starts true.
+    // The two have to agree: if they disagree the first F11 goes the wrong way
+    // and appears to do nothing.
+    private boolean fullscreen = true;
 
     @Override
     public void create() {
@@ -57,8 +58,8 @@ public class ScoundrelGame extends Game {
     @Override
     public void render() {
         // F11 or Alt+Enter toggles between borderless-fullscreen and windowed. Polled
-        // here (not via an input processor) so it works on every screen regardless of
-        // which one owns Scene2D input; the resize is handled by each screen's viewport.
+        // here rather than in a screen so it works on every screen without each one
+        // having to route it; the resize is handled by each screen's viewport.
         boolean altEnter = Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
                 && (Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT)
                     || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT));

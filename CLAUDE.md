@@ -5,12 +5,16 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 ## Tech stack
 - Java (language level 21), Gradle multi-module project.
 - LibGDX with the **LWJGL3** desktop backend only. No Android/iOS/web modules.
-- UI built with Scene2D (`scene2d.ui`).
+- UI drawn in **immediate mode** — no Scene2D, no widget toolkit, no layout engine.
 
 ## Commands
 - Run the game: `./gradlew lwjgl3:run` (Windows: `gradlew.bat lwjgl3:run`).
 - Run tests: `./gradlew core:test`. Tests use JUnit 5 and live in `core/src/test/java`.
   One class: `./gradlew core:test --tests '*FramesTest'`.
+  **Exit 0 does not mean they ran** — Gradle skips the task as UP-TO-DATE on an
+  unchanged tree, which is also what makes IntelliJ say "Test events were not
+  received". Force it with `core:cleanTest`, and confirm by the result-XML
+  timestamps rather than the exit code.
 - Tests + coverage gate: `./gradlew core:check`. JaCoCo enforces a minimum
   coverage on each **pure** package (`model`/`rules`/`runs`/`achievements`/
   `tutorial`); the GL-bound `screens` layer is excluded (screenshot-verified,
@@ -29,7 +33,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 - Player actions are modeled as functions that take the current game state and return a new
   state (or mutate a well-encapsulated state object). They must be unit-testable without a
   window, a render loop, or any graphics.
-- The UI layer (Scene2D screens) only does two things: draw the current state, and translate
+- The UI layer (the screens) only does two things: draw the current state, and translate
   user input into calls on the rules engine. It never contains rule logic.
 - Suggested package split inside `core`:
     - `...scoundrel.model` — cards, deck, game state (pure).
@@ -64,7 +68,8 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
     - `...scoundrel.tutorial` — the guided first-run: a scripted deck + narrated
       steps and the gating state machine, plus the tutorial-seen flag (pure Java;
       drives the engine through its public ordered-deck entry — `model`/`rules`
-      never import it). The Scene2D tutorial *mode* lives in `screens.GameScreen`.
+      never import it). The tutorial *mode* — the overlay and its input gating —
+      lives in `screens.GameScreen`.
 - **Detailed design reference:** the full rules-engine design — the `model`/`rules`
   types, the turn loop, extension seams, and the locked edge-case decisions — is
   documented in [`docs/design.md`](docs/design.md) (prose + Mermaid diagrams).
@@ -171,7 +176,9 @@ browser — ask the user to compare against it; you can't render it yourself.
   it **before** stating it — the check is seconds and being wrong costs
   the user their trust in everything else you said.
     - test count → `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`
-    - coverage → `./gradlew core:test` (it refreshes the report), then parse
+    - coverage → `./gradlew core:cleanTest core:test` (a plain `core:test` is
+      skipped as UP-TO-DATE on an unchanged tree and leaves the *previous*
+      report in place), then parse
       `core/build/reports/jacoco/test/jacocoTestReport.xml` per package. Read the
       `screens` package as two halves — the extracted pure helpers *stay in that
       package*, so its number climbs as the GL classes are hollowed out, and the

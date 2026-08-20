@@ -11,9 +11,10 @@
     drive.ps1 -Actions "click:640:346,wait:1000,shot:C:\out\picker.png"
     drive.ps1 -Kill
 
-  Coordinates are CLIENT pixels, origin TOP-LEFT. The window is configured
-  1280x720 and the game's FitViewport world is also 1280x720, so they map 1:1 --
-  but Scene2D's world Y points UP while client Y points DOWN:
+  Coordinates are CLIENT pixels, origin TOP-LEFT. The game launches
+  borderless-fullscreen, so press F11 first to get the 1280x720 window these
+  coordinates assume. At that size the PixelViewport world is also 1280x720, so
+  they map 1:1 -- but world Y points UP while client Y points DOWN:
       client_y = 720 - world_y
 #>
 param(

@@ -6,9 +6,16 @@ description: Build, launch, and drive the Scoundrel libGDX desktop game on Windo
 # Running Scoundrel
 
 Scoundrel is a Java 21 / libGDX (LWJGL3) **desktop** game. `gradlew lwjgl3:run`
-opens a native 1280x720 OS window titled `Scoundrel`. There is no DOM and no
-built-in remote control, so the only way to verify UI work is to **screenshot
-pixels and synthesise mouse clicks** through Win32.
+opens a **borderless-fullscreen** window titled `Scoundrel` at the monitor's
+native resolution. There is no DOM and no built-in remote control, so the only
+way to verify UI work is to **screenshot pixels and synthesise mouse clicks**
+through Win32.
+
+> **Go windowed before you drive anything.** Every coordinate in this file is a
+> client pixel in a **1280x720** window, and fullscreen capture goes stale in
+> ways that are easy to miss (see Gotchas). Send `key:F11` in its **own**
+> `drive.ps1` call, then click and shoot in the calls after it — a resize
+> mid-chain leaves the following `shot:` capturing a stale rectangle.
 
 That harness is committed here:
 
@@ -32,8 +39,34 @@ screenshots the actual screen, so the window must be visible and not minimised.
 ./gradlew lwjgl3:compileJava # launcher compiles
 ```
 
-`core:test` prints almost nothing on success - trust the exit code. To confirm a
-specific class ran, read its JUnit XML:
+`core:test` prints almost nothing on success — and **exit 0 does not mean the
+tests ran.** Gradle caches results against their inputs, so an unchanged tree
+gives `:core:test UP-TO-DATE`: task skipped, no test events, exit 0. (That is
+also what makes IntelliJ report *"Test events were not received"* — nothing is
+broken, the task was skipped.) A test that passes because it never executed is
+the failure mode this project has actually hit, so:
+
+```bash
+./gradlew core:cleanTest core:check   # force re-execution, then gate
+```
+
+Then **prove they ran** rather than trusting the exit code — the result XMLs are
+rewritten only by a real run, so check their totals and their freshness:
+
+```bash
+# totals across the suite, and how long ago they were written
+python -c "
+import glob,os,time,xml.etree.ElementTree as ET
+t=f=s=0; newest=0
+for p in glob.glob('core/build/test-results/test/TEST-*.xml'):
+    r=ET.parse(p).getroot()
+    t+=int(r.get('tests')); f+=int(r.get('failures'))+int(r.get('errors')); s+=int(r.get('skipped'))
+    newest=max(newest,os.path.getmtime(p))
+print('tests',t,'failures',f,'skipped',s,'| written %.0fs ago'%(time.time()-newest))"
+```
+
+Stale timestamps mean you are reading the previous run. To confirm one specific
+class ran, read its own XML:
 
 ```bash
 grep -oE 'tests="[0-9]+" skipped="[0-9]+" failures="[0-9]+" errors="[0-9]+"' \
@@ -50,19 +83,32 @@ grep -oE 'tests="[0-9]+" skipped="[0-9]+" failures="[0-9]+" errors="[0-9]+"' \
 nohup ./gradlew lwjgl3:run > /tmp/scoundrel-run.log 2>&1 &
 ```
 
-### 2. Wait for the window, then screenshot
+### 2. Wait for the window and go windowed
 
 Cold start is **60-120s** (Gradle + JVM + GL init). `-WaitSeconds` polls for the
-window, so this single call covers the wait:
+window, so this single call covers the wait — and the game comes up
+borderless-fullscreen, so take it to 1280x720 in the same call:
 
 ```powershell
 & powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 `
-  -WaitSeconds 240 -Actions "shot:C:\temp\scoundrel\title.png"
+  -WaitSeconds 240 -Actions "key:F11,wait:600"
 ```
 
-Then **look at the PNG** with the Read tool. A blank frame means it never came up.
+### 3. Screenshot, in a separate call
 
-### 3. Click and screenshot
+The resize has to land before anything is captured — `shot:` uses the client size
+read at *invocation start*, so a shot chained after `key:F11` captures a stale
+rectangle:
+
+```powershell
+& powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 `
+  -Actions "shot:C:\temp\scoundrel\title.png"
+```
+
+Then **look at the PNG** with the Read tool. A blank frame means it never came up;
+a 1920x1080-ish frame means the F11 did not land and every coordinate below is off.
+
+### 4. Click and screenshot
 
 Actions are comma-separated and run in order: `click:<x>:<y>`, `move:<x>:<y>`,
 `down:<x>:<y>`, `up` / `up:<x>:<y>`, `key:<name>`, `wait:<ms>`, `shot:<path>`,
@@ -77,7 +123,8 @@ wherever the pointer already is. Always pair them in one chain: a `down:` with
 no `up:` leaves the OS mouse button stuck down for whatever runs next.
 
 `key:` takes `ESC`, `ENTER`, `SPACE`, `TAB`, any single letter or digit, or
-`F1`-`F12` — the bindings the game polls per frame rather than through Scene2D:
+`F1`-`F12` — the bindings the game polls per frame rather than through an
+input processor:
 **F11** toggles fullscreen, **F9** opens the developer sprite inspector
 (`SpriteLab`), **Esc** leaves it.
 
@@ -93,7 +140,7 @@ eight times the timing you are checking.
   -Actions "click:640:346,wait:1200,shot:C:\temp\scoundrel\picker.png"
 ```
 
-### 4. Stop
+### 5. Stop
 
 ```powershell
 & powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 -Kill
@@ -101,7 +148,8 @@ eight times the timing you are checking.
 
 ## Verified coordinates
 
-Client pixels, origin **top-left**, window 1280x720.
+Client pixels, origin **top-left**, window 1280x720 — so these hold only after
+`key:F11` has taken the game out of its default borderless-fullscreen.
 
 | Screen | Target | x, y |
 |---|---|---|

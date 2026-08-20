@@ -101,12 +101,12 @@ class CardArtTest {
     }
 
     /**
-     * The art is specified with y downward from the top of the stage; Scene2D
-     * measures upward from the bottom. Getting this backwards silently flips the
-     * whole board, so it is converted in exactly one place.
+     * The art is specified with y downward from the top of the screen; the
+     * viewport measures upward from the bottom. Getting this backwards silently
+     * flips the whole board, so it is converted in exactly one place.
      */
     @Test
-    void designSpaceConvertsToSceneTwoDCoordinates() {
+    void designSpaceConvertsToWorldCoordinates() {
         assertEquals(720 - 0 - 256, CardArt.toWorldY(0, 256));
         assertEquals(720 - CardArt.SLOT_Y - CardArt.CARD_H,
                 CardArt.toWorldY(CardArt.SLOT_Y, CardArt.CARD_H));

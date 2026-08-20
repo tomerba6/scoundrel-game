@@ -45,12 +45,18 @@ public class Lwjgl3Launcher {
         //// useful for testing performance, but can also be very stressful to some hardware.
         //// You may also need to configure GPU drivers to fully disable Vsync; this can cause screen tearing.
 
-        // Launch windowed at the design resolution while the art conversion is in
-        // progress: everything is authored at 1280x720, so a 1:1 window is what
-        // screenshots have to be taken at, and starting fullscreen means toggling
-        // for every check. F11 / Alt+Enter still switches (see ScoundrelGame).
-        // Restore the borderless-fullscreen default below once the conversion lands.
-        configuration.setWindowedMode(1280, 720);
+        // Launch borderless-fullscreen at the monitor's native resolution; F11 /
+        // Alt+Enter toggles windowed (see ScoundrelGame, whose flag must agree with
+        // this). PixelViewport snaps the 1280x720 design down to a half-step scale
+        // and letterboxes the remainder, so every source pixel still lands on a
+        // whole number of screen pixels whatever the monitor is.
+        //
+        // Verification is the one thing this costs: the driver's coordinates are
+        // client pixels in a 1280x720 window, so drive the game to windowed with
+        // F11 first (see .claude/skills/run-scoundrel/SKILL.md).
+        Graphics.DisplayMode desktop = Lwjgl3ApplicationConfiguration.getDisplayMode();
+        configuration.setDecorated(false);
+        configuration.setWindowedMode(desktop.width, desktop.height);
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         //// They can also be loaded from the root of assets/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx48.png", "libgdx32.png", "libgdx16.png");
