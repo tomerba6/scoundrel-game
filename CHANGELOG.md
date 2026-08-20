@@ -5,6 +5,43 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-08-20
+
+A correction release. The game plays exactly as 2.0.0 did — no rule, screen or sprite is touched —
+and it now opens the way it has always said it opens.
+
+### Fixed
+- **The game launches borderless-fullscreen again**, as 1.0 did and as the README has said
+  throughout. The pixel conversion had switched the launcher to a 1:1 1280×720 window so that
+  screenshot checks would not have to begin with an F11, behind a comment saying to restore the
+  default once the conversion landed. The conversion landed in 2.0.0 and the development setting
+  shipped with it, which nobody reported, because a game that opens in a window looks like a game
+  that opens in a window. F11 and Alt+Enter still toggle. The launcher and the flag tracking the
+  current mode are corrected together: if those two disagree, the first F11 tries to enter a mode
+  the game is already in and reads as a dead key.
+
+### Changed
+- The comments and documentation still describing a toolkit the previous release deleted. The worst
+  of them was in the project's own instructions file, which said the UI was built with Scene2D a few
+  lines above the note explaining that none of it was left — a contradiction inside one file, which
+  is the kind that survives being read many times. References written in the **past** tense — what
+  something used to be, and why it changed — were deliberately kept, because they carry the
+  reasoning for how the code reached its current shape.
+- The standing advice to trust the exit code of `core:test`, which is wrong in a way that has cost
+  this project twice. Gradle skips the task as up-to-date on an unchanged tree, so a green run can
+  mean the tests never executed at all. The instructions now say so and carry the check that proves
+  otherwise.
+
+### Known limitations
+
+Carried forward from 2.0.0, all unchanged.
+
+- **Both builds are unsigned**, so the first launch shows a warning: on Windows choose
+  **More info → Run anyway**; on macOS right-click the app and choose **Open**.
+- **The macOS build has never been launched on a Mac.** It is cross-built on a Windows runner from
+  a downloaded macOS JDK, and the release pipeline proves only that it packages, not that it runs.
+- **There is no mid-game save or resume** — a run is a single sitting, by design.
+
 ## [2.0.0] - 2026-08-14
 
 The art release. The engine is unchanged — every rule, score and edge case behaves exactly as it
@@ -131,6 +168,7 @@ First complete release: the full base game, playable start to finish.
 - Cards are drawn as typed tiles with rank and suit. Illustrated sprites are in progress.
 - There is no mid-game save or resume — a run is a single sitting.
 
-[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/tomerba6/scoundrel-game/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/tomerba6/scoundrel-game/releases/tag/v1.0.0
