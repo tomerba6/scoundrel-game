@@ -24,6 +24,10 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 - `assets/assets.txt` is regenerated from the directory listing by `generateAssetList`
   (wired to `processResources`) — never hand-edit it, and note that anything left in
   `assets/` ships whether or not any code loads it.
+- Package: `./gradlew lwjgl3:packageWinX64 lwjgl3:packageMacM1` → `lwjgl3/build/construo/dist/*.zip`.
+- Release: bump `projectVersion` in `gradle.properties`, add the `CHANGELOG.md` entry, push to
+  `main`, and tag `vX.Y.Z` only once CI's `package` job is green on that commit — the tag runs
+  `release.yml`, which publishes. A fix on `main` reaches no downloader until it is released.
 
 ## Architecture — these are hard rules
 - **All game logic lives in the `core` module.** `lwjgl3` is a thin launcher only; do not
@@ -35,7 +39,7 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
   window, a render loop, or any graphics.
 - The UI layer (the screens) only does two things: draw the current state, and translate
   user input into calls on the rules engine. It never contains rule logic.
-- Suggested package split inside `core`:
+- Package split inside `core`:
     - `...scoundrel.model` — cards, deck, game state (pure).
     - `...scoundrel.rules` — actions and rule resolution (pure).
     - `...scoundrel.screens` — the screens (LibGDX-dependent). **All immediate-mode
@@ -48,18 +52,16 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
       hooks (`advance`, `backdropLight`, `modal`, `escape`, `keyPressed`), never
       the frame. `SpriteLab` stays outside it deliberately. Pure logic is
       kept **out** of the GL classes: leaf helpers are extracted into small,
-      headlessly-unit-tested classes (`RoomMotion`, `CardHitRegions`, `ClockText`,
-      `FeedText`, `Labels`, `ResolveEffect`, `TorchFlicker`, `Embers`,
-      `PressGesture`, `LedgerRow`, `LedgerTotals`, `TrophyEntry`, `TextWrap`,
-      `EndSummary`, `ButtonRow`, `CalloutPlacement`, `CornerTicks`, `Frames`,
-      `SpriteBob`), leaving the
-      screens as thin views verified by screenshot. `TextWrap` and `ButtonRow` are
+      headlessly-unit-tested classes, leaving the screens as thin views verified
+      by screenshot. `TextWrap` and `ButtonRow` are
       the pattern to copy when a helper needs a font: the measuring is passed in
       as a function, so the arithmetic stays testable. When touching a screen, prefer
       extracting any new pure formatter/decision/geometry the same way — write a
       characterization test first, then move the method verbatim.
     - `...scoundrel.CrashLog` — appends uncaught crashes to `~/.scoundrel/crash.log`
       (installed by the launcher); pure and tested, robust (never throws itself).
+    - `...scoundrel.Progress` — the full reset (runs, achievements, tutorial flag). Pure, and in
+      the root package because it spans `runs`, `achievements` and `tutorial`.
     - `...scoundrel.runs` — run recording + local high-score persistence (pure Java;
       observes the engine from outside — `model`/`rules` never import it).
     - `...scoundrel.achievements` — achievement definitions, evaluation, and the
@@ -89,8 +91,8 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 
 ## Sprite art — these are hard rules
 
-The art is **done**: 31 objects (13 creatures × 2 suits, 9 weapons, 9 potions) and 130 idle
-frames, all 64×64. [`HANDOFF.md`](HANDOFF.md) is the full contract — region names, palette,
+The art is **done**: 31 designs — 13 creatures in both suits (26 sprites), 9 weapons, 9 potions,
+so 44 sprites — and 130 idle frames, all 64×64. [`HANDOFF.md`](HANDOFF.md) is the full contract — region names, palette,
 geometry, effect timings, and a 12-step order of work with a verify line per step. Read it
 before touching anything visual.
 
@@ -108,7 +110,7 @@ before touching anything visual.
   PNGs under dot-separated names for the HTML mock; it is not the delivery set.
 - **Load sprites through the atlas, never as loose files.** The 174 source PNGs sit outside
   `assets/` deliberately, so the only thing on the asset path is the packed
-  `assets/sprites/sprites.atlas` (built by the root `packAtlas` task, gitignored). A stray
+  `assets/sprites/sprites.atlas` (built by `:core:packAtlas`, gitignored). A stray
   `Gdx.files.internal(...)` on a sprite PNG would otherwise succeed and return a
   `Linear`-filtered texture — blurry art, silently. This deviates from `HANDOFF.md` §2, which
   is noted there.
@@ -116,43 +118,13 @@ before touching anything visual.
   `_idle_1`…`_idle_5`. Lowercase `[a-z0-9_]`, index last, so
   `atlas.findRegions(stem + "_idle")` returns the five in order. Value is zero-padded
   (`02`–`10`, `11`=J, `12`=Q, `13`=K, `14`=A).
-- **`TextureFilter.Nearest`, integer scales only (1, 2, 3, 4), whole-pixel positions.** These are
-  hand-placed pixels; a fractional scale or a sub-pixel offset invents colours outside the
-  palette and makes the art shimmer. `Math.round` every computed position before drawing.
-- **`PixelViewport(1280, 720)`** on every screen. Every number in `HANDOFF.md` is in that space;
-  sprites draw at ×2 = 128px inside a 176×256 card. Do not re-derive the layout per window size.
-  It is a `FitViewport` that snaps the scale **down to a multiple of 0.5** and letterboxes the
-  rest — a plain fit gives ×1.25 at 1600×900, which puts 2.5 screen pixels on each source pixel
-  and makes the art crawl. Half-steps, not whole: 1920×1080 fits at exactly ×1.5, already clean
-  at ×2 sprites, and integer snapping would letterbox away a third of it. The maths is the pure,
-  unit-tested `PixelScale`; keep it there rather than in the GL class.
-- **Idles run at 6 fps, effects at 12 fps**, and nothing tweens or rotates — every segment holds
-  on a frame. A rotated pixel is a blurred pixel. Floor time through `Frames`
-  (`at`/`atPeriod`/`snap`), never a local `1f / 12f`: it carries the epsilon a frame boundary
-  needs, and multiplies by the rate so an hour-old clock has not drifted past it.
-- **The barehanded stars are four bars, never a rotation** (§10). The diagonal arms are staircases
-  of 8×8 blocks — exactly 45°, grid-aligned, no transform. A rotated rect is the worst thing you
-  can do to a pixel sprite.
-- **Every screen is in scope, not just the board** (§11) — title, new game, ledger, trophies,
-  tutorial and run end all move onto the same grammar. They are assembled from five parts
-  (frame, face, bevel, label, rule); learn those and the screens are assembly work.
-- **Screen transitions are cuts.** One frame, old screen gone, new screen up. No fades, no hover
-  glows, no panel shadows, no rounded corners anywhere.
-- **The torchlit backdrop stays smooth, and that is now decided** — a soft glow, a continuous
-  flicker and sub-pixel drifting embers behind flat-palette sprites. It is the one place that
-  breaks the whole-pixel and quantised-timing rules, deliberately: light is not an object. Don't
-  dither it, coarse-render it or round the embers to the grid.
-- **Hurt and rim frames are generated in Java at load** from each base sprite (§8), not shipped.
-  There are no death frames — the card dissolve covers it.
-- **Silkscreen replaces IM Fell English and Alegreya Sans entirely**, at pixel-aligned sizes with
-  no anti-aliasing. `Theme` loads the two Silkscreen TTFs and nothing else; the three vector
-  faces and the Scene2D skin were deleted with the last of Scene2D.
+- **The rendering rules live in
+  [`core/src/main/java/com/tomer/scoundrel/screens/CLAUDE.md`](core/src/main/java/com/tomer/scoundrel/screens/CLAUDE.md)**
+  — `Nearest` and integer scales, `PixelViewport`, the 6/12 fps `Frames` grid, cuts, the smooth
+  backdrop, Silkscreen, and the mock that is the visual target. It loads when a screen file is
+  opened; read it before drawing anything, wherever the code is.
 - The nine 16×16 rail icons the brief asked for are **dropped**; the rail shows the card sprite
   at ×1 and that is the finished answer, not a placeholder. Don't generate them.
-
-The mock (`art-reference/Scoundrel - Sprite Directions.dc.html`) is the visual target: the board
-at 1280×720, every effect in isolation, all 26 idle cycles, and all six screens. It opens in a
-browser — ask the user to compare against it; you can't render it yourself.
 
 ## Working preferences
 - For any non-trivial change, propose a plan first and wait for review before coding.
