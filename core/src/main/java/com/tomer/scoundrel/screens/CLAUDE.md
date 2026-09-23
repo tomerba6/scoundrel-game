@@ -1,8 +1,37 @@
-# Screens — rendering rules
+# Screens — the screen-specific rules
 
-These are the rendering half of the root `CLAUDE.md`'s *Sprite art — these are hard rules*,
-kept here so they load when a screen is opened rather than in every session. They are just as
-binding. Section numbers (§8, §10, §11) refer to the root `HANDOFF.md`.
+This is the screen-specific half of the root `CLAUDE.md` — its rendering rules, `PixelScreen`,
+the palette and the sprite regions — kept here so it loads when a screen is opened rather than
+in every session. It is just as binding. Section numbers (§2, §8, §10, §11) refer to the root
+`HANDOFF.md`.
+
+## PixelScreen
+
+The five navigable screens extend **`PixelScreen`**, which owns the batch, viewport, surface,
+backdrop, chrome and press gesture and whose `render` is **final** — it runs the
+post-navigation guard before calling the subclass's `drawContent`, because drawing after a
+screen has navigated (and disposed its own batch) kills the JVM rather than throwing. Override
+the hooks (`advance`, `backdropLight`, `modal`, `escape`, `keyPressed`), never the frame.
+`SpriteLab` stays outside it deliberately.
+
+Motion (deal-in, avoid sweep, per-card effects, HP pulses) and the atmosphere ship as
+`BoardView` over `CardFlight` / `HpPulse` and the rest — `Choreographer` and `Motion` went with
+the pixel conversion, so a `docs/ui.md` entry naming them describes what was replaced.
+
+## Palette and sprite regions
+
+- **The palette has two tiers, and both are tested.** `Ramps` is the 80 and governs sprite
+  pixels; `UiPalette` is the 32 colours drawn in code that are not on a ramp — the §11 chrome,
+  the bottle, the cleave faces, the HUD tints — all sampled from the reference render, not
+  invented. `UiPaletteTest` scans both declaration forms (`static final int … = 0x…` and
+  `Color.valueOf("…")`) and fails on a colour in neither. A new colour goes in `UiPalette` with
+  a comment saying what it draws.
+- **Region names are the contract:** `creature_<value>_<name>_<suit>`, frames add
+  `_idle_1`…`_idle_5`. Lowercase `[a-z0-9_]`, index last, so
+  `atlas.findRegions(stem + "_idle")` returns the five in order. Value is zero-padded
+  (`02`–`10`, `11`=J, `12`=Q, `13`=K, `14`=A).
+
+## Rendering rules
 
 - **`TextureFilter.Nearest`, integer scales only (1, 2, 3, 4), whole-pixel positions.** These are
   hand-placed pixels; a fractional scale or a sub-pixel offset invents colours outside the
