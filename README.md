@@ -113,7 +113,7 @@ Three difficulty modes ship: **Standard**, **Relentless** (avoiding is forbidden
     <td width="50%"><img src="docs/images/trophies.png" alt="Trophies"></td>
   </tr>
   <tr>
-    <td align="center"><em>Persisted high scores and lifetime totals, ranked per mode</em></td>
+    <td align="center"><em>Persisted high scores across every mode, each run tagged with its mode, beside lifetime totals</em></td>
     <td align="center"><em>Achievements derived from the engine's event stream</em></td>
   </tr>
   <tr>

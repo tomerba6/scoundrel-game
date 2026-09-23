@@ -210,9 +210,11 @@ reader. Two decisions are locked here:
   Untarnished ("finish at the full twenty") is unreachable at Frail's cap of 14.
   Variants still record their runs; they just never unlock. The flag carries this,
   so the rule is data rather than a condition buried in a screen.
-- **High scores are ranked per mode**, via `HighScores.bestForRuleset(runs, id)`.
-  A Frail 14 and a Standard 20 are not comparable, so each mode is ranked against
-  its own runs.
+- **"New best" is judged per mode**, via `HighScores.bestForRuleset(runs, id)`: a
+  Frail 14 and a Standard 20 are not comparable, so the run-end panel's `NEW BEST`
+  weighs a run only against its own mode's runs. THE LEDGER is not per mode — it is
+  `HighScores.top`, one ranking across every mode with each row tagged by its mode —
+  and the title's best line is `HighScores.best`, the overall best.
 
 Adding a mode is a new catalog entry — the engine, the turn loop, and the screens
 are all untouched.
