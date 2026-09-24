@@ -15,7 +15,7 @@ intent and progress. **This file is the record of what ships.**
 > - **The 29 placeholder sound effects,** in `assets/audio/sfx/`, synthesized by
 >   `audio-source/`. They were signed off by ear in listening round 1 and now **play in the
 >   game** (`a00041d`): menu clicks, and every board moment on its animation's beat, verified
->   from the in-game sound log. Listening round 2, played in the game, is pending.
+>   from the in-game sound log. **Listening round 2 signed them off in play.**
 > - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`), which decides what each moment
 >   sounds like. Its music sequencing (`MusicDirector`) and the volume settings are built but not
 >   yet wired in.
@@ -368,7 +368,7 @@ author and licence recorded on replacement.
 
 | Files | Status | Source | Licence |
 |---|---|---|---|
-| `sfx/*` (29) | **approved** in round 1 (2026-09-24), heard alone. The flips, blade and thud were rebuilt on the way. Round 2 hears them in play | synth | ours |
+| `sfx/*` (29) | **approved** in round 1 (heard alone; the flips, blade and thud were rebuilt on the way) and round 2 (in play), 2026-09-24 | synth | ours |
 | `ambience/torch` | planned | synth | ours |
 | `music/menu`, `music/run` | planned | synth | ours; most likely to be replaced |
 | `music/win`, `music/death` | planned | synth | ours |
@@ -376,8 +376,8 @@ author and licence recorded on replacement.
 ## Verification
 
 **Status:** the unit tests, `AudioAssetsTest`, `check.py` and the in-game sound log are in force
-for the sound effects. Listening round 1 signed them off heard alone; round 2 (in play) and
-round 3 (music) are ahead.
+for the sound effects. Listening rounds 1 (heard alone) and 2 (in play) signed them off; round 3
+(music) is ahead.
 
 - **Pure logic is unit-tested first:** weights, versions, event-to-sound mapping, pending cues,
   the music director, and settings. Eight test classes in `core/src/test/java/.../audio`, plus
