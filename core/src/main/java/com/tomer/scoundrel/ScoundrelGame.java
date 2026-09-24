@@ -107,6 +107,26 @@ public class ScoundrelGame extends Game {
         musicDeck.update(Gdx.graphics.getDeltaTime(), boardIdle, torchLight);
     }
 
+    /**
+     * The window was minimised. LibGDX calls this and keeps rendering, audio and
+     * all, so the audio is held here: the music and the sounds stop where they are
+     * until {@link #resume}.
+     */
+    @Override
+    public void pause() {
+        super.pause();
+        musicDeck.pause();
+        sounds.pause();
+    }
+
+    /** The window is back: the audio picks up where it stopped. */
+    @Override
+    public void resume() {
+        super.resume();
+        sounds.resume();
+        musicDeck.resume();
+    }
+
     private void toggleFullscreen() {
         if (fullscreen) {
             Gdx.graphics.setUndecorated(false);
