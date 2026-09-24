@@ -11,16 +11,18 @@ intent and progress. **This file is the record of what ships.**
 
 > ## Where this stands, 2026-09-24
 >
-> **The sound effects play; the music doesn't yet.** What exists:
+> **The sound effects, music, cues and torch all play; the volume controls don't exist yet.**
 > - **The 29 placeholder sound effects,** in `assets/audio/sfx/`, synthesized by
->   `audio-source/`. They were signed off by ear in listening round 1 and now **play in the
->   game** (`a00041d`): menu clicks, and every board moment on its animation's beat, verified
->   from the in-game sound log. **Listening round 2 signed them off in play.**
-> - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`), which decides what each moment
->   sounds like. Its music sequencing (`MusicDirector`) and the volume settings are built but not
->   yet wired in.
-> - **Not yet built:** the music and the torch loop (Task 6), and the MUSIC/SOUND controls and M
->   (Task 7). Until then, sound plays at full level.
+>   `audio-source/`. They play on their animations' beats (`a00041d`) and were signed off by ear
+>   in listening rounds 1 (heard alone) and 2 (in play).
+> - **The placeholder music, both cues and the torch loop,** in `assets/audio/music/` and
+>   `ambience/` (`c62b309`), playing in the game (`4d0a625`) and verified from the in-game sound
+>   log. **Listening round 3 is pending.**
+> - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`, `f6b11d4`, `29bb050`), which
+>   decides what each moment sounds like and sequences the music. The volume settings are built
+>   but not yet wired in.
+> - **Not yet built:** the MUSIC/SOUND controls, M, the minimise pause and the no-device check
+>   (Task 7). Until then, sound plays at full level and music at the default level 2.
 >
 > Every section below carries a **Status** line. It says **planned** until the part is built,
 > then **shipped** with the commit that shipped it. A section marked *planned* describes a
@@ -52,7 +54,7 @@ intent and progress. **This file is the record of what ships.**
 ## The sounds
 
 **Status: shipped.** The choice of sound is in `Sound` and `SfxChoice` (`c7c2251`), and the game
-plays it (`a00041d`). The torch loop is planned (Task 6).
+plays it (`a00041d`). The torch loop plays too (`4d0a625`).
 
 | Sound | Plays when | Weighted by |
 |---|---|---|
@@ -141,18 +143,30 @@ The beats are read from the effect classes, which run at 12 fps (one frame = 83 
 
 ## Music and ambience
 
-**Status:** the sequencing below is implemented and tested (`MusicDirector`, `b8e7f74`). No track
-exists or plays yet.
+**Status: shipped** (`c62b309`, `4d0a625`, `29bb050`). Every sequence below was verified from the
+in-game sound log, the death and win through the F9 lab. Listening round 3 is pending.
 
-**Placeholder composition:** D minor, about 64 BPM, loops of about 60–90 s.
+**Placeholder composition** (`audio-source/music.py`, where the note data lives):
+
+- D minor, 64 BPM, 16-bar loops of exactly 60 s.
+- Two bars per chord: i–VI–iv–V, i–VI–VII–V, using A major for the pull home.
+- Loops are seamless by construction. Anything ringing past the end is folded back onto the
+  start, and sustained parts complete whole cycles per loop.
 
 | Track | Content |
 |---|---|
-| Run | A drone, a sparse plucked melody (Karplus-Strong string synthesis), a soft low pulse |
-| Menu | The same melody over the drone only |
-| Win cue | Resolves the minor theme onto a major chord (a Picardy third) |
-| Death cue | Sinks and goes out |
-| Torch | A crackle loop |
+| Run | A detuned drone on D and A, breathing slowly; the theme plucked sparsely (two answering eight-bar phrases, Karplus-Strong strings); a soft heartbeat on each chord's root, with a knock so small speakers carry it |
+| Menu | The same theme stripped back: the drone and the melody's strong-beat notes only, softer; no heartbeat |
+| Win cue (5.5 s) | The theme's A→D opening, then a rising D-major arpeggio over a warm D-major chord: the minor theme resolving to major (a Picardy third) |
+| Death cue (7.5 s) | A low toll, then a line sinking to the bottom while the drone slides down a semitone and dies |
+| Torch (20 s, mono) | A flickering hiss of flame, sparse crackles and the odd pop, on every screen at the **SOUND** level (a sound of the room, so turning music off leaves it burning), guttering with the torch |
+
+**Loudness targets, as heard** (integrated, K-weighted): menu −22, run −20, win −18, death −19,
+torch −30. The sound effects' loudest moments are about −13 to −25. Starting values for round 3.
+
+**In the F9 lab:** R toggles the run track, X plays the death with its music and guttering torch,
+and V plays a win with its cue and chime. Either can be heard without ending a real run, which
+would record it.
 
 **Sequences:**
 - **Between menus:** the menu track plays on, **without restarting**, across the title, mode
@@ -227,9 +241,10 @@ no-device check are planned.
 
 ## Architecture
 
-**Status:** the pure half has shipped (`e49a6bb`…`b8e7f74`, `c658e86`). So have the sound-effect
-wiring (`Beats`, `SoundBank`, `BoardView`, `PixelScreen.pressAt`: `abddca8`, `a00041d`) and
-the sound log. `MusicDeck` and the director's wiring are planned (Task 6).
+**Status: shipped**, apart from the volume controls (Task 7). The pure half is in `e49a6bb`…`b8e7f74`,
+`c658e86`, `f6b11d4` and `29bb050`. The sound-effect wiring (`Beats`, `SoundBank`, `BoardView`,
+`PixelScreen.pressAt`) is in `abddca8` and `a00041d`. The music wiring (`MusicDeck`, the
+director in `ScoundrelGame`, `GameScreen`'s calls) is in `4d0a625`. The sound log shipped too.
 
 The engine already exposes everything audio needs. `apply(state, move)` returns the events,
 and the effects already have their beats. Nothing in `model` or `rules` changes.
@@ -282,12 +297,18 @@ flowchart LR
     shared `SfxChoice`. A file that won't load, or a play that fails, is logged and silent.
   - `PixelScreen.pressAt()` plays the menu click as a pressed plate sinks. `GameScreen` lets
     only its end panel click.
-  - `MusicDeck` (planned) streams the tracks.
+  - `MusicDeck` streams the five `StreamFile`s. Once a frame it carries out the director's
+    commands (restart a track, play a cue, the chime through the bank) and sets each stream's
+    volume. A cue that can't play reports itself finished at once, so the chime never waits
+    forever.
+  - `GameScreen` tells the director what only it sees: a death (on `DeathCinematic`'s own
+    timings), the panel settling, a win, trophies, and a new run begun in place.
   - The F9 animation lab plays the same sounds through the same `BoardView`, from the events
-    the game would report.
-- **`ScoundrelGame`** owns the bank, and later the deck, the director and the settings, like
-  `Theme` and `Sprites`. Screens reach the bank through `game.sounds()`. Running the director
-  there is what will let music survive screen changes.
+    the game would report, and has music keys (R, X, V) with its own torch light.
+- **`ScoundrelGame`** owns the bank, the deck and the director (and, from Task 7, the settings),
+  like `Theme` and `Sprites`. Screens reach them through `game.sounds()` and `game.music()`.
+  Every screen switch tells the director run or menus, and each frame passes the showing
+  screen's board idleness and torch light. That's what lets music survive screen changes.
 - **Sound log:** `SCOUNDREL_AUDIO_LOG=1` in the environment (which `gradlew lwjgl3:run`
   passes through), or `-Dscoundrel.audio.log=true` for a jar. It logs every play, effect start,
   deal, skip and cut-in with seconds since launch (`screens/AudioLog`). This is how the
@@ -297,7 +318,9 @@ flowchart LR
 
 **Status:** the list of names is in code (`Sound.allFiles()`, `c7c2251`). The 29 sound-effect
 files exist as placeholders (`81cc0a3`), and `AudioAssetsTest` holds them to the list
-(`7542da4`). The five streamed files are planned.
+(`7542da4`). The five streamed files exist too (`c62b309`, 3.2 MB). `AudioAssetsTest` holds them
+to `StreamFile` (each must be an Ogg stream, with nothing stray in their folders or in
+`assets/audio/`).
 
 **File names are the contract**, like the sprite region names. Unweighted sounds are
 `<sound>_<version>`; weighted ones are `<sound>_<weight>_<version>`, where the weight is
@@ -329,21 +352,23 @@ the game shouldn't need either, so the renders are committed and a test guards t
 
 ## Regenerating the audio
 
-**Status:** shipped for the sound effects (`6d2e267`, `81cc0a3`). The music scripts are planned
-(Task 6).
+**Status: shipped** (`6d2e267`, `81cc0a3`, `c62b309`).
 
 ```bash
 python -m pip install --user -r audio-source/requirements.txt   # numpy 2.5.3, soundfile 0.14.0
-python audio-source/render.py      # renders assets/audio/sfx/ (under a second)
-python audio-source/check.py       # measures every file; non-zero exit on any failure
+python audio-source/render.py      # renders assets/audio/ (about 15 s; OGGs rewritten only if their audio changed)
+python audio-source/check.py       # measures every file; non-zero exit on any failure (about 20 s)
 python audio-source/audition.py    # builds audio-source/build/audition.html to listen to
 ```
 
 `audio-source/README.md` describes each script.
 
 - **`audio-source/`** sits outside `assets/`, like `art-source/`.
-- **Recipes use fixed seeds**, so the same seed gives a byte-identical file. That's why the
-  requirements pin exact versions.
+- **Recipes use fixed seeds**, so the same seed gives the same audio. That's why the
+  requirements pin exact versions. A WAV is byte-identical. An OGG isn't, because libsndfile
+  gives each Ogg stream a random serial number, but its decoded audio is, and that's what
+  `check.py` compares. libsndfile's Vorbis encoder is fed in blocks, since it overflows the
+  stack when handed a minute of stereo at once.
 - **Audition pages and scratch renders go in `audio-source/build/`** (gitignored), never in
   `assets/`.
 - **A replaced placeholder is never rendered over.** Its name goes in
@@ -369,9 +394,9 @@ author and licence recorded on replacement.
 | Files | Status | Source | Licence |
 |---|---|---|---|
 | `sfx/*` (29) | **approved** in round 1 (heard alone; the flips, blade and thud were rebuilt on the way) and round 2 (in play), 2026-09-24 | synth | ours |
-| `ambience/torch` | planned | synth | ours |
-| `music/menu`, `music/run` | planned | synth | ours; most likely to be replaced |
-| `music/win`, `music/death` | planned | synth | ours |
+| `ambience/torch` | placeholder (`c62b309`), round 3 pending | synth | ours |
+| `music/menu`, `music/run` | placeholder (`c62b309`), round 3 pending | synth | ours; most likely to be replaced |
+| `music/win`, `music/death` | placeholder (`c62b309`), round 3 pending | synth | ours |
 
 ## Verification
 
@@ -387,7 +412,12 @@ for the sound effects. Listening rounds 1 (heard alone) and 2 (in play) signed t
   file set, format, peak and leading silence of the sound effects.
 - **`check.py`** measures what Java can't: loudness against each target, silent tails, DC,
   length, versions that aren't near-copies, and the committed files matching a fresh render. It
-  also reports brightness by weight. From Task 6 it will cover loop seams and the decoded OGGs.
+  also reports brightness by weight. For the streams, it measures the **decoded** OGG:
+  - Peak at or under −1 dBFS.
+  - Integrated loudness on target.
+  - A cue's start and silent tail.
+  - Each loop's seam: the sample step across the wrap, and whether encoding added
+    high-frequency energy there compared with the source, which is seamless by construction.
 - **Timing in the game** is checked from the sound log during a run driven by the
   `run-scoundrel` skill, compared against **Timing** above to within one render frame.
 - **Whether it sounds right is the user's call**, in three listening rounds: the sounds alone,
