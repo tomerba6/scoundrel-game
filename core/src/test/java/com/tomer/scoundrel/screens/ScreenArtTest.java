@@ -1,5 +1,6 @@
 package com.tomer.scoundrel.screens;
 
+import com.tomer.scoundrel.audio.AudioSettings;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -494,6 +495,7 @@ class ScreenArtTest {
     /** A level lights that many pips; off lights none; muted dims what is lit. */
     @Test
     void aLevelLightsThatManyPipsAndMutingDimsThem() {
+        assertEquals(AudioSettings.MAX_LEVEL, ScreenArt.PIPS, "a pip for every step");
         for (int level = 0; level <= 3; level++) {
             for (int pip = 0; pip < 3; pip++) {
                 boolean lit = pip < level;

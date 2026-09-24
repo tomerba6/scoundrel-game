@@ -1057,6 +1057,11 @@ public final class GameScreen extends PixelScreen {
         return !board.isPlaying();
     }
 
+    /** M was pressed: nothing on the board changes, so the feed says what it did. */
+    public void announceMute(boolean muted) {
+        feed.push(FeedText.mute(muted));
+    }
+
     private static int orMinusOne(Integer value) {
         return value == null ? -1 : value;
     }

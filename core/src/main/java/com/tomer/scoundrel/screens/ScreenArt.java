@@ -120,7 +120,7 @@ final class ScreenArt {
     static final int PIP_W = 6;
     static final int PIP_H = 12;
     private static final int PIP_GAP = 4;
-    private static final int PIPS = 3;
+    static final int PIPS = 3;
     /** Lit: the gold every other live thing on the menus is. */
     static final int PIP_ON = GOLD;
     /** A step the level has not reached: a slot sunk into the plate. */

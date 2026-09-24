@@ -6,6 +6,9 @@ import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.tomer.scoundrel.achievements.AchievementStore;
+import com.tomer.scoundrel.audio.AudioControls;
+import com.tomer.scoundrel.audio.AudioSettings;
+import com.tomer.scoundrel.audio.AudioSettingsStore;
 import com.tomer.scoundrel.audio.MusicDirector;
 import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.rules.GameModes;
@@ -43,6 +46,8 @@ public class ScoundrelGame extends Game {
     /** Which music plays and how loud: pure, and here so it outlives the screens. */
     private final MusicDirector music = new MusicDirector();
     private MusicDeck musicDeck;
+    /** The player's volume: the title's plates and M change it, and it is saved as it changes. */
+    private AudioControls audio;
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
@@ -61,6 +66,10 @@ public class ScoundrelGame extends Game {
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
         tutorialFlag = new TutorialFlag(home.resolve("tutorial.seen"));
+        // A setting, not progress: the full reset leaves it alone.
+        audio = new AudioControls(new AudioSettingsStore(home.resolve("audio.settings")),
+                e -> Gdx.app.error("audio", "could not read or save the audio settings", e));
+        applyVolume();
         // First ever launch offers the tutorial; afterward it lives under "How to play".
         switchTo(new TitleScreen(this, theme, sprites, runLog, !tutorialFlag.isSeen()));
     }
@@ -80,6 +89,11 @@ public class ScoundrelGame extends Game {
         // reason as F11, and guarded so it can't stack on top of itself.
         if (Gdx.input.isKeyJustPressed(Input.Keys.F9) && !(getScreen() instanceof SpriteLab)) {
             switchTo(new SpriteLab(this, theme, sprites));
+        }
+        // M mutes everything, and brings it back, from any screen — polled here
+        // like F11 so no screen has to route it.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            toggleMute();
         }
         super.render(); // draws the current screen
 
@@ -103,6 +117,42 @@ public class ScoundrelGame extends Game {
             Gdx.graphics.setWindowedMode(desktop.width, desktop.height);
         }
         fullscreen = !fullscreen;
+    }
+
+    /** The player's volume as it stands, for the title's plates to show. */
+    public AudioSettings audioSettings() {
+        return audio.settings();
+    }
+
+    /** The title's MUSIC plate: up a step, round to off. */
+    public void cycleMusic() {
+        audio.cycleMusic();
+        applyVolume();
+    }
+
+    /**
+     * The title's SOUND plate: up a step, round to off — and a click at the new
+     * level, which is how the player hears what they chose. At off it is silent.
+     */
+    public void cycleSound() {
+        audio.cycleSound();
+        applyVolume();
+        sounds.play(sounds.choice().click());
+    }
+
+    /** M: silence everything or bring it back. A run says which in its feed. */
+    private void toggleMute() {
+        AudioSettings now = audio.toggleMute();
+        applyVolume();
+        if (getScreen() instanceof GameScreen run) {
+            run.announceMute(now.muted());
+        }
+    }
+
+    private void applyVolume() {
+        AudioSettings now = audio.settings();
+        sounds.setGain(now.soundGain());
+        musicDeck.setGains(now.musicGain(), now.soundGain());
     }
 
     /** The sound effects, shared by every screen like the theme and the sprites. */

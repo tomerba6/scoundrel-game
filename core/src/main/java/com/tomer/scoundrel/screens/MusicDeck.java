@@ -33,6 +33,9 @@ import java.util.Map;
  */
 public final class MusicDeck implements Disposable {
 
+    /** The one-shot cues that are streams; the chime is a sound effect. */
+    private static final Cue[] CUES = {Cue.WIN, Cue.DEATH};
+
     private final SoundBank sounds;
     private final MusicDirector director;
     private final Map<StreamFile, Music> loaded = new EnumMap<>(StreamFile.class);
@@ -41,6 +44,7 @@ public final class MusicDeck implements Disposable {
 
     /** For the log: each track's gain last frame, and the torch's light. */
     private final Map<Track, Float> lastGain = new EnumMap<>(Track.class);
+    private final Map<Cue, Float> lastCueGain = new EnumMap<>(Cue.class);
     private float lastLight = 1f;
 
     public MusicDeck(SoundBank sounds, MusicDirector director) {
@@ -56,7 +60,7 @@ public final class MusicDeck implements Disposable {
                 Gdx.app.error("audio", "could not load " + stream.path() + "; it will be silent", e);
             }
         }
-        for (Cue cue : new Cue[] {Cue.WIN, Cue.DEATH}) {
+        for (Cue cue : CUES) {
             Music music = loaded.get(StreamFile.of(cue));
             if (music != null) {
                 music.setOnCompletionListener(m -> {
@@ -68,6 +72,9 @@ public final class MusicDeck implements Disposable {
         for (Track track : Track.values()) {
             lastGain.put(track, 0f);
         }
+        for (Cue cue : CUES) {
+            lastCueGain.put(cue, 0f);
+        }
         sounds.log("loaded " + loaded.size() + " of " + StreamFile.values().length + " streams");
     }
 
@@ -75,6 +82,7 @@ public final class MusicDeck implements Disposable {
     public void setGains(float music, float sound) {
         this.musicGain = music;
         this.soundGain = sound;
+        sounds.log(String.format(Locale.ROOT, "levels music=%.3f sound=%.3f", music, sound));
     }
 
     /**
@@ -102,6 +110,18 @@ public final class MusicDeck implements Disposable {
                 music.play();
             } else if (volume <= 0f && music.isPlaying()) {
                 music.pause();
+            }
+        }
+        // A cue is set to the music level when it starts, and follows it after: M,
+        // pressed during the death cue, has to silence the death cue.
+        for (Cue cue : CUES) {
+            Music music = loaded.get(StreamFile.of(cue));
+            boolean playing = music != null && music.isPlaying();
+            float gain = playing ? musicGain : 0f;
+            logCrossing("cue " + cue, lastCueGain.get(cue), gain);
+            lastCueGain.put(cue, gain);
+            if (playing) {
+                music.setVolume(musicGain);
             }
         }
         logCrossing("torch light", lastLight, torchLight);
