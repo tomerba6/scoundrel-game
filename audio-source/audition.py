@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 import check
+import music
 import recipes
 import render
 import synth
@@ -69,6 +70,12 @@ def candidates():
     return {p.stem: base64.b64encode(p.read_bytes()).decode("ascii") for p in sorted(CANDIDATE_DIR.glob("*.wav"))}
 
 
+def streams():
+    """The music, cues and torch loop, embedded as OGG, keyed by name ("music/run")."""
+    return {name: base64.b64encode(render.stream_path(name).read_bytes()).decode("ascii")
+            for name in music.STREAMS if render.stream_path(name).exists()}
+
+
 def main():
     files, facts = {}, {}
     for job in recipes.jobs():
@@ -77,6 +84,7 @@ def main():
         x = check.read_wav(path)[0]
         facts[job.name] = f"{len(x) / synth.SR * 1000:.0f} ms, {synth.loudness_db(x):.1f} dBFS"
     files.update(candidates())
+    files.update(streams())
 
     sections = []
     for recipe in recipes.RECIPES:
@@ -143,6 +151,29 @@ will. Claude built them without hearing them — you are the ear. Signed off in 
   <label><input id="vary" type="checkbox" checked> game variation (versions, ±pitch, quieter)</label>
   <button id="stop">stop</button>
 </div>
+
+<h2>Music, cues and the torch (listening round 3)</h2>
+<section class="scene"><h3>The tracks</h3>
+  <p>Placeholders, composed without being heard: D minor, 64 BPM, 60-second loops. The run track is a
+  drone, the theme plucked sparsely, and a heartbeat on each chord's root; the menu is the same theme
+  stripped back. These play looped. Judge the mood first; this page decodes with the browser, so the
+  seam that counts is the one in the game.</p>
+  <div class="row"><button data-music="music/menu" data-loop="1">menu track</button>
+  <button data-music="music/run" data-loop="1">run track</button>
+  <button data-music="music/menu" data-loop="1" data-seam="6">menu: 6 s before the seam</button>
+  <button data-music="music/run" data-loop="1" data-seam="6">run: 6 s before the seam</button>
+  <button data-crossfade="1">menu → run crossfade (1 s, as the game does)</button></div></section>
+<section class="scene"><h3>The ends of a run</h3>
+  <p>The win cue resolves the theme onto D major; the death cue tolls and sinks. In the game the death cue
+  plays after the music has died with the torch and a beat of silence; the chime follows either cue.</p>
+  <div class="row"><button data-music="music/win">win cue</button><button data-music="music/death">death cue</button>
+  <button data-file="chime_1">chime</button></div></section>
+<section class="scene"><h3>The torch</h3>
+  <p>On every screen, quietly under the music, at the SOUND level; it gutters out with the torch when you die.
+  A 20-second loop.</p>
+  <div class="row"><button data-music="ambience/torch" data-loop="1">torch loop</button>
+  <button data-music="ambience/torch" data-loop="1" data-seam="4">torch: 4 s before the seam</button>
+  <button data-together="1">run track with the torch under it</button></div></section>
 
 <h2>Scenes, as the game will play them</h2>
 <section class="scene"><h3>Dealing</h3>
@@ -292,12 +323,54 @@ for (const [label, sound, lo, hi] of [["equip", "equip", 2, 10], ["blade", "blad
   values.appendChild(row);
 }
 
+// Streams: looped from a chosen offset, with a gain that can be faded (equal power, as the game).
+function stream(name, { loop = false, offset = 0, gain = 1 } = {}) {
+  const src = ctx.createBufferSource();
+  src.buffer = buffers[name];
+  src.loop = loop;
+  const g = ctx.createGain();
+  g.gain.value = gain;
+  src.connect(g).connect(master);
+  src.start(ctx.currentTime + 0.03, Math.max(0, offset));
+  live.add(src);
+  src.onended = () => live.delete(src);
+  return g;
+}
+function equalPowerFade(g, from, to, seconds) {
+  const steps = 32, curve = new Float32Array(steps);
+  for (let i = 0; i < steps; i++) {
+    const level = from + (to - from) * (i / (steps - 1));
+    curve[i] = Math.sin(level * Math.PI / 2);
+  }
+  g.gain.setValueCurveAtTime(curve, ctx.currentTime + 0.03, seconds);
+}
+
 async function start() { await ctx.resume(); await ready; }
 document.addEventListener("click", async (e) => {
   const button = e.target.closest("button");
   if (!button) return;
   if (button.dataset.file) { await start(); play(button.dataset.file); }
   if (button.dataset.scene) { await start(); SCENES[button.dataset.scene](); }
+  if (button.dataset.music) {
+    await start();
+    const name = button.dataset.music;
+    const seam = button.dataset.seam ? buffers[name].duration - Number(button.dataset.seam) : 0;
+    stream(name, { loop: !!button.dataset.loop, offset: seam });
+  }
+  if (button.dataset.crossfade) {
+    await start();
+    const menu = stream("music/menu", { loop: true });
+    setTimeout(() => {
+      const run = stream("music/run", { loop: true, gain: 0 });
+      equalPowerFade(menu, 1, 0, 1.0);
+      equalPowerFade(run, 0, 1, 1.0);
+    }, 4000);
+  }
+  if (button.dataset.together) {
+    await start();
+    stream("music/run", { loop: true, gain: 0.5 });     // the game's default music level (-6 dB)
+    stream("ambience/torch", { loop: true, gain: 1 });  // and sound at full
+  }
 });
 document.getElementById("stop").onclick = () => { for (const s of live) s.stop(); live.clear(); };
 document.getElementById("volume").oninput = (e) => { master.gain.value = e.target.value; };
