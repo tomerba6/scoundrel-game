@@ -216,52 +216,106 @@ def death_cue(rng):
 
 
 TORCH_SECONDS = 20.0
+CRACKLES_PER_SECOND = 5.0
+"""Bursts a second while the flame burns at its resting brightness; more in a flare."""
+POPS_PER_SECOND = 0.35
+FLAME_LEVEL = 0.017
+"""The flame's murmur against the crackle: the crackle carries about 86% of the torch's
+loudness as heard, 8 dB over the murmur (round 3)."""
+
+
+def flicker(t):
+    """The flame's slow breathing, about 0.7 to 1.3: three sines that each complete whole
+    cycles in the loop, so the torch meets itself at the seam."""
+    return 1 + 0.3 * (np.sin(2 * np.pi * t * 3 / TORCH_SECONDS)
+                      + 0.6 * np.sin(2 * np.pi * t * 7 / TORCH_SECONDS + 1.1)
+                      + 0.4 * np.sin(2 * np.pi * t * 11 / TORCH_SECONDS + 2.3)) / 2
+
+
+def snap(rng):
+    """One snap of burning wood: a tick of bright noise, gone in one to four
+    milliseconds, its colour a little different every time."""
+    m = s.samples(0.008)
+    tick = s.bandpass(s.noise(m, rng), rng.uniform(1800, 5500), q=rng.uniform(0.7, 1.5))
+    return tick * s.attack_decay(m, 0.0001, rng.uniform(0.001, 0.004))
+
+
+def crackle(rng):
+    """A crackle the way wood makes one: a burst of one to eight snaps a few
+    milliseconds apart (three on average), each its own level, fading through the burst.
+    The levels vary widely but are capped: uncapped, one burst in a hundred stood 7 dB
+    over the rest and set the torch's loudest moment."""
+    count = min(8, int(rng.geometric(0.35)))
+    starts = np.concatenate([[0.0], np.cumsum(np.maximum(rng.exponential(0.007, count - 1), 0.0015))])
+    n = s.samples(starts[-1] + 0.01)
+    out = np.zeros(n)
+    for i, at in enumerate(starts):
+        out += s.place(n, snap(rng) * np.clip(rng.lognormal(0, 0.5), 0.5, 1.8) * 0.85 ** i, s.samples(at))
+    return out * np.clip(rng.lognormal(0, 0.6), 0.35, 2.2)
+
+
+def pop(rng):
+    """Now and then a knot of sap bursting: a crack with a little weight under it, and
+    a spray of snaps after it."""
+    m = s.samples(0.2)
+    thump = s.sweep_sine(m, 180, 80, 0.02) * s.attack_decay(m, 0.001, 0.08)
+    crack = s.bandpass(s.noise(m, rng), 3000, q=0.8) * s.attack_decay(m, 0.0003, 0.01)
+    return 0.6 * thump + crack + s.place(m, crackle(rng), s.samples(0.02))
 
 
 def torch_loop(rng):
-    """The torch, on every screen: a soft hiss of flame that flickers, sparse crackles,
-    and now and then a pop with a little weight. Mono; loops every 20 s."""
-    loop, long = s.samples(TORCH_SECONDS), s.samples(TORCH_SECONDS + 0.5)
-    t = s.times(loop)
-    hiss = s.circular_filter(rng.standard_normal(loop),
-                             lambda f: s.highpass_response(150, 1)(f) * s.lowpass_response(2500, 1)(f))
-    flicker = 1 + 0.3 * (np.sin(2 * np.pi * t * 3 / TORCH_SECONDS)
-                         + 0.6 * np.sin(2 * np.pi * t * 7 / TORCH_SECONDS + 1.1)
-                         + 0.4 * np.sin(2 * np.pi * t * 11 / TORCH_SECONDS + 2.3)) / 2
-    bed = 0.12 * hiss / np.std(hiss) * flicker
+    """The torch, on every screen: a wood fire's crackle - bursts of sharp little snaps,
+    thicker when the flame flares, now and then a pop with a little weight - over the
+    low, soft murmur of the flame. Mono; loops every 20 s.
 
+    Round 3: "too much white noise and not enough crackle". The first render's bed was
+    noise from 150 Hz to 2.5 kHz on one-pole slopes, so it reached well past 5 kHz, and it
+    carried 96% of the torch's loudness: only 1% of 10 ms windows had a crackle standing
+    above it. Now the flame is a murmur under 350 Hz, well under the crackle, and the
+    crackle comes in bursts, as burning wood gives it, rather than as single ticks."""
+    loop, long = s.samples(TORCH_SECONDS), s.samples(TORCH_SECONDS + 0.5)
+    breath = flicker(s.times(loop))
+    murmur = s.circular_filter(rng.standard_normal(loop),
+                               lambda f: s.highpass_response(60, 2)(f) * s.lowpass_response(350, 2)(f))
+    flame = FLAME_LEVEL * murmur / np.std(murmur) * breath
+
+    # Crackles come in flurries as the flame breathes: a Poisson stream thinned by the
+    # flicker to the fourth power, so a flare (about 13 a second) is ten times as busy as a
+    # lull, and the loop averages about 5.5.
     events = np.zeros(long)
-    for rate, build in ((7.0, "crackle"), (0.4, "pop")):
-        at = rng.exponential(1 / rate)
-        while at < TORCH_SECONDS:
-            start = s.samples(at)
-            if build == "crackle":
-                m = s.samples(0.012)
-                burst = s.bandpass(s.noise(m, rng), rng.uniform(1500, 6000), q=1.2) \
-                    * s.attack_decay(m, 0.0003, rng.uniform(0.002, 0.006))
-                sound = burst * 0.5 * rng.lognormal(0, 0.6)
-            else:
-                m = s.samples(0.2)
-                thump = s.sweep_sine(m, 180, 80, 0.02) * s.attack_decay(m, 0.001, 0.08)
-                crack = s.bandpass(s.noise(m, rng), 3000, q=0.8) * s.attack_decay(m, 0.0003, 0.01)
-                sound = 0.8 * (0.6 * thump + crack)
-            events[start:start + len(sound)] += sound[:long - start]
-            at += rng.exponential(1 / rate)
-    return bed + fold(events, loop)
+    busiest = 1.3 ** 4
+    at = rng.exponential(1 / (CRACKLES_PER_SECOND * busiest))
+    while at < TORCH_SECONDS:
+        if rng.uniform() < flicker(at) ** 4 / busiest:
+            events += s.place(long, crackle(rng), s.samples(at))
+        at += rng.exponential(1 / (CRACKLES_PER_SECOND * busiest))
+    at = rng.exponential(1 / POPS_PER_SECOND)
+    while at < TORCH_SECONDS:
+        events += s.place(long, pop(rng), s.samples(at))
+        at += rng.exponential(1 / POPS_PER_SECOND)
+    return flame + fold(events, loop)
 
 
 # --- the catalogue -----------------------------------------------------------
 
 STREAMS = {
     # name (under assets/audio/): (build, integrated loudness target in dB as heard, loops, channels)
-    "music/menu": (menu_track, -22.0, True, 2),
-    "music/run": (run_track, -20.0, True, 2),
-    "music/win": (win_cue, -18.0, False, 2),
-    "music/death": (death_cue, -19.0, False, 2),
-    "ambience/torch": (torch_loop, -30.0, True, 1),
+    "music/menu": (menu_track, -28.0, True, 2),
+    "music/run": (run_track, -26.0, True, 2),
+    "music/win": (win_cue, -24.0, False, 2),
+    "music/death": (death_cue, -25.0, False, 2),
+    "ambience/torch": (torch_loop, -41.0, True, 1),
 }
-"""Loudness targets sit below the sound effects', whose loudest moments are about -13 to
--25 dB; the torch well under everything. Starting values, for listening round 3."""
+"""Loudness targets sit below the sound effects', whose loudest moments are about -12 to
+-25 dB; the torch well under everything.
+
+Round 3: "the sound effects should be up a notch, I barely hear them with the music".
+The effects could not come up - the loudest blade already peaks at -1.04 dBFS, against
+the -1 dBFS ceiling - so the music came down a notch (6 dB, one MUSIC step) instead, all four
+pieces together so the menu, run and cues keep the balance they were heard at. The
+torch is set by its loudest moment, not its average: a crackle is mostly silence, so
+-41 integrated puts its loudest pop at about -27 over 50 ms, as loud as the old hissing
+torch ever got and just under the quietest effect (the flip, -25)."""
 
 PRE_ENCODE_CEILING_DB = -2.0
 """Vorbis overshoots: -2 dBFS going in keeps the decoded peak under the -1 ceiling."""

@@ -17,7 +17,8 @@ intent and progress. **This file is the record of what ships.**
 >   in listening rounds 1 (heard alone) and 2 (in play).
 > - **The placeholder music, both cues and the torch loop,** in `assets/audio/music/` and
 >   `ambience/` (`c62b309`), playing in the game (`4d0a625`) and verified from the in-game sound
->   log. **Listening round 3 is pending.**
+>   log. **Listening round 3's first pass** rebuilt the torch and the fist and brought the
+>   music down a notch; **the re-listen is pending.**
 > - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`, `f6b11d4`, `29bb050`), which
 >   decides what each moment sounds like and sequences the music. The volume settings are built
 >   but not yet wired in.
@@ -144,7 +145,8 @@ The beats are read from the effect classes, which run at 12 fps (one frame = 83 
 ## Music and ambience
 
 **Status: shipped** (`c62b309`, `4d0a625`, `29bb050`). Every sequence below was verified from the
-in-game sound log, the death and win through the F9 lab. Listening round 3 is pending.
+in-game sound log, the death and win through the F9 lab. Listening round 3's first pass is
+applied (the torch rebuilt, the music a notch down); the re-listen is pending.
 
 **Placeholder composition** (`audio-source/music.py`, where the note data lives):
 
@@ -159,10 +161,16 @@ in-game sound log, the death and win through the F9 lab. Listening round 3 is pe
 | Menu | The same theme stripped back: the drone and the melody's strong-beat notes only, softer; no heartbeat |
 | Win cue (5.5 s) | The theme's A→D opening, then a rising D-major arpeggio over a warm D-major chord: the minor theme resolving to major (a Picardy third) |
 | Death cue (7.5 s) | A low toll, then a line sinking to the bottom while the drone slides down a semitone and dies |
-| Torch (20 s, mono) | A flickering hiss of flame, sparse crackles and the odd pop, on every screen at the **SOUND** level (a sound of the room, so turning music off leaves it burning), guttering with the torch |
+| Torch (20 s, mono) | A wood fire's crackle: bursts of one to eight sharp snaps, thicker when the flame flares, and the odd pop, over a low murmur of flame under 350 Hz. The crackle carries about 86% of its loudness. On every screen at the **SOUND** level (a sound of the room, so turning music off leaves it burning), guttering with the torch |
 
-**Loudness targets, as heard** (integrated, K-weighted): menu −22, run −20, win −18, death −19,
-torch −30. The sound effects' loudest moments are about −13 to −25. Starting values for round 3.
+**Loudness targets, as heard** (integrated, K-weighted): menu −28, run −26, win −24, death −25,
+torch −41. The sound effects' loudest moments are about −12 to −25.
+- **Round 3 brought the music down a notch** (6 dB, one MUSIC step) because the effects were
+  hard to hear under it. The effects couldn't come up instead, because the loudest blade
+  already peaks at −1.04 dBFS against the −1 ceiling.
+- **The torch is set by its loudest moment:** a crackle is mostly silence. At −41 integrated,
+  its loudest 50 ms is about −27, which is as loud as the old hissing torch ever got and just
+  under the quietest effect.
 
 **In the F9 lab:** R toggles the run track, X plays the death with its music and guttering torch,
 and V plays a win with its cue and chime. Either can be heard without ending a real run, which
@@ -220,8 +228,7 @@ no-device check are planned.
   mock when OpenAL can't start ("Couldn't initialize audio, disabling audio", checked in the
   jar). Every load and play is also guarded, so a missing or bad file is silent plus one log
   line.
-- **Mix targets** (the sound-effect ones are enforced by `check.py`, and the music ones will be
-  in Task 6):
+- **Mix targets** (all enforced by `check.py`, for the streams since Task 6):
   - Every file peaks at or below −1 dBFS. For OGG that's measured on the **decoded** file, since
     Vorbis overshoots by about 0.2 dB.
   - At most 5 ms of silence at the start of a sound effect.
@@ -231,8 +238,10 @@ no-device check are planned.
     about 2 kHz for more, the way the ear does. Plain RMS, used first, left the thud 7 dB
     under the blade it plays beneath, and round 1 heard it as barely there.
   - **Targets are relative to one another:**
-    - The weapon kill's blade and thud are the loudest, around −13 dBFS as heard.
-    - The equip, fist, sweep, spill, drink and chime sit between −15.5 and −20.
+    - The two kills are the loudest, between −12 and −15 dBFS as heard: the weapon kill's blade
+      and thud, and the bare-handed fist. Round 3 raised the fist by 3.5–4.5 dB, since a
+      bare-handed kill always costs health.
+    - The equip, sweep, spill, drink and chime sit between −15.5 and −20.
     - The click is at −23 and the flips at −25, because they come on every menu press or four
       at a time.
 
@@ -393,16 +402,16 @@ author and licence recorded on replacement.
 
 | Files | Status | Source | Licence |
 |---|---|---|---|
-| `sfx/*` (29) | **approved** in round 1 (heard alone; the flips, blade and thud were rebuilt on the way) and round 2 (in play), 2026-09-24 | synth | ours |
-| `ambience/torch` | placeholder (`c62b309`), round 3 pending | synth | ours |
-| `music/menu`, `music/run` | placeholder (`c62b309`), round 3 pending | synth | ours; most likely to be replaced |
-| `music/win`, `music/death` | placeholder (`c62b309`), round 3 pending | synth | ours |
+| `sfx/*` (29) | **approved** in round 1 (heard alone; the flips, blade and thud were rebuilt on the way) and round 2 (in play), 2026-09-24. `fist_*` (6) were rebuilt and raised in round 3 ("very silent"), and their re-listen is pending | synth | ours |
+| `ambience/torch` | placeholder (`c62b309`), rebuilt in round 3 ("too much white noise, not enough crackle"); re-listen pending | synth | ours |
+| `music/menu`, `music/run` | placeholder (`c62b309`), a notch quieter after round 3's first pass; re-listen pending | synth | ours; most likely to be replaced |
+| `music/win`, `music/death` | placeholder (`c62b309`), a notch quieter after round 3's first pass; re-listen pending | synth | ours |
 
 ## Verification
 
 **Status:** the unit tests, `AudioAssetsTest`, `check.py` and the in-game sound log are in force
 for the sound effects. Listening rounds 1 (heard alone) and 2 (in play) signed them off; round 3
-(music) is ahead.
+(music) is under way.
 
 - **Pure logic is unit-tested first:** weights, versions, event-to-sound mapping, pending cues,
   the music director, and settings. Eight test classes in `core/src/test/java/.../audio`, plus

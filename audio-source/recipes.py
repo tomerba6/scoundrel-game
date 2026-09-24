@@ -149,11 +149,19 @@ def thud(rng, w, v):
 
 
 def fist(rng, w, v):
-    """A bare-handed fight: two blows a frame (83 ms) apart, each a low punch with a slap
-    of skin on top. The heavier the monster, the deeper and longer they land. Both
-    blows are in the one file, matching the two stars."""
+    """A bare-handed fight: two blows a frame (83 ms) apart, each a low punch with the
+    smack of it landing and a slap of skin on top. The heavier the monster, the deeper
+    and longer they land. Both blows are in the one file, matching the two stars.
+
+    Round 3: "very silent" under the music. The punch is a sine falling through
+    50-190 Hz - the band where the run's drone and heartbeat are loudest, and which small
+    speakers barely play - and above 250 Hz the fist stood only 1-9 dB over the music,
+    where the blade stands 20-35. Now each blow has a smack of mid-range noise
+    (750 / 560 / 420 Hz by weight) and a longer, stronger slap, so it carries where the
+    music is quiet; the punch stays for weight, as the thud's knock did in round 1."""
     t60 = (0.09, 0.12, 0.16)[w]
     f_start, f_end = ((190, 80), (150, 65), (115, 50))[w]
+    smack_band = (750, 560, 420)[w]
     slap_band = (2200, 1600, 1100)[w]
     # Versions differ by design: pitch, how fast the punch drops, the spacing and
     # balance of the two blows. A random few-percent detune left them near-identical.
@@ -165,8 +173,9 @@ def fist(rng, w, v):
         m = s.samples(t60 + 0.06)
         k = detune * shift
         punch = s.sweep_sine(m, f_start * k, f_end * k, drop) * s.attack_decay(m, 0.001, t60)
-        slap = s.bandpass(s.noise(m, rng), slap_band * k, q=0.8) * s.attack_decay(m, 0.0005, 0.018)
-        return strength * (punch + 0.6 * slap)
+        smack = s.bandpass(s.noise(m, rng), smack_band * k, q=1.2) * s.attack_decay(m, 0.001, 0.04)
+        slap = s.bandpass(s.noise(m, rng), slap_band * k, q=0.8) * s.attack_decay(m, 0.0005, 0.025)
+        return strength * (punch + 3.0 * smack + 1.5 * slap)
 
     first = blow(1.0, 1 + 0.02 * rng.uniform(-1, 1))
     second = blow(second_strength, 0.93 + 0.02 * rng.uniform(-1, 1))
@@ -243,6 +252,10 @@ class Recipe:
 # in round 1, re-measured this way. The blade keeps its level under its new sound. The
 # thud now sits level with the blade (heavy) and a notch under (light). The flips are
 # about 3.5 dB under where they were heard.
+#
+# Round 3 raised the fist, "very silent", from -17.5 / -17 / -16.5 to the blade's
+# neighbourhood: a bare-handed kill always costs health, so it lands at least as hard as
+# a weapon kill. Every other effect keeps its level; the music came down (music.py).
 RECIPES = (
     Recipe("click", click, 1, target_db=(-23,), max_seconds=0.12),
     Recipe("flip", flip, 3, target_db=(-25,), max_seconds=0.45),
@@ -251,7 +264,7 @@ RECIPES = (
     Recipe("blade", blade, 2, WEIGHTS, (-13.5, -13, -12.5), max_seconds=0.6, lofi={"cutoff": 9500}),
     Recipe("thud", thud, 2, ("light", "heavy"), (-15, -12.5), max_seconds=0.5,
            lofi={"hold_rate": 14000, "cutoff": 6000}),
-    Recipe("fist", fist, 2, WEIGHTS, (-17.5, -17, -16.5), max_seconds=0.6,
+    Recipe("fist", fist, 2, WEIGHTS, (-14, -13, -12), max_seconds=0.6,
            lofi={"hold_rate": 16000, "cutoff": 7000}),
     Recipe("drink", drink, 1, WEIGHTS, (-20, -19, -18), max_seconds=0.8),
     Recipe("spill", spill, 1, target_db=(-17.5,), max_seconds=0.8),
