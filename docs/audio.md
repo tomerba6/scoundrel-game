@@ -35,7 +35,7 @@ intent and progress. **This file is the record of what ships.**
 > then **shipped** with the commit that shipped it. **Nothing is planned any more:** every
 > section is shipped, or *decided* for the locked design. **The synthesized audio is final:** on
 > 2026-09-24 the user decided to keep every sound, so no replacement will be sourced (see
-> **Sourcing**). None of this is released yet; it is all on the `audio` branch.
+> **Sourcing**). **Released in 2.1.0** (2026-09-24), merged from the `audio` branch in PR #18.
 
 ## Locked decisions (from the design interview)
 

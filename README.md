@@ -16,6 +16,15 @@ risk with the hand the shuffle deals you.
 
 ![The board](docs/images/board.png)
 
+## What's new in 2.1
+
+**Sound.** Every action has its sound, landing on its animation's beat; a slow, brooding score
+runs under the menus and the descent, with cues for getting out and for dying; and the torch
+crackles on every screen. MUSIC and SOUND levels sit on the title, and **M** mutes everything
+from anywhere. Every sound is synthesized in Python, signed off by ear — see
+[`docs/audio.md`](docs/audio.md). Also fixed: an unlocked trophy's description no longer runs off
+the end-of-run panel.
+
 ## What's new in 2.0
 
 Release 1 played the whole game in flat coloured tiles. Release 2 is the same engine wearing
@@ -51,7 +60,7 @@ drawn art, and it took every screen with it.
 - **Drawn presentation** — sprites that breathe on a shared clock, cards that deal in and sweep
   away, per-card resolve effects, a death cinematic, and a procedural torchlit backdrop with
   live flicker and drifting embers.
-- **Sound** *(on the `audio` branch, unreleased)* — crunchy lo-fi effects, one per moment, each
+- **Sound** — crunchy lo-fi effects, one per moment, each
   landing on its animation's beat and weighted by the card's value; a brooding run track and a
   stripped-back menu track that crossfade as the screens cut; win and death cues, the music
   dying with the torch; a crackling torch on every screen. MUSIC and SOUND levels on the title,
@@ -319,7 +328,7 @@ Shipped in **2.0** — the art, and everything it dragged with it:
 - [x] A fixed design space rendered through an offscreen surface, on a snapping viewport
 - [x] One shared screen frame, and a palette rule the build enforces
 
-Built on the **`audio`** branch, not yet released — sound:
+Shipped in **2.1** — sound:
 
 - [x] 29 synthesized sound effects, each on its animation's beat, weighted by the card's value
 - [x] Menu and run music, win and death cues, and a crackling torch on every screen

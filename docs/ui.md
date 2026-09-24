@@ -6,7 +6,7 @@ visual tokens, the architecture, and every component on screen. It complements
 
 > ## Where this stands, 2026-09-24
 >
-> **Sound** is on the `audio` branch: the title's volume row and the M key are described here;
+> **Sound** shipped in 2.1.0: the title's volume row and the M key are described here;
 > everything else is in [`audio.md`](audio.md).
 >
 > **This document is current.** It was for a while a mix of what shipped and what was being

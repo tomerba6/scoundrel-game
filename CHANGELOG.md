@@ -5,10 +5,11 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - 2026-09-24
 
 The game gets sound. Every sound — effects, music, cues and the torch — is synthesized in Python,
-and each was signed off by ear before it stayed.
+and each was signed off by ear before it stayed. Nothing about the rules changes, and every saved
+run and trophy carries over.
 
 ### Added
 - **Sound effects, one per moment.** Cards dealing (one riffle per deal), a room swept away,
@@ -31,6 +32,17 @@ and each was signed off by ear before it stayed.
 ### Fixed
 - **An unlocked trophy's description no longer runs off the end-of-run panel.** Drawn as one
   line, Rock Bottom's ran past the panel's edge; descriptions now wrap to two lines within it.
+
+### Known limitations
+
+Carried forward from 2.0.1, all unchanged.
+
+- **Both builds are unsigned**, so the first launch shows a warning: on Windows choose
+  **More info → Run anyway**; on macOS right-click the app and choose **Open**.
+- **The macOS build has never been launched on a Mac** — sound included. It is cross-built on a
+  Windows runner from a downloaded macOS JDK, and the release pipeline proves only that it
+  packages, not that it runs.
+- **There is no mid-game save or resume** — a run is a single sitting, by design.
 
 ## [2.0.1] - 2026-08-20
 
@@ -195,7 +207,8 @@ First complete release: the full base game, playable start to finish.
 - Cards are drawn as typed tiles with rank and suit. Illustrated sprites are in progress.
 - There is no mid-game save or resume — a run is a single sitting.
 
-[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/tomerba6/scoundrel-game/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/tomerba6/scoundrel-game/releases/tag/v1.0.0
