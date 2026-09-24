@@ -415,6 +415,41 @@ class ScreenArtTest {
         assertEquals(-1, ScreenArt.buttonAt(x, 3, x + 10, fourth));
     }
 
+    // --- the end panel's unlocked trophies ---
+
+    /**
+     * An unlocked trophy's description stops where the rule above it stops — the
+     * panel's own right margin — not wherever its words run out. Drawn as one
+     * unbounded line, Rock Bottom's ran about 65 px off the panel.
+     */
+    @Test
+    void anUnlockedTrophysTextStopsWhereTheRuleDoes() {
+        assertEquals(ScreenArt.END_RULE_X + ScreenArt.END_RULE_W, ScreenArt.END_TEXT_RIGHT);
+        assertTrue(ScreenArt.END_TEXT_RIGHT < ScreenArt.END_X + ScreenArt.END_W - ScreenArt.THICK,
+                "inside the panel's frame");
+        assertEquals(ScreenArt.END_TEXT_RIGHT - 600, ScreenArt.endTrophyDescWidth(600));
+    }
+
+    /** One line centres on the seal; two split its height evenly, one under the other. */
+    @Test
+    void anUnlockedTrophysLinesShareTheSealsHeight() {
+        int row = ScreenArt.endTrophyY(1);
+        assertEquals(ScreenArt.END_TROPHY_SEAL, ScreenArt.endTrophyLineH(1));
+        assertEquals(row, ScreenArt.endTrophyLineY(row, 0, 1));
+        int half = ScreenArt.endTrophyLineH(2);
+        assertEquals(ScreenArt.END_TROPHY_SEAL, 2 * half, "two lines fill the seal exactly");
+        assertEquals(row, ScreenArt.endTrophyLineY(row, 0, 2));
+        assertEquals(row + half, ScreenArt.endTrophyLineY(row, 1, 2));
+    }
+
+    /** Two lines is the budget, and a line of the small face fits its half of the seal. */
+    @Test
+    void anUnlockedTrophyHasRoomForTwoLines() {
+        assertEquals(2, ScreenArt.END_TROPHY_DESC_LINES);
+        assertTrue(ScreenArt.endTrophyLineH(2) >= PixelType.SMALL);
+        assertTrue(ScreenArt.END_TROPHY_SEAL < ScreenArt.END_TROPHY_PITCH, "the rows still do not touch");
+    }
+
     // --- the title's MUSIC and SOUND plates ---
 
     /**

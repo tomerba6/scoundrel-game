@@ -674,10 +674,16 @@ public final class GameScreen extends PixelScreen {
             int nameX = ScreenArt.END_UNLOCKED_X + ScreenArt.END_TROPHY_NAME_DX;
             chrome.textInRow(batch, theme.pixelLabel, name, nameX, y,
                     ScreenArt.END_TROPHY_SEAL, ScreenArt.BODY, 1f);
-            chrome.textInRow(batch, theme.pixelSmall,
-                    earned.description().toUpperCase(Locale.ROOT),
-                    nameX + chrome.width(theme.pixelLabel, name) + ScreenArt.END_TROPHY_DESC_GAP,
-                    y, ScreenArt.END_TROPHY_SEAL, ScreenArt.CELL_QUIET, 1f);
+            // Wrapped to the panel's margin: one unbounded line once ran off it.
+            int descX = nameX + chrome.width(theme.pixelLabel, name) + ScreenArt.END_TROPHY_DESC_GAP;
+            List<String> lines = TextWrap.wrap(earned.description().toUpperCase(Locale.ROOT),
+                    ScreenArt.endTrophyDescWidth(descX), ScreenArt.END_TROPHY_DESC_LINES,
+                    s -> chrome.width(theme.pixelSmall, s));
+            for (int line = 0; line < lines.size(); line++) {
+                chrome.textInRow(batch, theme.pixelSmall, lines.get(line), descX,
+                        ScreenArt.endTrophyLineY(y, line, lines.size()),
+                        ScreenArt.endTrophyLineH(lines.size()), ScreenArt.CELL_QUIET, 1f);
+            }
         }
     }
 

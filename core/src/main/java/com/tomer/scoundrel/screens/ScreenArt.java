@@ -359,6 +359,14 @@ final class ScreenArt {
     static final int END_TROPHY_DESC_GAP = 14;
     /** Two fit above the buttons; a run cannot realistically unlock more at once. */
     static final int END_TROPHIES_SHOWN = 2;
+    /**
+     * Where an unlocked trophy's description must stop: the rule's right end, the
+     * panel's own margin. Drawn as one unbounded line, Rock Bottom's ran about 65 px
+     * off the panel; now a description wraps within it.
+     */
+    static final int END_TEXT_RIGHT = END_RULE_X + END_RULE_W;
+    /** A long description takes a second line beside the name, sharing the seal's height. */
+    static final int END_TROPHY_DESC_LINES = 2;
 
     static final int END_BUTTONS_DY = 376;
     static final int END_BUTTON_H = 38;
@@ -455,6 +463,21 @@ final class ScreenArt {
 
     static int endTrophyY(int index) {
         return endY(true) + END_TROPHY_DY + index * END_TROPHY_PITCH;
+    }
+
+    /** How wide a description beginning at {@code descX} may run before the margin. */
+    static int endTrophyDescWidth(int descX) {
+        return END_TEXT_RIGHT - descX;
+    }
+
+    /** Each line's share of the seal's height: all of it for one, half each for two. */
+    static int endTrophyLineH(int lines) {
+        return END_TROPHY_SEAL / lines;
+    }
+
+    /** The top of a description line's share, the lines stacked down the seal. */
+    static int endTrophyLineY(int rowY, int line, int lines) {
+        return rowY + line * endTrophyLineH(lines);
     }
 
     /**
