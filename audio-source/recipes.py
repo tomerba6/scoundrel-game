@@ -36,13 +36,25 @@ def click(rng, w, v):
 
 
 def flip(rng, w, v):
-    """A card from the dungeon landing in the room: a papery snap with a soft pat of the
-    card meeting the table. Short - four of them land a frame (83 ms) apart."""
-    n = s.samples(0.085)
-    centre = (2400, 2900, 2100)[v - 1] * (1 + 0.05 * rng.uniform(-1, 1))
-    snap = s.bandpass(s.noise(n, rng), centre, q=0.9) * s.attack_decay(n, 0.0008, 0.045)
-    pat = s.sweep_sine(n, 260, 140, 0.02) * s.attack_decay(n, 0.001, 0.035)
-    return snap + 0.35 * pat
+    """A card from the dungeon landing in the room: a soft papery 'fwip' as it settles on
+    the table - more air than snap - with a gentle pat under it. Four land a frame (83 ms)
+    apart, so each is soft and each version has its own shape.
+
+    Round 1: the first render's flips were a hard 2-3 kHz snap with a sub-millisecond
+    attack, alike enough that four in a row read as a machine gun. Now lower and wider,
+    a slower attack, and versions that differ in shape: a plain settle, one with a second
+    brush as the card's face follows its edge, and a duller one with more pat."""
+    n = s.samples(0.095)
+    centre, attack, t60, pat = ((1300, 0.004, 0.06, 0.45), (1700, 0.003, 0.05, 0.3),
+                                (1050, 0.005, 0.07, 0.6))[v - 1]
+    centre *= 1 + 0.05 * rng.uniform(-1, 1)
+    air = s.lowpass(s.bandpass(s.noise(n, rng), centre, q=0.6), 3500) * s.attack_decay(n, attack, t60)
+    x = air + pat * s.sweep_sine(n, 190, 110, 0.02) * s.attack_decay(n, 0.003, 0.04)
+    if v == 2:
+        brush = s.lowpass(s.bandpass(s.noise(n, rng), centre * 0.8, q=0.6), 3000) \
+            * s.attack_decay(n, 0.002, 0.035)
+        x += 0.5 * s.place(n, brush, s.samples(0.012))
+    return x
 
 
 def sweep(rng, w, v):
@@ -75,36 +87,57 @@ def equip(rng, w, v):
 
 
 def blade(rng, w, v):
-    """A weapon kill, the blade landing: a hiss of steel through the air that ends in a
-    short bright ring. Thin and high for a light weapon; lower, longer, with a chop of
-    impact under it for a heavy one."""
-    n = s.samples((0.26, 0.34, 0.44)[w])
+    """A weapon kill, the blade landing: a fast swoosh of air that turns into the thin
+    'shing' of steel, with a dull cut under it. The ring swells in, as if by friction
+    along the edge, rather than being struck. Light blades are short and high; heavy
+    ones move more air, lower and longer, and cut deeper.
+
+    Round 1: the first render was a struck, inharmonic ring at 1.3-2.6 kHz with a thump
+    under it - a pick on stone - and it read as mining. What separates a slice is that
+    nothing is hit: the steel is drawn. So no strike and no thump; a swoosh that rises
+    and falls, and a high ring of two close pitches that shimmer against each other."""
+    n = s.samples((0.30, 0.38, 0.48)[w])
     t = s.times(n)
-    hiss_band = 6000 * (2000 / 6000) ** np.clip(t / 0.06, 0, 1)
-    hiss_band *= 1 + 0.1 * rng.uniform(-1, 1)
-    hiss = s.swept_bandpass(s.noise(n, rng), hiss_band, q=0.8) \
-        * s.attack_decay(n, 0.0008, (0.07, 0.09, 0.11)[w])
-    base = (2600, 1900, 1300)[w] * (1 + 0.03 * rng.uniform(-1, 1))
-    t60 = (0.12, 0.18, 0.26)[w]
-    ring = s.modal(n, [(base, 1.0, t60), (base * 1.51, 0.55, t60 * 0.7),
-                       (base * 2.3, 0.3, t60 * 0.5), (base * 3.7, 0.15, t60 * 0.35)])
-    chop = s.sweep_sine(n, 200, 70, 0.02) * s.attack_decay(n, 0.001, 0.08)
-    return hiss + 0.55 * ring + (0.0, 0.35, 0.6)[w] * chop
+    # The swoosh: a band sweeping up to its peak, then falling away.
+    lo, hi = ((1200, 5500), (900, 4500), (600, 3500))[w]
+    peak_at = (0.025, 0.02)[v - 1]
+    shape = np.where(t < peak_at, t / peak_at, np.exp(-(t - peak_at) / 0.04))
+    swoosh = s.swept_bandpass(s.noise(n, rng), lo + (hi - lo) * shape, q=1.1) \
+        * s.attack_decay(n, 0.02, (0.10, 0.13, 0.16)[w])
+    # The shing: steel ringing, swelling in over ~12 ms, shimmering where two partials beat.
+    base = (3400, 2800, 2200)[w] * (1.0, 1.06)[v - 1] * (1 + 0.02 * rng.uniform(-1, 1))
+    t60 = (0.22, 0.30, 0.40)[w]
+    ring = s.modal(n, [(base, 1.0, t60), (base * 1.004, 0.8, t60), (base * 1.87, 0.4, t60 * 0.6),
+                       (base * 2.93, 0.2, t60 * 0.4)], attack=0)
+    friction = 1 + 0.3 * np.clip(s.one_pole_lowpass(s.noise(n, rng), 60) * 12, -1, 1)
+    ring *= (1 - np.exp(-t / 0.012)) * friction
+    # The cut: a short, dull tick of the edge going in.
+    cut = s.lowpass(s.noise(n, rng), 900) * s.attack_decay(n, 0.001, 0.03)
+    return swoosh + 0.35 * ring + (0.25, 0.4, 0.55)[w] * cut
 
 
 def thud(rng, w, v):
-    """Damage getting through the weapon: a dull body blow under the blade, felt more
-    than heard. Heavier when more got through. Absent on a clean kill."""
+    """Damage getting through the weapon: a heavy body blow under the blade - a deep punch
+    with a hollow knock in the chest and a crack of grit on top. Heavier when more got
+    through. Absent on a clean kill.
+
+    Round 1: the first render was nearly all sub-bass (45-150 Hz), which most speakers
+    barely play; it was all but inaudible even at its heaviest. The knock at ~300 and
+    ~520 Hz carries on small speakers, and the harder saturation adds harmonics the ear
+    reads as the missing low end."""
     heavy = w == 2
-    n = s.samples(0.38 if heavy else 0.22)
-    f_start, f_end = (110, 45) if heavy else (150, 70)
-    # The second version differs by design, not by chance: a low sine is most of
-    # this sound, and a random few-percent detune left the two near-identical.
-    detune, drop, grit_band = ((1.0, 0.04, 500), (0.86, 0.06, 750))[v - 1]
-    f_start *= detune * (1 + 0.02 * rng.uniform(-1, 1))
-    body = s.sweep_sine(n, f_start, f_end * detune, drop) * s.attack_decay(n, 0.002, 0.3 if heavy else 0.15)
-    grit = s.lowpass(s.noise(n, rng), grit_band) * s.attack_decay(n, 0.001, 0.05)
-    return s.saturate(body + 0.3 * grit, 2.5 if heavy else 1.5)
+    n = s.samples(0.40 if heavy else 0.26)
+    f_start, f_end = (150, 55) if heavy else (190, 75)
+    # The second version differs by design, not by chance: a low sine is much of
+    # this sound, and a random few-percent detune left the first render's two near-identical.
+    detune, drop = ((1.0, 0.05), (0.88, 0.07))[v - 1]
+    detune *= 1 + 0.02 * rng.uniform(-1, 1)
+    body = s.sweep_sine(n, f_start * detune, f_end * detune, drop) \
+        * s.attack_decay(n, 0.002, 0.32 if heavy else 0.18)
+    knock = s.modal(n, [(300 * detune, 1.0, 0.10 if heavy else 0.07), (520 * detune, 0.5, 0.06)],
+                    attack=0.001)
+    grit = s.bandpass(s.noise(n, rng), 900, q=0.7) * s.attack_decay(n, 0.0005, 0.02)
+    return s.saturate(body + 0.6 * knock + 0.4 * grit, 3.0 if heavy else 2.0)
 
 
 def fist(rng, w, v):
@@ -194,21 +227,26 @@ class Recipe:
     lofi: dict = field(default_factory=dict)
 
 
-# Loudness targets are relative to one another: the board's impacts sit around -16,
-# the flips and the click well below, since they come four at a time or on every
-# menu press. Heavier weights are a little louder as well as deeper.
+# Loudness targets, K-weighted (as heard: see synth.loudness_db), relative to one another.
+#
+# Round 1 set them. The first render was levelled by plain RMS, which heard the old thud
+# 7 dB under the blade it sits beneath and the flips louder than the click, and the user
+# flagged exactly those. Every sound the user did not flag keeps the level it was heard at
+# in round 1, re-measured this way. The blade keeps its level under its new sound. The
+# thud now sits level with the blade (heavy) and a notch under (light). The flips are
+# about 3.5 dB under where they were heard.
 RECIPES = (
-    Recipe("click", click, 1, target_db=(-24,), max_seconds=0.12),
-    Recipe("flip", flip, 3, target_db=(-24,), max_seconds=0.10),
-    Recipe("sweep", sweep, 1, target_db=(-22,), max_seconds=0.45),
-    Recipe("equip", equip, 1, WEIGHTS, (-18, -17, -16), max_seconds=0.8),
-    Recipe("blade", blade, 2, WEIGHTS, (-17, -16, -15), max_seconds=0.6, lofi={"cutoff": 9500}),
-    Recipe("thud", thud, 2, ("light", "heavy"), (-20, -18), max_seconds=0.5,
+    Recipe("click", click, 1, target_db=(-23,), max_seconds=0.12),
+    Recipe("flip", flip, 3, target_db=(-25,), max_seconds=0.10),
+    Recipe("sweep", sweep, 1, target_db=(-18.5,), max_seconds=0.45),
+    Recipe("equip", equip, 1, WEIGHTS, (-16.5, -16, -15.5), max_seconds=0.8),
+    Recipe("blade", blade, 2, WEIGHTS, (-13.5, -13, -12.5), max_seconds=0.6, lofi={"cutoff": 9500}),
+    Recipe("thud", thud, 2, ("light", "heavy"), (-15, -12.5), max_seconds=0.5,
            lofi={"hold_rate": 14000, "cutoff": 6000}),
-    Recipe("fist", fist, 2, WEIGHTS, (-17, -16, -15), max_seconds=0.6,
+    Recipe("fist", fist, 2, WEIGHTS, (-17.5, -17, -16.5), max_seconds=0.6,
            lofi={"hold_rate": 16000, "cutoff": 7000}),
     Recipe("drink", drink, 1, WEIGHTS, (-20, -19, -18), max_seconds=0.8),
-    Recipe("spill", spill, 1, target_db=(-21,), max_seconds=0.8),
+    Recipe("spill", spill, 1, target_db=(-17.5,), max_seconds=0.8),
     Recipe("chime", chime, 1, target_db=(-18,), max_seconds=2.0, lofi={"cutoff": 10000, "bits": 11}),
 )
 

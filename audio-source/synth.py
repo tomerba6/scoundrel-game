@@ -204,16 +204,43 @@ def rms_db(x):
     return 20 * math.log10(value) if value > 0 else -math.inf
 
 
+def high_shelf(x, freq, gain_db, q):
+    """RBJ high shelf."""
+    a = 10 ** (gain_db / 40)
+    cos_w, alpha = _coefficients(freq, q)
+    root = 2 * math.sqrt(a) * alpha
+    return _biquad(x,
+                   a * ((a + 1) + (a - 1) * cos_w + root),
+                   -2 * a * ((a - 1) + (a + 1) * cos_w),
+                   a * ((a + 1) + (a - 1) * cos_w - root),
+                   (a + 1) - (a - 1) * cos_w + root,
+                   2 * ((a - 1) - (a + 1) * cos_w),
+                   (a + 1) - (a - 1) * cos_w - root)
+
+
+def k_weight(x):
+    """ITU-R BS.1770's K-weighting: how much of a signal's energy the ear counts as
+    loudness. A shelf lifts everything above ~1.7 kHz by 4 dB and a high-pass takes
+    out the deep bass, the range a small speaker cannot play and an ear barely
+    weighs. Parameters as pyloudnorm derives them for any sample rate.
+
+    Plain RMS scored a sub-bass thud as loud as a mid-range hit of the same energy;
+    in round 1 that thud was all but inaudible."""
+    x = high_shelf(x, 1681.974450955533, 3.99984385397, 0.7071752369554193)
+    return highpass(x, 38.13547087613982, 0.5003270373253953)
+
+
 def loudness_db(x, window=0.05, hop=0.005):
-    """The loudest 50 ms of a sound, as RMS dBFS. Short effects are judged by their
-    peak moment, not their average, so a long quiet tail doesn't make a sound
-    measure quieter than it is heard."""
+    """How loud a sound is heard: the loudest 50 ms of its K-weighted signal, in dB.
+    Short effects are judged by their peak moment, not their average, so a long
+    quiet tail doesn't make a sound measure quieter than it is heard."""
+    k = k_weight(x)
     w, h = samples(window), samples(hop)
-    if len(x) <= w:
-        return rms_db(x)
+    if len(k) <= w:
+        return rms_db(k)
     best = 0.0
-    for start in range(0, len(x) - w + 1, h):
-        best = max(best, float(np.mean(np.square(x[start:start + w]))))
+    for start in range(0, len(k) - w + 1, h):
+        best = max(best, float(np.mean(np.square(k[start:start + w]))))
     return 10 * math.log10(best) if best > 0 else -math.inf
 
 

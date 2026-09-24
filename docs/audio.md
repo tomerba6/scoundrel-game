@@ -200,11 +200,17 @@ no-device check are planned.
     Vorbis overshoots by about 0.2 dB.
   - At most 5 ms of silence at the start of a sound effect.
   - Tails decay to silence, with no DC offset.
-  - **Each sound effect has a loudness target**, measured as its loudest 50 ms, and they're set
-    relative to one another. The board's impacts sit around −16 dBFS (heavier weights 1 dB
-    louder per step). The flips and the click are at −24, because they come four at a time or
-    on every menu press. The chime is at −18. The live values are in
-    `audio-source/recipes.py`, and they get tuned by ear.
+  - **Each sound effect has a loudness target, measured as heard**: its loudest 50 ms after
+    ITU-R BS.1770 K-weighting. The weighting counts deep bass for less and the range above
+    about 2 kHz for more, the way the ear does. Plain RMS, used first, left the thud 7 dB
+    under the blade it plays beneath, and round 1 heard it as barely there.
+  - **Targets are relative to one another:**
+    - The weapon kill's blade and thud are the loudest, around −13 dBFS as heard.
+    - The equip, fist, sweep, spill, drink and chime sit between −15.5 and −20.
+    - The click is at −23 and the flips at −25, because they come on every menu press or four
+      at a time.
+
+    The live values are in `audio-source/recipes.py`, tuned by ear.
   - Music sits below the sound effects.
 
 ## Architecture
@@ -338,7 +344,7 @@ author and licence recorded on replacement.
 
 | Files | Status | Source | Licence |
 |---|---|---|---|
-| `sfx/*` (29) | placeholder (`81cc0a3`), awaiting round 1 | synth | ours |
+| `sfx/*` (29) | placeholder (`81cc0a3`). Round 1: flips, blade and thud rebuilt; re-listen pending | synth | ours |
 | `ambience/torch` | planned | synth | ours |
 | `music/menu`, `music/run` | planned | synth | ours; most likely to be replaced |
 | `music/win`, `music/death` | planned | synth | ours |

@@ -119,6 +119,13 @@ scenes that behave the way the game will. Claude built them without hearing them
   <li>Does anything <b>grate on repeat</b> (the scenes with eight in a row)?</li>
   <li>Is the <b>loudness even</b> — nothing jumping out, nothing lost?</li>
 </ol>
+<section class="scene"><h3>Changed since your first listen</h3>
+  <p><b>Flips</b>: softer and lower — a papery settle instead of a snap — with a slower attack, versions
+  that differ in shape, and 3.4 dB quieter. <b>Weapon kill</b>: rebuilt as a slice — a swoosh of air
+  into a thin 'shing' that swells in, no struck ring and no thump. <b>Thud</b>: rebuilt with a hollow
+  knock at 300–520 Hz that small speakers can play, and 6–7 dB louder: level with the blade it sits under.
+  Everything else is within 0.2 dB of what you heard. Loudness is now measured the way the ear
+  weighs it (ITU-R BS.1770), which is why the thud read as "loud enough" on paper before.</p></section>
 <div class="bar">
   <label>volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8"></label>
   <label><input id="vary" type="checkbox" checked> game variation (versions, ±pitch, quieter)</label>
