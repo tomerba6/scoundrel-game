@@ -108,6 +108,13 @@ test {
   if (referenceArt.isDirectory()) {
     inputs.dir(referenceArt).withPathSensitivity(PathSensitivity.RELATIVE)
   }
+  // And again for AudioAssetsTest, which holds the committed sound files under
+  // assets/audio to the Sound contract: a re-render or a stray file there must
+  // re-run it, or the check that nothing unexpected ships goes quiet.
+  def shippedAudio = rootProject.file('assets/audio')
+  if (shippedAudio.isDirectory()) {
+    inputs.dir(shippedAudio).withPathSensitivity(PathSensitivity.RELATIVE)
+  }
 }
 
 jacocoTestReport {
