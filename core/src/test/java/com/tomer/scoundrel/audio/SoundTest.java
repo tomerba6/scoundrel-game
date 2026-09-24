@@ -76,6 +76,24 @@ class SoundTest {
     }
 
     @Test
+    void theFlipCanSoundOnceForEveryCardOfADeal() {
+        // A deal's flips overlap by design (the riffle): four cards, four voices.
+        assertEquals(4, Sound.FLIP.voices());
+    }
+
+    @Test
+    void aSoundHeardOftenCanOverlapItselfOnceAndTheChimeNever() {
+        // Fast play lands a second kill while the first still rings; cutting it off
+        // would click. A second chime on top of the first would only be louder.
+        for (Sound sound : Sound.values()) {
+            if (sound != Sound.FLIP && sound != Sound.CHIME) {
+                assertEquals(2, sound.voices(), sound.name());
+            }
+        }
+        assertEquals(1, Sound.CHIME.voices());
+    }
+
+    @Test
     void aSfxKnowsWhereItsFileShips() {
         Sfx sfx = new Sfx(Sound.BLADE, "blade_light_2", 1f, 1f);
         assertEquals("audio/sfx/blade_light_2.wav", sfx.path());

@@ -87,6 +87,21 @@ public enum Sound {
         return this == FLIP;
     }
 
+    /**
+     * How many copies of this sound may play at once; a new one past that stops
+     * the oldest. Four flips, because a deal's four overlap by design — the
+     * riffle. One chime, because a second on top of the first is only louder.
+     * Two of everything else: fast play lands a second kill while the first
+     * still rings, and cutting it off mid-ring would click.
+     */
+    public int voices() {
+        return switch (this) {
+            case FLIP -> 4;
+            case CHIME -> 1;
+            default -> 2;
+        };
+    }
+
     /** The file stem of an unweighted sound: {@code click}. */
     public String stem() {
         if (scale != null) {
