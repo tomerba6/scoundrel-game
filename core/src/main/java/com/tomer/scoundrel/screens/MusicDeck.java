@@ -12,9 +12,7 @@ import com.tomer.scoundrel.audio.MusicDirector.Restart;
 import com.tomer.scoundrel.audio.MusicDirector.Track;
 import com.tomer.scoundrel.audio.StreamFile;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -48,13 +46,6 @@ public final class MusicDeck implements Disposable {
     private final Map<Track, Float> lastGain = new EnumMap<>(Track.class);
     private final Map<Cue, Float> lastCueGain = new EnumMap<>(Cue.class);
     private float lastLight = 1f;
-
-    /** Minimised: nothing plays, and what was playing waits in {@link #held}. */
-    private boolean paused;
-    private final List<Music> held = new ArrayList<>();
-    private float pausedSeconds;
-    private int pausedFrames;
-    private boolean reported;
 
     public MusicDeck(SoundBank sounds, MusicDirector director) {
         this.sounds = sounds;
@@ -95,6 +86,14 @@ public final class MusicDeck implements Disposable {
     }
 
     /**
+     * For the sound log only: the window went down or came back. Nothing changes —
+     * the audio plays on with the picture, which LibGDX keeps rendering.
+     */
+    public void windowMinimised(boolean minimised) {
+        sounds.log(minimised ? "window minimised (or closing): the audio plays on" : "window restored");
+    }
+
+    /**
      * One frame: moves the director on, carries out what it asks for, and sets every
      * stream's volume.
      *
@@ -102,11 +101,6 @@ public final class MusicDeck implements Disposable {
      * @param torchLight how brightly the torch is drawn, 0..1 — the death gutters it
      */
     public void update(float delta, boolean boardIdle, float torchLight) {
-        // Minimised, the frame goes on - LibGDX keeps rendering - and so does the
-        // director, in step with the picture; only the playing is held back.
-        if (paused) {
-            reportWhileMinimised(delta);
-        }
         for (Command command : director.tick(delta, boardIdle)) {
             carryOut(command);
         }
@@ -120,7 +114,7 @@ public final class MusicDeck implements Disposable {
             }
             float volume = gain * musicGain;
             music.setVolume(volume);
-            if (volume > 0f && !music.isPlaying() && !paused) {
+            if (volume > 0f && !music.isPlaying()) {
                 music.play();
             } else if (volume <= 0f && music.isPlaying()) {
                 music.pause();
@@ -143,57 +137,9 @@ public final class MusicDeck implements Disposable {
         Music torch = loaded.get(StreamFile.TORCH);
         if (torch != null) {
             torch.setVolume(soundGain * torchLight);
-            if (!torch.isPlaying() && !paused) {
+            if (!torch.isPlaying()) {
                 torch.play();
             }
-        }
-    }
-
-    /**
-     * The window went down: everything playing stops where it is, and nothing
-     * starts until {@link #resume}. LibGDX only tells the game; it does not quiet
-     * the audio itself, and it keeps calling {@link #update} while minimised.
-     */
-    public void pause() {
-        if (paused) {
-            return;
-        }
-        paused = true;
-        pausedSeconds = 0f;
-        pausedFrames = 0;
-        reported = false;
-        held.clear();
-        for (Music music : loaded.values()) {
-            if (music.isPlaying()) {
-                music.pause();
-                held.add(music);
-            }
-        }
-        sounds.log("minimised: holding " + held.size() + " streams");
-    }
-
-    /** The window is back: what was held picks up where it stopped. */
-    public void resume() {
-        if (!paused) {
-            return;
-        }
-        paused = false;
-        sounds.log(String.format(Locale.ROOT, "restored after %.1f s (%d frames): playing %d held streams",
-                pausedSeconds, pausedFrames, held.size()));
-        for (Music music : held) {
-            music.play();
-        }
-        held.clear();
-    }
-
-    /** For the log: that the frames went on while minimised, and that nothing played. */
-    private void reportWhileMinimised(float delta) {
-        pausedSeconds += delta;
-        pausedFrames++;
-        if (!reported && pausedSeconds >= 1f && sounds.logging()) {
-            reported = true;
-            long playing = loaded.values().stream().filter(Music::isPlaying).count();
-            sounds.log("minimised 1 s: " + pausedFrames + " frames, " + playing + " streams playing");
         }
     }
 
@@ -216,11 +162,7 @@ public final class MusicDeck implements Disposable {
                 }
                 music.stop();
                 music.setVolume(musicGain);
-                if (paused) {
-                    held.add(music); // it starts when the window comes back
-                } else {
-                    music.play();
-                }
+                music.play();
             }
         }
     }

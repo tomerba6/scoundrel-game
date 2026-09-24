@@ -38,8 +38,6 @@ public final class SoundBank implements Disposable {
     private final SfxChoice choice = new SfxChoice(System.nanoTime());
     private final AudioLog log = AudioLog.fromLaunch();
     private float gain = AudioSettings.DEFAULTS.soundGain();
-    /** Minimised: see {@link #pause}. */
-    private boolean paused;
 
     public SoundBank() {
         for (String name : Sound.allFiles()) {
@@ -64,33 +62,13 @@ public final class SoundBank implements Disposable {
         this.gain = gain;
     }
 
-    /**
-     * The window went down: whatever is sounding stops where it is, and nothing new
-     * starts until {@link #resume} — the board goes on animating while minimised,
-     * and a moment missed while nobody is looking is not worth replaying.
-     */
-    public void pause() {
-        paused = true;
-        for (com.badlogic.gdx.audio.Sound sound : loaded.values()) {
-            sound.pause();
-        }
-    }
-
-    /** The window is back: what was cut off finishes. */
-    public void resume() {
-        paused = false;
-        for (com.badlogic.gdx.audio.Sound sound : loaded.values()) {
-            sound.resume();
-        }
-    }
-
     /** Plays a sound now. Past its voice limit, the oldest copy stops first. */
     public void play(Sfx sfx) {
         float volume = gain * sfx.volume();
         com.badlogic.gdx.audio.Sound sound = loaded.get(sfx.file());
         log.log(String.format(Locale.ROOT, "play %s pitch=%.3f vol=%.3f%s", sfx.file(), sfx.pitch(), volume,
-                sound == null ? " (not loaded)" : paused ? " (minimised, skipped)" : ""));
-        if (sound == null || volume <= 0f || paused) {
+                sound == null ? " (not loaded)" : ""));
+        if (sound == null || volume <= 0f) {
             return;
         }
         try {

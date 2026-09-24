@@ -108,23 +108,21 @@ public class ScoundrelGame extends Game {
     }
 
     /**
-     * The window was minimised. LibGDX calls this and keeps rendering, audio and
-     * all, so the audio is held here: the music and the sounds stop where they are
-     * until {@link #resume}.
+     * The window was minimised (or is closing). The audio plays on, in step with
+     * the picture, which LibGDX keeps rendering: holding it back until the window
+     * returned put a death cue minutes after the death it belonged to. Only
+     * logged, so the sound log shows what played while the window was down.
      */
     @Override
     public void pause() {
         super.pause();
-        musicDeck.pause();
-        sounds.pause();
+        musicDeck.windowMinimised(true);
     }
 
-    /** The window is back: the audio picks up where it stopped. */
     @Override
     public void resume() {
         super.resume();
-        sounds.resume();
-        musicDeck.resume();
+        musicDeck.windowMinimised(false);
     }
 
     private void toggleFullscreen() {
