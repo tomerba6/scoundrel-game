@@ -17,8 +17,8 @@ intent and progress. **This file is the record of what ships.**
 >   in listening rounds 1 (heard alone) and 2 (in play).
 > - **The placeholder music, both cues and the torch loop,** in `assets/audio/music/` and
 >   `ambience/` (`c62b309`), playing in the game (`4d0a625`) and verified from the in-game sound
->   log. **Listening round 3's first pass** rebuilt the torch and the fist and brought the
->   music down a notch; **the re-listen is pending.**
+>   log. **Signed off by ear in listening round 3**, after one pass that rebuilt the torch and
+>   the fist and brought the music down a notch (`8af222e`).
 > - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`, `f6b11d4`, `29bb050`), which
 >   decides what each moment sounds like and sequences the music. The volume settings are built
 >   but not yet wired in.
@@ -145,8 +145,8 @@ The beats are read from the effect classes, which run at 12 fps (one frame = 83 
 ## Music and ambience
 
 **Status: shipped** (`c62b309`, `4d0a625`, `29bb050`). Every sequence below was verified from the
-in-game sound log, the death and win through the F9 lab. Listening round 3's first pass is
-applied (the torch rebuilt, the music a notch down); the re-listen is pending.
+in-game sound log, the death and win through the F9 lab. Signed off in listening round 3, after
+the torch was rebuilt and the music brought down a notch (`8af222e`).
 
 **Placeholder composition** (`audio-source/music.py`, where the note data lives):
 
@@ -402,16 +402,16 @@ author and licence recorded on replacement.
 
 | Files | Status | Source | Licence |
 |---|---|---|---|
-| `sfx/*` (29) | **approved** in round 1 (heard alone; the flips, blade and thud were rebuilt on the way) and round 2 (in play), 2026-09-24. `fist_*` (6) were rebuilt and raised in round 3 ("very silent"), and their re-listen is pending | synth | ours |
-| `ambience/torch` | placeholder (`c62b309`), rebuilt in round 3 ("too much white noise, not enough crackle"); re-listen pending | synth | ours |
-| `music/menu`, `music/run` | placeholder (`c62b309`), a notch quieter after round 3's first pass; re-listen pending | synth | ours; most likely to be replaced |
-| `music/win`, `music/death` | placeholder (`c62b309`), a notch quieter after round 3's first pass; re-listen pending | synth | ours |
+| `sfx/*` (29) | **approved** in round 1 (heard alone; the flips, blade and thud were rebuilt on the way) and round 2 (in play), 2026-09-24. `fist_*` (6) were rebuilt and raised in round 3 ("very silent", `8af222e`) and approved there | synth | ours |
+| `ambience/torch` | **approved** in round 3, 2026-09-24, after a rebuild ("too much white noise, not enough crackle", `8af222e`) | synth | ours |
+| `music/menu`, `music/run` | **approved** in round 3, 2026-09-24, a notch quieter (`8af222e`) | synth | ours; most likely to be replaced |
+| `music/win`, `music/death` | **approved** in round 3, 2026-09-24, a notch quieter (`8af222e`) | synth | ours |
 
 ## Verification
 
 **Status:** the unit tests, `AudioAssetsTest`, `check.py` and the in-game sound log are in force
-for the sound effects. Listening rounds 1 (heard alone) and 2 (in play) signed them off; round 3
-(music) is under way.
+for the sound effects and streams. Listening rounds 1 (heard alone), 2 (in play) and 3 (the
+music, cues and torch) signed them off.
 
 - **Pure logic is unit-tested first:** weights, versions, event-to-sound mapping, pending cues,
   the music director, and settings. Eight test classes in `core/src/test/java/.../audio`, plus
