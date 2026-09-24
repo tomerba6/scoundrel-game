@@ -18,6 +18,7 @@ import com.tomer.scoundrel.achievements.AchievementTracker;
 import com.tomer.scoundrel.achievements.Achievements;
 import com.tomer.scoundrel.achievements.RunSummary;
 import com.tomer.scoundrel.achievements.UnlockedAchievement;
+import com.tomer.scoundrel.audio.Sfx;
 import com.tomer.scoundrel.model.Card;
 import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.model.EquippedWeapon;
@@ -131,7 +132,7 @@ public final class GameScreen extends PixelScreen {
         this.tutorial = tutorial;
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
-        this.board = new BoardView(theme, sprites);
+        this.board = new BoardView(theme, sprites, game.sounds());
         this.hud = new BoardHud(theme);
         startRun();
         board.dealFresh(state.room());
@@ -164,7 +165,7 @@ public final class GameScreen extends PixelScreen {
             // button — but only the run end is modal. The tutorial's callout
             // deliberately lets everything except Skip and Next through, since
             // playing the board is the whole point of it.
-            if (press.press(overlayHit(screenX, screenY)) || endSummary != null) {
+            if (pressAt(overlayHit(screenX, screenY)) || endSummary != null) {
                 return true;
             }
             Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
@@ -293,6 +294,16 @@ public final class GameScreen extends PixelScreen {
     @Override
     protected int hit(int screenX, int screenY) {
         return overlayHit(screenX, screenY);
+    }
+
+    /**
+     * The end panel's buttons click, like any menu's: the run is over. The
+     * tutorial callout's SKIP and NEXT do not — they are pressed mid-run, where
+     * buttons are silent (the ids below {@code -1}).
+     */
+    @Override
+    protected boolean clicks(int target) {
+        return target >= 0;
     }
 
     @Override
@@ -1024,13 +1035,19 @@ public final class GameScreen extends PixelScreen {
      * The effect is chosen purely by move type; the rest is the wiring. Every
      * one of them ends by dealing the room back in, so a refill follows without
      * being asked for.
+     *
+     * <p>So is the sound: what the move sounds like is decided from its events
+     * ({@code SfxChoice}), the blade weighted by the weapon that was held when the
+     * move was made, and the board holds it for the effect's beat.
      */
     private void playEffect(Move move, MoveResult result, List<Card> roomBefore, boolean fatal) {
+        List<Sfx> sfx = game.sounds().choice().forEvents(result.events(),
+                weaponBeforeMove == null ? 0 : weaponBeforeMove.weapon().value());
         switch (ResolveEffect.of(move)) {
-            case AVOID -> board.playSweep(roomBefore);
-            case STRIKE -> board.playStrike(((Move.FightBarehanded) move).targetCard(), fatal);
-            case SLICE -> board.playSlice(((Move.FightWithWeapon) move).targetCard(), fatal);
-            case EQUIP -> board.playEquip(((Move.TakeWeapon) move).targetCard());
+            case AVOID -> board.playSweep(roomBefore, sfx);
+            case STRIKE -> board.playStrike(((Move.FightBarehanded) move).targetCard(), fatal, sfx);
+            case SLICE -> board.playSlice(((Move.FightWithWeapon) move).targetCard(), fatal, sfx);
+            case EQUIP -> board.playEquip(((Move.TakeWeapon) move).targetCard(), sfx);
             case POTION -> {
                 Card drunk = ((Move.TakePotion) move).targetCard();
                 boolean wasted = result.events().stream()
@@ -1039,9 +1056,9 @@ public final class GameScreen extends PixelScreen {
                 // stood. Sending it to a bar that then does not move read as the
                 // heal being broken rather than as the potion being wasted.
                 if (wasted) {
-                    board.playSpill(drunk);
+                    board.playSpill(drunk, sfx);
                 } else {
-                    board.playPotion(drunk, this::startHeal);
+                    board.playPotion(drunk, this::startHeal, sfx);
                 }
             }
         }

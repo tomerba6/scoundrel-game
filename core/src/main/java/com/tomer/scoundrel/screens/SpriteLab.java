@@ -11,9 +11,11 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
+import com.tomer.scoundrel.audio.Sfx;
 import com.tomer.scoundrel.model.Card;
 import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.rules.CardDefinition;
+import com.tomer.scoundrel.rules.GameEvent;
 import com.tomer.scoundrel.rules.StandardDeck;
 
 import java.util.ArrayList;
@@ -39,6 +41,9 @@ public final class SpriteLab extends ScreenAdapter {
     /** And 14 down to 6, so a hit has several segments to drain through. */
     private static final int HIT_FROM = 148;
     private static final int HIT_TO = 64;
+
+    /** The room's weapon (the 7 of diamonds), which the lab's kills are made with. */
+    private static final int LAB_WEAPON = 7;
 
     /** ROOM shows four framed cards; SHEET shows every object by rank. */
     private enum View { ROOM, SHEET }
@@ -69,7 +74,7 @@ public final class SpriteLab extends ScreenAdapter {
         this.game = game;
         this.theme = theme;
         this.sprites = sprites;
-        this.board = new BoardView(theme, sprites);
+        this.board = new BoardView(theme, sprites, game.sounds());
         this.hud = new BoardHud(theme);
         // One fixed virtual resolution, so the layout numbers are literal and
         // the art is guaranteed to land on whole pixels.
@@ -180,7 +185,7 @@ public final class SpriteLab extends ScreenAdapter {
             List<Card> outgoing = board.room();
             board.beginMove();
             board.setRoom(room());
-            board.playSweep(outgoing);
+            board.playSweep(outgoing, sound(new GameEvent.RoomAvoided(outgoing)));
         }
         if (hovered == null) {
             return true;
@@ -190,21 +195,35 @@ public final class SpriteLab extends ScreenAdapter {
             killerSlotX = board.slotX(board.room().indexOf(hovered));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
-            without(hovered, () -> board.playSlice(hovered));
+            int through = Math.max(0, hovered.value() - LAB_WEAPON);
+            without(hovered, () -> board.playSlice(hovered, false,
+                    sound(new GameEvent.MonsterDefeated(hovered, true, through))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
-            without(hovered, () -> board.playStrike(hovered));
+            without(hovered, () -> board.playStrike(hovered, false,
+                    sound(new GameEvent.MonsterDefeated(hovered, false, hovered.value()))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.E) && hovered.type() == CardType.WEAPON) {
-            without(hovered, () -> board.playEquip(hovered));
+            without(hovered, () -> board.playEquip(hovered, sound(new GameEvent.WeaponEquipped(hovered))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) && hovered.type() == CardType.POTION) {
-            without(hovered, () -> board.playPotion(hovered, () -> healElapsed = 0f));
+            without(hovered, () -> board.playPotion(hovered, () -> healElapsed = 0f,
+                    sound(new GameEvent.PotionUsed(hovered, hovered.value()))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.W) && hovered.type() == CardType.POTION) {
-            without(hovered, () -> board.playSpill(hovered));
+            without(hovered, () -> board.playSpill(hovered, sound(new GameEvent.PotionWasted(hovered))));
         }
         return true;
+    }
+
+    /**
+     * What an effect sounds like here: the game's own choice, from the event the
+     * game would have reported, so the lab is a listening instrument as well as a
+     * looking one. Kills are made with the room's own weapon, the 7 of diamonds —
+     * the ten lets 3 through (a light thud), the queen 5 (a heavy one).
+     */
+    private List<Sfx> sound(GameEvent event) {
+        return game.sounds().choice().forEvents(List.of(event), LAB_WEAPON);
     }
 
     /**

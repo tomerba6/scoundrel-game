@@ -15,6 +15,7 @@ import com.tomer.scoundrel.tutorial.TutorialScript;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.ModeSelectScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
+import com.tomer.scoundrel.screens.SoundBank;
 import com.tomer.scoundrel.screens.SpriteLab;
 import com.tomer.scoundrel.screens.Sprites;
 import com.tomer.scoundrel.screens.Theme;
@@ -35,6 +36,7 @@ public class ScoundrelGame extends Game {
 
     private Theme theme;
     private Sprites sprites;
+    private SoundBank sounds;
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
@@ -47,6 +49,7 @@ public class ScoundrelGame extends Game {
     public void create() {
         theme = new Theme();
         sprites = new Sprites();
+        sounds = new SoundBank();
         Path home = Path.of(System.getProperty("user.home"), ".scoundrel");
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
@@ -84,6 +87,11 @@ public class ScoundrelGame extends Game {
             Gdx.graphics.setWindowedMode(desktop.width, desktop.height);
         }
         fullscreen = !fullscreen;
+    }
+
+    /** The sound effects, shared by every screen like the theme and the sprites. */
+    public SoundBank sounds() {
+        return sounds;
     }
 
     public void showTitle() {
@@ -151,5 +159,6 @@ public class ScoundrelGame extends Game {
         }
         sprites.dispose();
         theme.dispose();
+        sounds.dispose();
     }
 }

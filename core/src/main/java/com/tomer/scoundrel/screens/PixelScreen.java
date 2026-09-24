@@ -105,6 +105,30 @@ public abstract class PixelScreen extends ScreenAdapter {
         batch.dispose();
     }
 
+    /**
+     * A press went down on {@code target}: the plate sinks, and — if it is a button
+     * that clicks — the click plays now, with the sink, rather than on release when
+     * the button acts. The sound goes with the picture. Returns whether the press
+     * landed on a target, as {@link PressGesture#press} does.
+     */
+    protected final boolean pressAt(int target) {
+        boolean landed = press.press(target);
+        if (landed && clicks(target)) {
+            SoundBank sounds = game.sounds();
+            sounds.play(sounds.choice().click());
+        }
+        return landed;
+    }
+
+    /**
+     * Whether a press on this target clicks. Every menu button does; the board
+     * overrides it, because buttons pressed during a run are silent — the sound
+     * of what they do follows at once.
+     */
+    protected boolean clicks(int target) {
+        return true;
+    }
+
     /** A window-space point in the 1280×720 design space. */
     protected final Vector2 unproject(int screenX, int screenY) {
         return viewport.unproject(new Vector2(screenX, screenY));
@@ -160,7 +184,7 @@ public abstract class PixelScreen extends ScreenAdapter {
             if (button != Input.Buttons.LEFT) {
                 return false;
             }
-            return press.press(hit(screenX, screenY)) || modal();
+            return pressAt(hit(screenX, screenY)) || modal();
         }
 
         @Override
