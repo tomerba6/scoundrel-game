@@ -98,4 +98,11 @@ class FeedTextTest {
         // Defensive branch: a card whose id ends in no known suit letter.
         assertEquals("monster 2", FeedText.cardName(monster("2X", 2)));
     }
+
+    /** M during a run says what it did, since there is nothing else to see (decision 7). */
+    @Test
+    void theMuteKeySaysWhetherTheSoundIsOffOrOn() {
+        assertEquals("Sound off", FeedText.mute(true));
+        assertEquals("Sound on", FeedText.mute(false));
+    }
 }

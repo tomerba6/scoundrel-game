@@ -40,6 +40,11 @@ final class FeedText {
         };
     }
 
+    /** M during a run: nothing on the board changes, so the feed says what it did. */
+    static String mute(boolean muted) {
+        return muted ? "Sound off" : "Sound on";
+    }
+
     /** "the Queen of clubs", "the 7 of hearts" — the fonts have no suit glyphs. */
     static String cardName(Card card) {
         String id = card.id();
