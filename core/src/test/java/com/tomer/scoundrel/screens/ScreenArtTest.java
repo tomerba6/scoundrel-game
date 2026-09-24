@@ -434,11 +434,11 @@ class ScreenArtTest {
                 "the back plate's height: settings, not places to go");
     }
 
-    /** Neither the row nor the muted caption under it may reach the credit line. */
+    /** Neither the row nor the M line under it may reach the credit line. */
     @Test
     void theAudioRowAndItsCaptionClearTheCredit() {
-        assertTrue(ScreenArt.AUDIO_Y + ScreenArt.AUDIO_H < ScreenArt.MUTED_TOP);
-        assertTrue(ScreenArt.MUTED_TOP + PixelType.SMALL < ScreenArt.CREDIT_TOP);
+        assertTrue(ScreenArt.AUDIO_Y + ScreenArt.AUDIO_H < ScreenArt.MUTE_HINT_TOP);
+        assertTrue(ScreenArt.MUTE_HINT_TOP + PixelType.SMALL < ScreenArt.CREDIT_TOP);
     }
 
     @Test

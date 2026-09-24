@@ -145,4 +145,14 @@ class LabelsTest {
         assertEquals("WEAPON", Labels.cardType(CardType.WEAPON));
         assertEquals("POTION", Labels.cardType(CardType.POTION));
     }
+
+    /**
+     * The line under the title's volume plates is always there, since nothing
+     * else says M exists; muted, it says why everything is quiet.
+     */
+    @Test
+    void theLineUnderTheVolumePlatesTellsWhatMDoes() {
+        assertEquals("M TO MUTE ALL", Labels.muteHint(false));
+        assertEquals("MUTED · M TO UNMUTE", Labels.muteHint(true));
+    }
 }

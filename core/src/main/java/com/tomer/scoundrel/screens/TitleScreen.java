@@ -45,8 +45,6 @@ public final class TitleScreen extends PixelScreen {
      * suits are separate drawings, not a recolour.
      */
     private static final String PORTRAIT_STEM = "creature_14_the_debt_clubs_idle";
-    /** Under the volume plates while M has silenced everything, or nothing says why. */
-    private static final String MUTED = "MUTED · M TO UNMUTE";
 
     /** The volume plates' targets, after the menu's four in the same index space. */
     private static final int MUSIC_PLATE = 4;
@@ -247,8 +245,9 @@ public final class TitleScreen extends PixelScreen {
     }
 
     /**
-     * MUSIC and SOUND, one row under the menu, each showing its level as pips. Not
-     * in the mock, which has no audio: built from the menu's own measures and parts.
+     * MUSIC and SOUND, one row under the menu, each showing its level as pips, and
+     * under them the line that says what M does. Not in the mock, which has no
+     * audio: built from the menu's own measures and parts.
      */
     private void drawVolume(int sunk) {
         AudioSettings volume = game.audioSettings();
@@ -256,11 +255,9 @@ public final class TitleScreen extends PixelScreen {
                 sunk == MUSIC_PLATE);
         chrome.levelPlate(batch, ScreenArt.audioPlateX(1), "SOUND", volume.sound(), volume.muted(),
                 sunk == SOUND_PLATE);
-        if (volume.muted()) {
-            chrome.centredOn(batch, theme.pixelSmall, MUTED,
-                    ScreenArt.COLUMN_X + ScreenArt.BUTTON_W / 2, ScreenArt.MUTED_TOP,
-                    ScreenArt.BODY, ScreenArt.BODY_ALPHA);
-        }
+        chrome.centredOn(batch, theme.pixelSmall, Labels.muteHint(volume.muted()),
+                ScreenArt.COLUMN_X + ScreenArt.BUTTON_W / 2, ScreenArt.MUTE_HINT_TOP,
+                ScreenArt.BODY, ScreenArt.BODY_ALPHA);
     }
 
     // --- the first-run prompt ---

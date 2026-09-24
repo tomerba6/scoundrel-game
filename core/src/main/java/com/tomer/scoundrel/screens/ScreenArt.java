@@ -114,8 +114,8 @@ final class ScreenArt {
     static final int AUDIO_H = ScreenArt.BACK_H;
     /** Inside the bevel: before the label on the left, after the last pip on the right. */
     static final int AUDIO_PAD = 10;
-    /** "MUTED · M TO UNMUTE", under the row, only while M has silenced everything. */
-    static final int MUTED_TOP = AUDIO_Y + AUDIO_H + 12;
+    /** The line under the row that says what M does ({@link Labels#muteHint}). */
+    static final int MUTE_HINT_TOP = AUDIO_Y + AUDIO_H + 12;
     /** A level is three pips, whole-pixel bars; a pip lit per step. */
     static final int PIP_W = 6;
     static final int PIP_H = 12;
