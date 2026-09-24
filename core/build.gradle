@@ -132,6 +132,7 @@ jacocoTestCoverageVerification {
         'com.tomer.scoundrel.runs',
         'com.tomer.scoundrel.achievements',
         'com.tomer.scoundrel.tutorial',
+        'com.tomer.scoundrel.audio',
       ]
       limit { counter = 'LINE';   value = 'COVEREDRATIO'; minimum = 0.90 }
       limit { counter = 'BRANCH'; value = 'COVEREDRATIO'; minimum = 0.75 }
