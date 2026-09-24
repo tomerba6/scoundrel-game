@@ -347,6 +347,10 @@ to 8.
   unlocked nothing drops the rule and the trophy band and shrinks by 114, rather
   than leaving a hole. Its four buttons are sized by their labels and centred as
   a row (`ButtonRow`) on the panel, not the stage.
+  - **Each unlocked trophy's row:** its seal, its name, and its deed. The deed wraps
+    (`TextWrap`) to the rule's right end (`ScreenArt.END_TEXT_RIGHT`) in at most two lines,
+    which share the seal's height. Drawn as one unbounded line, Rock Bottom's ran about
+    65 px off the panel (`069b190`).
 - **TUTORIAL overlay** — the board under the lighter **veil** (half the modal
   dim: what the step is telling you to click has to stay readable), the taught
   card ringed by eight 24×4 corner ticks, and the narration in a callout that
