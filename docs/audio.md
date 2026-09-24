@@ -11,9 +11,12 @@ intent and progress. **This file is the record of what ships.**
 
 > ## Where this stands, 2026-09-24
 >
-> **No audio ships yet.** There is no audio code, no audio file and no audio library in the
-> game. The one thing that exists is the synthesis toolchain's pinned requirements
-> (`audio-source/requirements.txt`, commit `6d2e267`).
+> **Nothing plays yet.** The game makes no sound: there's no audio file, and no screen calls
+> audio code. Two things exist:
+> - The synthesis toolchain's pinned requirements (`audio-source/requirements.txt`, `6d2e267`).
+> - The pure `audio` package, built and tested (`e49a6bb`…`b8e7f74`) but not yet wired in. It
+>   decides which sound each moment makes, holds sounds for their beats, sequences the music,
+>   and keeps the volume settings.
 >
 > Every section below carries a **Status** line. It says **planned** until the part is built,
 > then **shipped** with the commit that shipped it. A section marked *planned* describes a
@@ -44,7 +47,8 @@ intent and progress. **This file is the record of what ships.**
 
 ## The sounds
 
-**Status: planned.**
+**Status:** the choice of sound is implemented and tested (`Sound`, `SfxChoice`: `c7c2251`).
+Nothing plays it yet.
 
 | Sound | Plays when | Weighted by |
 |---|---|---|
@@ -73,7 +77,8 @@ intent and progress. **This file is the record of what ships.**
 
 Each sound is one recipe, rendered at up to three weights as separate files. A heavier weight
 has more low end, a longer tail and more layers. A small pitch change by exact value separates
-cards that share a weight.
+cards that share a weight: ±4% across the weight, lighter values higher. The nudge restarts in
+each weight, because the file already says "heavier".
 
 | Scale | Light | Medium | Heavy |
 |---|---|---|---|
@@ -87,13 +92,20 @@ cards that share a weight.
 - **Frequent sounds get 2–3 versions**, picked at random and never the same one twice in a row.
   An identical sound repeated reads as mechanical (the "machine-gun effect"), and a full run
   deals 44+ cards and fights 26 monsters.
+- **Frequent sounds also vary on every play:** ±2% pitch, and up to 10% quieter, never louder
+  than the file was mastered. These are the flip, blade, thud and fist, the sounds with more
+  than one version. The ±4% nudge, ±2% pitch and 10% volume are starting values for the
+  listening rounds.
 - **Rare moments have one version on purpose.** Sounding identical every time is what makes the
   spill, the chime and the cues recognisable.
 
 ## Timing
 
-**Status: planned.** The beats are read from the effect classes, which run at 12 fps (one frame
-= 83 ms). Times are from the start of each effect. Figures re-derived from the constants on
+**Status:** the queue that holds each sound for its beat and flushes everything at once on a
+skip, collapsing flips, is implemented (`PendingCues`, `4b63cd0`). Reading the beats from the
+effects and firing them is planned.
+
+The beats are read from the effect classes, which run at 12 fps (one frame = 83 ms). Times are from the start of each effect. Figures re-derived from the constants on
 2026-09-24.
 
 | Sound | Beat | Source |
@@ -115,7 +127,8 @@ cards that share a weight.
 
 ## Music and ambience
 
-**Status: planned.**
+**Status:** the sequencing below is implemented and tested (`MusicDirector`, `b8e7f74`). No track
+exists or plays yet.
 
 **Placeholder composition:** D minor, about 64 BPM, loops of about 60–90 s.
 
@@ -130,7 +143,8 @@ cards that share a weight.
 **Sequences:**
 - **Between menus:** the menu track plays on, **without restarting**, across the title, mode
   select, ledger and trophies.
-- **Menu ↔ run:** a short crossfade while the picture cuts.
+- **Menu ↔ run:** a short crossfade (1 s to start with) while the picture cuts. It uses an
+  equal-power curve, so the middle of the fade doesn't dip in loudness.
 - **Death** (real runs only; the tutorial has no death sequence, per `GameScreen.java:1001`).
   It follows `DeathCinematic`:
   - The run music plays through the flare, the shake and the settle.
@@ -141,27 +155,37 @@ cards that share a weight.
   - Clicking through fades quickly and plays the cue at once if it hasn't played yet, never
     twice.
 - **Win:** the end panel appears immediately, while the winning move is still animating. So the
-  run music fades when the board goes idle, then the win cue plays, then the chime (if a trophy
-  was unlocked) after the cue.
-- **After a death**, the chime plays when the end panel appears.
+  run music fades when the board goes idle, then the win cue plays.
+- **The chime** (only if a trophy was unlocked) waits for **both** the end panel and this run's
+  cue to finish, after a win or a death, so it never lands on top of either. Clicking through a
+  death puts the panel up at once, and the chime then waits for the death cue. A cue ending
+  from an earlier run is ignored.
 - **The end panel is quiet:** only the torch. The menu track returns on MAIN MENU, TROPHIES or
   THE LEDGER; the run track restarts on NEW GAME.
 
 ## Mix and controls
 
-**Status: planned.**
+**Status:** the levels, gains, mute and settings file are implemented and tested
+(`AudioSettings`, `AudioSettingsStore`: `4e98b05`). The plates, M, the minimise pause and the
+no-device check are planned.
 
-- **Two plates on the title, MUSIC and SOUND**, below the four menu buttons. Each cycles OFF
-  and three levels on release, like any menu button, and the SOUND plate plays the click at
-  its new level. The mock has no plates, so placement is signed off by screenshot.
+- **Two plates on the title, MUSIC and SOUND**, below the four menu buttons. Each cycles up
+  through three levels and wraps to OFF on release, like any menu button, and the SOUND plate
+  plays the click at its new level. **Changing a level also un-mutes**, since turning a volume
+  is a request to hear it. The mock has no plates, so placement is signed off by screenshot.
 - **Level gains:** 3 = 0 dB, 2 = −6 dB, 1 = −12 dB, 0 = off. On first launch music is at 2 and
   sound at 3, so music sits below the effects.
 - **M mutes and unmutes everything from any screen.** It's checked in `ScoundrelGame.render()`
   beside F11, and was unbound when this was written. During a run the event feed shows SOUND
   OFF / SOUND ON, since nothing else on the board would show it.
-- **Settings file:** `~/.scoundrel/audio.settings`, a tolerant, versioned `v=1` key=value file
-  like the other stores. A missing or corrupt file means defaults. **The full progress reset
-  doesn't touch it:** it's a setting, not progress (`Progress.eraseAll` is never given it).
+- **Settings file:** `~/.scoundrel/audio.settings`, one versioned line of tab-separated
+  key=value tokens (`v=1	music=2	sound=3	muted=false`), the shape of a run-log line.
+  - A missing file, or one that isn't version 1, means the defaults.
+  - In a version-1 file, a bad value falls back for that key alone.
+  - Read or write failures throw, as the sibling stores do, and the game carries on with the
+    defaults.
+  - **The full progress reset doesn't touch it:** it's a setting, not progress. `ProgressTest`
+    pins this.
 - **Minimising the window pauses the audio.** This is checked by logging from the running game,
   not by reasoning about the backend.
 - **No audio device means silence, never a crash.** LibGDX 1.14.2 already switches to a silent
@@ -177,7 +201,7 @@ cards that share a weight.
 
 ## Architecture
 
-**Status: planned.**
+**Status:** the pure half has shipped (`e49a6bb`…`b8e7f74`). The screens half is planned.
 
 The engine already exposes everything audio needs. `apply(state, move)` returns the events,
 and the effects already have their beats. Nothing in `model` or `rules` changes.
@@ -210,10 +234,16 @@ flowchart LR
 ```
 
 - **`audio`**: a new pure package with no LibGDX, held to the coverage gate like the other pure
-  packages (`CoverageGateTest` enforces it). It decides *what* plays: `Weight`, `SfxChoice`,
-  `VariantPicker`, `PendingCues`, `MusicDirector`, `AudioSettings`. It imports `model`/`rules`
-  and nothing else of ours. Timing that lives in `screens` (the death sequence's constants) is
-  passed in.
+  packages (`CoverageGateTest` enforces it). It decides *what* plays:
+  - `Sound`: the closed list of ten effects and the file contract.
+  - `Weight` and `Scale`: the value bands and the pitch nudge.
+  - `SfxChoice`, with `VariantPicker`, turns events into `Sfx` (file, pitch, volume).
+  - `PendingCues`: holds sounds for their beats.
+  - `MusicDirector`: sequences the tracks and cues.
+  - `AudioSettings` and `AudioSettingsStore`: the volume.
+
+  It references only `rules`. Timing that lives in `screens` (the death sequence's constants)
+  is passed in.
 - **`screens`** decides *when*:
   - `Beats` is a pure, tested helper that reads each beat from the effect classes.
   - `BoardView` fires sounds on their beats, and on `skip()`.
@@ -227,13 +257,14 @@ flowchart LR
 
 ## Asset contract
 
-**Status: planned.**
+**Status:** the list of names is in code (`Sound.allFiles()`, `c7c2251`). The files themselves
+are planned.
 
 **File names are the contract**, like the sprite region names. Unweighted sounds are
 `<sound>_<version>`; weighted ones are `<sound>_<weight>_<version>`, where the weight is
-`light`, `medium` or `heavy`. The Java side derives the expected set from the code that names
-the files, and `AudioAssetsTest` checks the folder matches it **exactly**: a stray file fails
-too, because everything in `assets/` ships.
+`light`, `medium` or `heavy`. The Java side's list is `Sound.allFiles()` (`c7c2251`), which
+`SoundTest` pins to the table below by hand. The planned `AudioAssetsTest` will check the
+folder matches it **exactly**: a stray file fails too, because everything in `assets/` ships.
 
 **Sound effects**, in `assets/audio/sfx/`. WAV, 16-bit PCM, mono, 44.1 kHz. **29 files:**
 
@@ -298,10 +329,12 @@ author and licence recorded on replacement.
 
 ## Verification
 
-**Status: planned.**
+**Status:** the unit tests are in force. The rest is planned.
 
 - **Pure logic is unit-tested first:** weights, versions, event-to-sound mapping, pending cues,
-  the music director, and settings. `core:check` gates it.
+  the music director, and settings. Eight test classes in `core/src/test/java/.../audio`, plus
+  the `ProgressTest` guard. `core:check` gates it: `audio` had 100% line coverage when Task 3
+  closed.
 - **`AudioAssetsTest`** (JUnit, using the JDK's `javax.sound.sampled`, no LibGDX) checks the
   file set, format, peak and leading silence of the sound effects.
 - **`check.py`** measures what Java can't: loudness per category, loop seams, and the decoded
