@@ -16,7 +16,8 @@ python audio-source/audition.py   # builds audio-source/build/audition.html to l
 |---|---|
 | `synth.py` | The building blocks, numpy only: oscillators, struck-object (modal) synthesis, bubbles, plucked strings, hand-written filters, saturation, the lo-fi stage, and loudness measurement |
 | `recipes.py` | One recipe per sound. Each docstring says what the sound is *meant* to be, because it was written without being heard |
-| `render.py` | Renders every recipe to a 16-bit mono 44.1 kHz WAV |
+| `music.py` | The placeholder music (menu and run loops), the win and death cues, and the torch's crackle loop. The note data is in the file. Loops are seamless by construction: anything ringing past the end is folded back onto the start, and anything sustained completes whole cycles per loop |
+| `render.py` | Renders every recipe to a 16-bit mono 44.1 kHz WAV, and every stream to OGG Vorbis. An OGG is only rewritten when its decoded audio changed, because its bytes differ on every run (a random Ogg serial number) |
 | `check.py` | The measurements that stand in for ears: format, peak ≤ −1 dBFS, attack within 5 ms, silent tail, no DC, length, loudness on target, versions that aren't near-copies, and the committed files matching a fresh render. It also reports brightness by weight |
 | `audition.py` | The listening page: every file, plus scenes played the way the game will play them, with the game's rules read from the Java source |
 | `replaced.txt` | Files replaced by a sourced sound, which `render.py` must never overwrite |

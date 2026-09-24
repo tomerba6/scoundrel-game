@@ -18,6 +18,14 @@ Claude cannot hear, so this is how a render is judged before anyone listens:
 It also prints, without failing, how bright each weight is (spectral centroid):
 heavier should read darker, but that is a proxy, and tuning by ear may overrule it.
 
+And the streams - the music, the cues, the torch loop - measured as decoded,
+because Vorbis moves the peak: format and channels; peak at or under -1 dBFS;
+integrated loudness on target; a loop's seam no worse than the rest of it (the
+sample step across the wrap, and the high-frequency energy of a window straddling
+it, where a click would show); a cue's start inside 5 ms and a silent tail; and
+the decoded audio equal to a fresh render's (an OGG's bytes differ run to run,
+its audio does not).
+
 Whether any of it sounds right is the listening rounds' call, not this script's.
 """
 
@@ -27,7 +35,9 @@ import sys
 import wave
 
 import numpy as np
+import soundfile
 
+import music
 import recipes
 import render
 import synth
@@ -127,6 +137,93 @@ def measure(job, path, replaced):
     return row, fails
 
 
+def seam_step_ok(x):
+    """(ok, worst ratio): the step across the wrap against the loop's 99.9th-percentile step."""
+    worst = 0.0
+    for c in range(x.shape[1]):
+        steps = np.abs(np.diff(np.concatenate([x[:, c], x[:1, c]])))
+        worst = max(worst, steps[-1] / max(1e-12, np.percentile(steps, 99.9)))
+    return worst <= 1.0, worst
+
+
+def seam_hf(x):
+    """High-frequency energy in a 10 ms window straddling a loop's seam, and in every other
+    10 ms window round the loop. A click is broadband, so it shows up here."""
+    x = x if x.ndim == 2 else x[:, None]
+    energy = np.sum(np.square(synth.circular_filter(x, synth.highpass_response(6000, 2))), axis=1)
+    w = synth.samples(0.01)
+    running = np.cumsum(np.concatenate([energy, energy[:w]]))
+    windows = running[w:] - running[:-w]
+    seam = float(np.sum(energy[-(w // 2):]) + np.sum(energy[:w - w // 2]))
+    return seam, windows
+
+
+SEAM_ENCODING_LIMIT = 1.5
+
+
+def seam_click_ok(decoded, source):
+    """(ok, ratio): did encoding put a click at the seam? The source loop is seamless by
+    construction (music.py), so the seam's high-frequency energy is compared with the
+    source's at the same spot - a note plucked on the downbeat is broadband too, and
+    measuring against the rest of the loop called it a click (the menu, in Task 6). For
+    a replaced stream there is no source, so its seam is held to the loop's own
+    99th-percentile window instead."""
+    seam, windows = seam_hf(decoded)
+    if source is None:
+        typical = float(np.percentile(windows, 99))
+        return seam <= typical, seam / max(1e-12, typical)
+    reference, _ = seam_hf(source)
+    ratio = seam / max(1e-12, reference)
+    return ratio <= SEAM_ENCODING_LIMIT, ratio
+
+
+def check_streams(skip):
+    """(rows, failures) for the streamed files."""
+    rows, failures = [], []
+    fresh = render.render_streams()
+    for name, (_, target_db, looped, channels) in music.STREAMS.items():
+        path = render.stream_path(name)
+        if not path.exists():
+            failures.append(f"{name}: missing")
+            continue
+        info = soundfile.info(str(path))
+        decoded = render.decode(path.read_bytes())
+        x = decoded if decoded.ndim == 2 else decoded[:, None]
+        fails = []
+        if (info.samplerate, info.channels) != (synth.SR, channels):
+            fails.append(f"format {info.channels}ch/{info.samplerate}Hz, want {channels}ch/{synth.SR}Hz")
+        peak = synth.peak_db(x)
+        loud = synth.loudness_integrated_db(x, looped)
+        if peak > PEAK_CEILING_DB + 1e-3:
+            fails.append(f"decoded peak {peak:.2f} dBFS over {PEAK_CEILING_DB}")
+        if name not in skip and abs(loud - target_db) > LOUDNESS_TOLERANCE_DB:
+            fails.append(f"loudness {loud:.2f}, target {target_db}")
+        if looped:
+            step_ok, step = seam_step_ok(x)
+            click_ok, click = seam_click_ok(x, None if name in skip else fresh[name])
+            if not step_ok:
+                fails.append(f"seam step {step:.2f}x the loop's 99.9th-percentile step")
+            if not click_ok:
+                fails.append(f"seam high-frequency energy {click:.2f}x the source's: encoding added a click")
+            shape = f"seam step {step:.2f}x, seam hf {click:.2f}x the source's"
+        else:
+            lead = lead_ms(np.max(np.abs(x), axis=1))
+            tail = synth.rms_db(x[-synth.samples(0.01):])
+            if lead > LEAD_LIMIT_MS:
+                fails.append(f"starts at {lead:.1f} ms, over {LEAD_LIMIT_MS}")
+            if tail > TAIL_LIMIT_DB:
+                fails.append(f"tail {tail:.1f} dBFS, not silent")
+            shape = f"lead {lead:.1f}ms, tail {tail:.1f}"
+        if name not in skip and not np.array_equal(decoded, render.decode(render.ogg_bytes(fresh[name]))):
+            fails.append("decodes differently from a fresh render: re-run render.py")
+        rows.append(("FAIL " if fails else "ok   ")
+                    + f"{name:<15} {len(x) / synth.SR:6.2f}s {info.channels}ch  peak {peak:6.2f}"
+                    + f"  loud {loud:6.2f} (target {target_db:5.1f})  {shape}")
+        failures.extend(f"{name}: {f}" for f in fails)
+    failures.extend(f"{p}: no stream makes it, and everything in assets/ ships" for p in render.stream_strays())
+    return rows, failures
+
+
 def main():
     skip = render.replaced()
     jobs = recipes.jobs()
@@ -156,6 +253,11 @@ def main():
     failures.extend(version_failures)
     print("\nbrightness by weight (spectral centroid; heavier should read darker):")
     print("\n".join(brightness))
+
+    stream_rows, stream_failures = check_streams(skip)
+    print(f"\n{len(music.STREAMS)} streams (decoded):")
+    print("\n".join(stream_rows))
+    failures.extend(stream_failures)
 
     if failures:
         print(f"\n{len(failures)} failure(s):")

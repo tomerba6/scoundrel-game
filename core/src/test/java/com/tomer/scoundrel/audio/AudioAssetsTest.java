@@ -100,6 +100,56 @@ class AudioAssetsTest {
                 name + ": starts at sample " + onset + ", later than 5 ms, so it would land off its beat");
     }
 
+    // --- the streams: music, cues, the torch loop ----------------------------
+
+    private static final Path AUDIO = Path.of("..", "assets").resolve(StreamFile.ROOT);
+
+    /**
+     * The JDK cannot decode Vorbis, so the measuring (peak, loudness, seams) is
+     * check.py's; this holds the folder to {@link StreamFile} and each file to being
+     * an Ogg stream at all.
+     */
+    @Test
+    void everyStreamIsThereAndIsAnOggStream() throws IOException {
+        for (StreamFile stream : StreamFile.values()) {
+            Path file = Path.of("..", "assets").resolve(stream.path());
+            assertTrue(Files.isRegularFile(file), file + " is missing");
+            byte[] head = new byte[4];
+            try (var in = Files.newInputStream(file)) {
+                assertEquals(4, in.read(head), file + " is empty");
+            }
+            assertEquals("OggS", new String(head, java.nio.charset.StandardCharsets.US_ASCII),
+                    file + " is not an Ogg stream");
+        }
+    }
+
+    @Test
+    void theStreamFoldersHoldNothingElseAndTheAudioFolderNothingElseAtAll() throws IOException {
+        Set<String> expected = new TreeSet<>();
+        Set<String> folders = new TreeSet<>(Set.of(Sfx.DIRECTORY.substring(StreamFile.ROOT.length(),
+                Sfx.DIRECTORY.length() - 1)));
+        for (StreamFile stream : StreamFile.values()) {
+            String relative = stream.path().substring(StreamFile.ROOT.length());
+            expected.add(relative);
+            folders.add(relative.substring(0, relative.indexOf('/')));
+        }
+        Set<String> present = new TreeSet<>();
+        Set<String> topLevel = new TreeSet<>();
+        try (Stream<Path> listing = Files.list(AUDIO)) {
+            listing.forEach(p -> topLevel.add(p.getFileName().toString()));
+        }
+        assertEquals(folders, topLevel, "assets/audio/ holds only these folders; anything else ships");
+        for (String folder : folders) {
+            if (Sfx.DIRECTORY.endsWith(folder + "/")) {
+                continue; // the sound effects are held to Sound above
+            }
+            try (Stream<Path> listing = Files.list(AUDIO.resolve(folder))) {
+                listing.forEach(p -> present.add(folder + "/" + p.getFileName()));
+            }
+        }
+        assertEquals(expected, present, "the stream folders must hold exactly StreamFile's files");
+    }
+
     private static short[] samples(byte[] bytes) {
         short[] out = new short[bytes.length / 2];
         for (int i = 0; i < out.length; i++) {

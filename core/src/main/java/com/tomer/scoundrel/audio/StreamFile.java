@@ -9,7 +9,7 @@ package com.tomer.scoundrel.audio;
  *
  * <p>The chime is not here: it is short, and plays as a sound effect.
  */
-public enum Stream {
+public enum StreamFile {
     /** Title, mode select, ledger, trophies: the run's theme, stripped back. Loops. */
     MENU("music/menu", true),
     /** Under a run, slow and brooding. Loops. */
@@ -27,7 +27,7 @@ public enum Stream {
     private final String name;
     private final boolean loops;
 
-    Stream(String name, boolean loops) {
+    StreamFile(String name, boolean loops) {
         this.name = name;
         this.loops = loops;
     }
@@ -42,7 +42,7 @@ public enum Stream {
         return loops;
     }
 
-    public static Stream of(MusicDirector.Track track) {
+    public static StreamFile of(MusicDirector.Track track) {
         return switch (track) {
             case MENU -> MENU;
             case RUN -> RUN;
@@ -50,7 +50,7 @@ public enum Stream {
     }
 
     /** The stream a cue plays. The chime has none: it is a sound effect. */
-    public static Stream of(MusicDirector.Cue cue) {
+    public static StreamFile of(MusicDirector.Cue cue) {
         return switch (cue) {
             case WIN -> WIN;
             case DEATH -> DEATH;

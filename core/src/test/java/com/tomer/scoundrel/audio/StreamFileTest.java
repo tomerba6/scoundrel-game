@@ -12,13 +12,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class StreamTest {
+class StreamFileTest {
 
     /** The contract, by hand: docs/audio.md's five streamed files. */
     @Test
     void theStreamedFilesAreExactlyTheContract() {
         Map<String, String> paths = new TreeMap<>();
-        for (Stream stream : Stream.values()) {
+        for (StreamFile stream : StreamFile.values()) {
             paths.put(stream.name(), stream.path());
         }
         assertEquals(Map.of(
@@ -31,23 +31,23 @@ class StreamTest {
 
     @Test
     void theTracksAndTheTorchLoopAndTheCuesPlayOnce() {
-        assertTrue(Stream.MENU.loops());
-        assertTrue(Stream.RUN.loops());
-        assertTrue(Stream.TORCH.loops());
-        assertFalse(Stream.WIN.loops());
-        assertFalse(Stream.DEATH.loops());
+        assertTrue(StreamFile.MENU.loops());
+        assertTrue(StreamFile.RUN.loops());
+        assertTrue(StreamFile.TORCH.loops());
+        assertFalse(StreamFile.WIN.loops());
+        assertFalse(StreamFile.DEATH.loops());
     }
 
     @Test
     void eachTrackHasItsStream() {
-        assertEquals(Stream.MENU, Stream.of(Track.MENU));
-        assertEquals(Stream.RUN, Stream.of(Track.RUN));
+        assertEquals(StreamFile.MENU, StreamFile.of(Track.MENU));
+        assertEquals(StreamFile.RUN, StreamFile.of(Track.RUN));
     }
 
     @Test
     void theEndOfRunCuesHaveStreamsButTheChimeIsASoundEffect() {
-        assertEquals(Stream.WIN, Stream.of(Cue.WIN));
-        assertEquals(Stream.DEATH, Stream.of(Cue.DEATH));
-        assertThrows(IllegalArgumentException.class, () -> Stream.of(Cue.CHIME));
+        assertEquals(StreamFile.WIN, StreamFile.of(Cue.WIN));
+        assertEquals(StreamFile.DEATH, StreamFile.of(Cue.DEATH));
+        assertThrows(IllegalArgumentException.class, () -> StreamFile.of(Cue.CHIME));
     }
 }

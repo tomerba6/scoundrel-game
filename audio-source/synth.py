@@ -111,6 +111,166 @@ def karplus_strong(n, freq, rng, damping=0.996, brightness=0.5):
     return out
 
 
+def pluck(n, freq, rng, damping=0.996, brightness=0.5, excitation_cutoff=None):
+    """A plucked string (Karplus-Strong), computed a whole period at a time.
+
+    Each sample is an average of the two a period before it, so a block of one
+    period depends only on blocks already written - which lets numpy do each
+    block at once instead of Python doing each sample. Same maths as
+    karplus_strong(); pitch is quantised to a whole-sample period (a few cents
+    at most across this game's range, well inside what lo-fi forgives).
+    `excitation_cutoff`, if given, softens the pluck: a darker, gentler attack.
+    """
+    period = max(2, int(round(SR / freq)))
+    burst = rng.uniform(-1.0, 1.0, period)
+    if excitation_cutoff:
+        burst = one_pole_lowpass(np.tile(burst, 3), excitation_cutoff)[-period:]
+    # Centred: the averaging keeps a burst's mean forever, and a string that
+    # starts off-centre plays on a DC bias that swamps its note.
+    burst -= burst.mean()
+    burst /= max(1e-9, np.max(np.abs(burst)))
+    c0 = damping * (brightness + (1.0 - brightness) * 0.5)
+    c1 = damping * (1.0 - brightness) * 0.5
+    blocks = n // period + 2
+    y = np.zeros(blocks * period + 1)  # y[0] is the zero before the first sample
+    y[1:period + 1] = burst
+    for k in range(1, blocks):
+        start = 1 + k * period
+        prev = y[start - period:start]
+        prev_shift = y[start - period - 1:start - 1]
+        y[start:start + period] = c0 * prev + c1 * prev_shift
+    return y[1:n + 1]
+
+
+def harmonic_tone(n, freq, harmonics, phase=0.0):
+    """An additive tone: `harmonics` is a list of amplitudes for partials 1, 2, 3...
+    Band-limited by construction, and exactly periodic if freq * seconds is whole."""
+    t = times(n)
+    out = np.zeros(n)
+    for k, amp in enumerate(harmonics, start=1):
+        if amp and freq * k < SR / 2:
+            out += amp * np.sin(2 * np.pi * freq * k * t + phase * k)
+    return out
+
+
+def circular_filter(x, response):
+    """Filters a loop as a circle, through its spectrum: `response(freqs)` gives the gain
+    at each frequency. Zero-phase, and no start-up transient - the end of the loop
+    feeds its start, exactly as it will when it plays round."""
+    spectrum = np.fft.rfft(x, axis=0)
+    freqs = np.fft.rfftfreq(x.shape[0], 1 / SR)
+    gain = response(freqs)
+    if x.ndim == 2:
+        gain = gain[:, None]
+    return np.fft.irfft(spectrum * gain, n=x.shape[0], axis=0)
+
+
+def lowpass_response(cutoff, order=2):
+    return lambda f: 1.0 / np.sqrt(1.0 + (f / cutoff) ** (2 * order))
+
+
+def highpass_response(cutoff, order=2):
+    return lambda f: 1.0 / np.sqrt(1.0 + (cutoff / np.maximum(f, 1e-9)) ** (2 * order))
+
+
+def _comb(x, delay, feedback):
+    """y[n] = x[n] + g*y[n-D], a delay's worth at a time."""
+    y = x.copy()
+    for start in range(delay, len(y), delay):
+        end = min(len(y), start + delay)
+        y[start:end] += feedback * y[start - delay:end - delay]
+    return y
+
+
+def _allpass(x, delay, gain):
+    """y[n] = -g*x[n] + x[n-D] + g*y[n-D], a delay's worth at a time."""
+    y = -gain * x
+    y[:delay] = -gain * x[:delay]
+    for start in range(delay, len(y), delay):
+        end = min(len(y), start + delay)
+        y[start:end] += x[start - delay:end - delay] + gain * y[start - delay:end - delay]
+    return y
+
+
+# Freeverb's tunings, scaled from 44.1 kHz: mutually prime-ish so the echoes do not ring.
+_COMBS = (1116, 1188, 1277, 1356)
+_ALLPASSES = (556, 441)
+_STEREO_SPREAD = 23
+
+
+def reverb(x, seconds=2.4, damping_hz=4500):
+    """A Schroeder reverb: parallel combs into series all-passes, each channel on
+    slightly different delays so the space is wide. `seconds` is the decay to
+    -60 dB - a dungeon's, long and dark. Returns the wet signal only."""
+    mono = x if x.ndim == 1 else x.mean(axis=1)
+    out = []
+    for channel in range(1 if x.ndim == 1 else 2):
+        spread = channel * _STEREO_SPREAD
+        wet = np.zeros(len(mono))
+        for d in _COMBS:
+            delay = d + spread
+            wet += _comb(mono, delay, 10 ** (-3 * delay / (seconds * SR)))
+        wet /= len(_COMBS)
+        for d in _ALLPASSES:
+            wet = _allpass(wet, d + spread, 0.5)
+        out.append(fft_filter(wet, lowpass_response(damping_hz, order=1)))
+    return out[0] if x.ndim == 1 else np.column_stack(out)
+
+
+def fft_filter(x, response, pad_seconds=1.0):
+    """Linear (not circular) filtering through the spectrum: padded so nothing
+    wraps round. For long signals where a per-sample loop would be slow."""
+    pad = samples(pad_seconds)
+    padded = np.concatenate([x, np.zeros((pad,) + x.shape[1:])])
+    return circular_filter(padded, response)[:x.shape[0]]
+
+
+def pan(mono, position):
+    """Mono to stereo, equal power: position -1 is hard left, 0 centre, 1 hard right."""
+    angle = (position + 1) * np.pi / 4
+    return np.column_stack([mono * math.cos(angle), mono * math.sin(angle)])
+
+
+def _magnitude(b, a, freqs):
+    """|H| of a biquad at each frequency, from its coefficients."""
+    z1 = np.exp(-1j * 2 * np.pi * freqs / SR)
+    z2 = z1 * z1
+    return np.abs((b[0] + b[1] * z1 + b[2] * z2) / (a[0] + a[1] * z1 + a[2] * z2))
+
+
+def k_response(freqs):
+    """The K-weighting's gain at each frequency: the same two filters as k_weight(),
+    evaluated from their equations instead of run sample by sample."""
+    a_gain = 10 ** (3.99984385397 / 40)
+    cos_w, alpha = _coefficients(1681.974450955533, 0.7071752369554193)
+    root = 2 * math.sqrt(a_gain) * alpha
+    shelf = _magnitude(
+        (a_gain * ((a_gain + 1) + (a_gain - 1) * cos_w + root),
+         -2 * a_gain * ((a_gain - 1) + (a_gain + 1) * cos_w),
+         a_gain * ((a_gain + 1) + (a_gain - 1) * cos_w - root)),
+        ((a_gain + 1) - (a_gain - 1) * cos_w + root,
+         2 * ((a_gain - 1) - (a_gain + 1) * cos_w),
+         (a_gain + 1) - (a_gain - 1) * cos_w - root), freqs)
+    cos_w, alpha = _coefficients(38.13547087613982, 0.5003270373253953)
+    high = _magnitude(((1 + cos_w) / 2, -(1 + cos_w), (1 + cos_w) / 2),
+                      (1 + alpha, -2 * cos_w, 1 - alpha), freqs)
+    return shelf * high
+
+
+def loudness_integrated_db(x, looped=False):
+    """How loud a stream is overall, as heard: BS.1770's K-weighted mean square,
+    summed over channels, in dB. Computed on the spectrum (a mean square is the
+    same there), so a minute of stereo takes a moment. A loop is weighted as the
+    circle it is; anything else is padded, so its end does not feed its start."""
+    signal = x if looped else np.concatenate([x, np.zeros((samples(1.0),) + x.shape[1:])])
+    spectrum = np.fft.rfft(signal, axis=0)
+    gain = k_response(np.fft.rfftfreq(signal.shape[0], 1 / SR))
+    weighted = np.fft.irfft(spectrum * (gain[:, None] if signal.ndim == 2 else gain),
+                            n=signal.shape[0], axis=0)
+    energy = float(np.sum(np.square(weighted))) / x.shape[0]
+    return 10 * math.log10(energy) if energy > 0 else -math.inf
+
+
 # --- filters (RBJ audio-EQ cookbook biquads, direct form I) -----------------
 
 def _biquad(x, b0, b1, b2, a0, a1, a2):
