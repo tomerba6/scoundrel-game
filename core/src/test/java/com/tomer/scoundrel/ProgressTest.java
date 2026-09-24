@@ -2,6 +2,8 @@ package com.tomer.scoundrel;
 
 import com.tomer.scoundrel.achievements.AchievementStore;
 import com.tomer.scoundrel.achievements.UnlockedAchievement;
+import com.tomer.scoundrel.audio.AudioSettings;
+import com.tomer.scoundrel.audio.AudioSettingsStore;
 import com.tomer.scoundrel.model.Status;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.runs.RunRecord;
@@ -9,6 +11,7 @@ import com.tomer.scoundrel.tutorial.TutorialFlag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -68,5 +71,19 @@ class ProgressTest {
         assertEquals(List.of(), runLog.readAll());
         assertEquals(Set.of(), achievements.unlockedIds());
         assertFalse(tutorial.isSeen());
+    }
+
+    @Test
+    void eraseAllLeavesTheAudioSettingsAlone() {
+        // Volume is a setting, not progress: a player who resets their record
+        // has not asked for the music to come back on.
+        AudioSettingsStore audio = new AudioSettingsStore(dir.resolve("audio.settings"));
+        AudioSettings chosen = new AudioSettings(0, 1, true);
+        audio.save(chosen);
+
+        Progress.eraseAll(runLog(), achievements(), tutorial());
+
+        assertEquals(chosen, audio.load());
+        assertFalse(Files.exists(dir.resolve("audio.settings.bak")), "nothing was moved aside");
     }
 }
