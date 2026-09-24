@@ -60,6 +60,8 @@ public final class SpriteLab extends ScreenAdapter {
     private View view = View.ROOM;
     /** S slows effects 8x. Sub-second animation cannot be screenshotted at speed. */
     private boolean slowMotion;
+    /** R: the run track, rather than the menu's. */
+    private boolean labRunMusic;
     private final GlyphLayout titleLayout = new GlyphLayout();
     private final PixelSurface surface =
             new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
@@ -118,6 +120,7 @@ public final class SpriteLab extends ScreenAdapter {
             deathElapsed += step;
             if (DeathCinematic.finished(deathElapsed)) {
                 deathElapsed = -1f;
+                game.music().settled();
             }
         }
 
@@ -144,7 +147,8 @@ public final class SpriteLab extends ScreenAdapter {
 
         theme.pixelSmall.setColor(Theme.BONE);
         theme.pixelSmall.draw(batch,
-                "K KILL  B BARE  A AVOID  E EQUIP  P POTION  W WASTED  D HIT  H HEAL  X DEATH  S SLOW",
+                "K KILL  B BARE  A AVOID  E EQUIP  P POTION  W WASTED  D HIT  H HEAL  X DEATH  S SLOW"
+                        + "  R RUN MUSIC  V WIN",
                 40, 48);
         theme.pixelSmall.setColor(Color.WHITE);
         batch.end();
@@ -181,6 +185,21 @@ public final class SpriteLab extends ScreenAdapter {
             healElapsed = 0f;
         }
         Card hovered = board.hovered();
+        // The music, to be heard on demand: the run track against the menu's, and the
+        // two ends of a run - without dying or winning for real, which the lab cannot
+        // record and a real run would.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            labRunMusic = !labRunMusic;
+            if (labRunMusic) {
+                game.music().enterRun();
+            } else {
+                game.music().enterMenus();
+            }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
+            game.music().won();
+            game.music().trophiesUnlocked(); // so the chime is heard after the cue
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
             List<Card> outgoing = board.room();
             board.beginMove();
@@ -193,6 +212,8 @@ public final class SpriteLab extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
             deathElapsed = 0f;
             killerSlotX = board.slotX(board.room().indexOf(hovered));
+            game.music().dying(DeathCinematic.DITHER_START, DeathCinematic.DITHER_END,
+                    DeathCinematic.TITLE_START);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
             int through = Math.max(0, hovered.value() - LAB_WEAPON);
@@ -214,6 +235,15 @@ public final class SpriteLab extends ScreenAdapter {
             without(hovered, () -> board.playSpill(hovered, sound(new GameEvent.PotionWasted(hovered))));
         }
         return true;
+    }
+
+    /**
+     * The torch's light as the lab's death leaves it — the same curve the game's
+     * death draws — so the torch's crackle gutters out here too, where it can be
+     * heard without dying for real.
+     */
+    public float torchLight() {
+        return deathElapsed >= 0f ? DeathCinematic.torchLight(deathElapsed) : 1f;
     }
 
     /**

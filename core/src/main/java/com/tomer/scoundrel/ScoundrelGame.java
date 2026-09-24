@@ -6,6 +6,7 @@ import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.tomer.scoundrel.achievements.AchievementStore;
+import com.tomer.scoundrel.audio.MusicDirector;
 import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.rules.GameModes;
 import com.tomer.scoundrel.runs.RunLog;
@@ -14,6 +15,8 @@ import com.tomer.scoundrel.tutorial.TutorialGuide;
 import com.tomer.scoundrel.tutorial.TutorialScript;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.ModeSelectScreen;
+import com.tomer.scoundrel.screens.MusicDeck;
+import com.tomer.scoundrel.screens.PixelScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
 import com.tomer.scoundrel.screens.SoundBank;
 import com.tomer.scoundrel.screens.SpriteLab;
@@ -37,6 +40,9 @@ public class ScoundrelGame extends Game {
     private Theme theme;
     private Sprites sprites;
     private SoundBank sounds;
+    /** Which music plays and how loud: pure, and here so it outlives the screens. */
+    private final MusicDirector music = new MusicDirector();
+    private MusicDeck musicDeck;
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
@@ -50,6 +56,7 @@ public class ScoundrelGame extends Game {
         theme = new Theme();
         sprites = new Sprites();
         sounds = new SoundBank();
+        musicDeck = new MusicDeck(sounds, music);
         Path home = Path.of(System.getProperty("user.home"), ".scoundrel");
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
@@ -75,6 +82,15 @@ public class ScoundrelGame extends Game {
             switchTo(new SpriteLab(this, theme, sprites));
         }
         super.render(); // draws the current screen
+
+        // The music, after the screen: whatever the frame asked of the director (a
+        // death, a win, a new run) is carried out in the same frame. Read off the
+        // screen now showing, which the frame may just have switched to.
+        Screen screen = getScreen();
+        boolean boardIdle = !(screen instanceof GameScreen run) || run.boardIdle();
+        float torchLight = screen instanceof PixelScreen pixel ? pixel.torchLight()
+                : screen instanceof SpriteLab lab ? lab.torchLight() : 1f;
+        musicDeck.update(Gdx.graphics.getDeltaTime(), boardIdle, torchLight);
     }
 
     private void toggleFullscreen() {
@@ -92,6 +108,15 @@ public class ScoundrelGame extends Game {
     /** The sound effects, shared by every screen like the theme and the sprites. */
     public SoundBank sounds() {
         return sounds;
+    }
+
+    /**
+     * The music's director, for the moments only a screen sees: a death, a win,
+     * trophies, a new run started in place. Which track plays is decided here, on
+     * every screen switch.
+     */
+    public MusicDirector music() {
+        return music;
     }
 
     public void showTitle() {
@@ -142,12 +167,21 @@ public class ScoundrelGame extends Game {
         Progress.eraseAll(runLog, achievements, tutorialFlag);
     }
 
-    /** setScreen only hides the previous screen; it must also be disposed. */
+    /**
+     * setScreen only hides the previous screen; it must also be disposed. And the
+     * music follows: a run plays the run track, anything else (the lab included) the
+     * menu track — which carries on, without restarting, from one menu to the next.
+     */
     private void switchTo(Screen next) {
         Screen previous = getScreen();
         setScreen(next);
         if (previous != null) {
             previous.dispose();
+        }
+        if (next instanceof GameScreen) {
+            music.enterRun();
+        } else {
+            music.enterMenus();
         }
     }
 
@@ -159,6 +193,7 @@ public class ScoundrelGame extends Game {
         }
         sprites.dispose();
         theme.dispose();
+        musicDeck.dispose();
         sounds.dispose();
     }
 }

@@ -481,6 +481,7 @@ public final class GameScreen extends PixelScreen {
 
     /** The cinematic is over (or was clicked through): show the score. */
     private void settleEnd() {
+        game.music().settled(); // the end panel is up: the death cue now, if it has not played
         deathElapsed = -1f;
         if (endPending) {
             endPending = false;
@@ -571,6 +572,7 @@ public final class GameScreen extends PixelScreen {
         feed.clear();
         board.dealFresh(state.room());
         syncBoard();
+        game.music().enterRun(); // from the end panel: the run track from the top
     }
 
     // --- the run-end panel: screen five of §11 ---
@@ -977,6 +979,9 @@ public final class GameScreen extends PixelScreen {
                 newlyUnlocked = List.of();
             }
         }
+        if (!newlyUnlocked.isEmpty()) {
+            game.music().trophiesUnlocked(); // the chime, once the panel and the cue are done
+        }
     }
 
     private void applyMove(Move move) {
@@ -1022,9 +1027,34 @@ public final class GameScreen extends PixelScreen {
             killerSlotX = move instanceof Move.CardMove cm
                     ? orMinusOne(board.previousSlotX(cm.targetCard().id()))
                     : -1;
+            // The music dies with the torch, on the cinematic's own clock: left alone
+            // through the settle, out across the gutter, the cue as YOU DIED grows in.
+            game.music().dying(DeathCinematic.DITHER_START, DeathCinematic.DITHER_END,
+                    DeathCinematic.TITLE_START);
         } else {
             syncBoard();
+            endOfRunMusic();
         }
+    }
+
+    /**
+     * A run that ended without the death cinematic. A win: the director waits for
+     * the winning blow to land before the run music gives way to the cue. A loss in
+     * the tutorial, which has no cinematic to gutter the torch over: the music just
+     * goes, and the cue plays.
+     */
+    private void endOfRunMusic() {
+        if (state.status() == Status.WON) {
+            game.music().won();
+        } else if (state.status() == Status.LOST) {
+            game.music().dying(0f, 0f, 0f);
+            game.music().settled();
+        }
+    }
+
+    /** Whether the board has finished animating — the win's music waits for it. */
+    public boolean boardIdle() {
+        return !board.isPlaying();
     }
 
     private static int orMinusOne(Integer value) {

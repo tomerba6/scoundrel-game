@@ -112,8 +112,9 @@ public abstract class PixelScreen extends ScreenAdapter {
      * landed on a target, as {@link PressGesture#press} does.
      */
     protected final boolean pressAt(int target) {
+        boolean again = press.alreadyDown(target);
         boolean landed = press.press(target);
-        if (landed && clicks(target)) {
+        if (landed && !again && clicks(target)) {
             SoundBank sounds = game.sounds();
             sounds.play(sounds.choice().click());
         }
@@ -142,6 +143,11 @@ public abstract class PixelScreen extends ScreenAdapter {
     /** How brightly the torch burns, 0..1. Only the death gutters it. */
     protected float backdropLight() {
         return 1f;
+    }
+
+    /** The torch's light as drawn, for the torch's crackle to follow: it gutters with it. */
+    public final float torchLight() {
+        return backdropLight();
     }
 
     /**

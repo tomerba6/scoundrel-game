@@ -93,9 +93,14 @@ public final class SoundBank implements Disposable {
         }
     }
 
-    /** A line in the sound log, for the board's effects and skips. */
+    /** A line in the sound log, for the board's effects and skips and the music's milestones. */
     void log(String event) {
         log.log(event);
+    }
+
+    /** Whether the sound log is on, so a caller can skip working out what it would say. */
+    boolean logging() {
+        return log.enabled();
     }
 
     @Override
