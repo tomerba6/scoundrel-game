@@ -51,6 +51,11 @@ drawn art, and it took every screen with it.
 - **Drawn presentation** — sprites that breathe on a shared clock, cards that deal in and sweep
   away, per-card resolve effects, a death cinematic, and a procedural torchlit backdrop with
   live flicker and drifting embers.
+- **Sound** *(on the `audio` branch, unreleased)* — crunchy lo-fi effects, one per moment, each
+  landing on its animation's beat and weighted by the card's value; a brooding run track and a
+  stripped-back menu track that crossfade as the screens cut; win and death cues, the music
+  dying with the torch; a crackling torch on every screen. MUSIC and SOUND levels on the title,
+  M to mute from anywhere. Every sound is synthesized in Python — see [`docs/audio.md`](docs/audio.md).
 - **Ships as a real application** — self-contained Windows and macOS builds that need no Java
   installed, borderless fullscreen with an F11 toggle, and crash reports written to disk.
 
@@ -136,6 +141,7 @@ Three difficulty modes ship: **Standard**, **Relentless** (avoiding is forbidden
 | **CI/CD** | GitHub Actions — checks on every PR, tag-triggered release builds |
 | **Packaging** | [construo](https://github.com/fourlastor-alexandria/construo) — self-contained archives with a trimmed JDK per platform |
 | **Fonts** | Silkscreen, rasterised at runtime via FreeType — 1-bit, unhinted, nearest-filtered, at whole pixel sizes |
+| **Audio** | Synthesized offline in Python (numpy, soundfile) into WAV effects and OGG streams, played through libGDX's OpenAL backend |
 
 No third-party dependency does any game logic; the rules are entirely first-party code.
 
@@ -158,9 +164,10 @@ core/
   rules/         moves, resolution, scoring — pure functions over state
   screens/       immediate-mode views (libGDX-bound) — draw state, translate input into moves
   runs/          run recording, high scores, lifetime stats  ─┐ pure, and observe the
-  achievements/  achievement definitions and evaluation       ├─ engine from outside;
-  tutorial/      the scripted first run and its gating        ─┘ model/rules never
-                                                                import any of them
+  achievements/  achievement definitions and evaluation       │ engine from outside;
+  tutorial/      the scripted first run and its gating        ├─ model/rules never
+  audio/         what each moment sounds like, the music      │ import any of them
+                 director, the volume                         ─┘
 lwjgl3/          desktop launcher, ~300 lines, no game logic
 ```
 
@@ -201,24 +208,26 @@ Full design notes, including the locked edge-case decisions and Mermaid diagrams
 
 ## Testing
 
-599 tests, written test-first for all pure logic. `./gradlew core:check` runs them and enforces a
-JaCoCo gate of **90% line / 75% branch on every pure package** — the build fails below it.
+749 test methods — 778 runs, since one test is parameterised over every sound file — written
+test-first for all pure logic. `./gradlew core:check` runs them and enforces a JaCoCo gate of
+**90% line / 75% branch on every pure package** — the build fails below it.
 
 > Every figure in this section is a measurement, not a claim, and the branch moves fast enough that
-> they go stale. Re-derive rather than repeat: the count is
+> they go stale. Re-derive rather than repeat: the method count is
 > `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`, and the ratios come from
-> `core/build/reports/jacoco/test/jacocoTestReport.xml`, which `./gradlew core:test` refreshes.
+> `core/build/reports/jacoco/test/jacocoTestReport.xml`, which `./gradlew core:cleanTest core:test`
+> refreshes (a plain `core:test` on an unchanged tree is skipped, leaving the old report).
 >
 > **Every percentage here is LINE coverage**, because that is what the gate enforces
 > (`counter = 'LINE'`). Neither report states it: the XML holds raw counts
-> (`<counter type="LINE" missed="2250" covered="798"/>`) and the HTML draws percentage bars only
+> (`<counter type="LINE" missed="2521" covered="839"/>`) and the HTML draws percentage bars only
 > for instructions and branches, showing lines as a bare *missed / total*. So every line figure
 > here is that division, and you can check it off the HTML yourself — for `screens`,
-> `(3,048 − 2,250) / 3,048 = 26.2%`.
+> `(3,360 − 2,521) / 3,360 = 25.0%`.
 >
 > Which also means the HTML's leading `Cov.` column is **instructions**, not lines. Three
-> counters, three answers, and for `screens` today they are 30.4% instructions, 35.7% branches
-> and 26.2% lines.
+> counters, three answers, and for `screens` today they are 28.8% instructions, 33.2% branches
+> and 25.0% lines.
 
 | Package | Line | Branch |
 |---|---|---|
@@ -227,6 +236,7 @@ JaCoCo gate of **90% line / 75% branch on every pure package** — the build fai
 | `runs` | 98.7% | 96.3% |
 | `achievements` | 98.3% | 97.5% |
 | `tutorial` | 97.5% | 86.4% |
+| `audio` | 100.0% | 99.4% |
 
 `screens` is deliberately **excluded** from the gate. It is GL-bound — it needs a window, a GPU and
 real pixels — so it is verified by driving the actual game and screenshotting it instead. Gating it
@@ -239,17 +249,17 @@ out of the GL classes stay in the same package. `screens` splits cleanly in two:
 
 | Inside `screens` | Classes | Source lines | Executable lines | Line coverage |
 |---|---|---|---|---|
-| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `UiPalette`, …) | 43 | 4,134 | 819 | 96.7% |
-| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, the screens themselves) | 19 | 5,186 | 2,229 | 0.3% |
+| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `Beats`, …) | 45 | 4,360 | 860 | 96.9% |
+| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, `SoundBank`, the screens themselves) | 21 | 5,799 | 2,500 | 0.2% |
 
 Two line counts because they tell different stories and only one of them is JaCoCo's. **Executable
-lines** are what coverage is computed over, and they make the package read 26.2% overall. **Source
-lines** are what `wc -l` gives you, and by that measure the pure half is 44% of the package rather
-than 27% — the helpers are comment-heavy by design, so they carry far fewer executable lines than
+lines** are what coverage is computed over, and they make the package read 25.0% overall. **Source
+lines** are what `wc -l` gives you, and by that measure the pure half is 43% of the package rather
+than 26% — the helpers are comment-heavy by design, so they carry far fewer executable lines than
 their size suggests.
 
-Either way the number rises by *extraction* rather than by new tests against rendering: **43 of
-the 62 classes now have no libGDX import at all**, which is the reading that matters. It says how
+Either way the number rises by *extraction* rather than by new tests against rendering: **45 of
+the 66 classes now have no libGDX import at all**, which is the reading that matters. It says how
 much of the UI layer has stopped being untestable.
 
 The engine's determinism is used deliberately: the tutorial's scripted run, for instance, is proven
@@ -260,18 +270,26 @@ the rules.
 ## Development
 
 ```sh
-./gradlew core:test        # 599 tests, headless, ~1s of execution
+./gradlew core:test        # 778 test runs, headless, ~2s of execution
 ./gradlew core:check       # tests + the JaCoCo gate; HTML report at
                            #   core/build/reports/jacoco/test/html/
 ./gradlew lwjgl3:run       # play the current working tree
 ./gradlew lwjgl3:packageWinX64   # build a self-contained archive
+
+# the audio (Python 3 + audio-source/requirements.txt)
+python audio-source/render.py    # re-synthesize everything into assets/audio/
+python audio-source/check.py     # measure it: levels, seams, peaks; non-zero on a failure
 ```
+
+`SCOUNDREL_AUDIO_LOG=1 ./gradlew lwjgl3:run` logs every sound the game plays, with its time —
+the only way to check sound timing without ears. `SCOUNDREL_NO_AUDIO=1` runs it as a machine with
+no audio device would.
 
 Two conventions matter if you touch this code:
 
 **Pure logic is written test-first.** The failing test comes before the implementation for
-anything in `model`, `rules`, `runs`, `achievements` or `tutorial`. Those packages are headless by
-construction, so there is never a reason not to.
+anything in `model`, `rules`, `runs`, `achievements`, `tutorial` or `audio`. Those packages are
+headless by construction, so there is never a reason not to.
 
 **UI is verified by screenshot, not by test.** Rendering cannot be asserted meaningfully in JUnit,
 so changes to `screens` are checked by launching the real game, driving it with synthesised input
@@ -279,8 +297,8 @@ and reading the pixels back. When a screen accumulates logic that *could* be tes
 a hit region, a frame timeline — that logic gets extracted into a pure class with a characterization
 test written before the move, rather than left where it cannot be reached.
 
-Design notes live in [`docs/design.md`](docs/design.md) and [`docs/ui.md`](docs/ui.md), and are
-kept in sync with the code rather than written once.
+Design notes live in [`docs/design.md`](docs/design.md), [`docs/ui.md`](docs/ui.md) and
+[`docs/audio.md`](docs/audio.md), and are kept in sync with the code rather than written once.
 
 ## Roadmap
 
@@ -300,6 +318,13 @@ Shipped in **2.0** — the art, and everything it dragged with it:
 - [x] Every screen redrawn on the pixel kit; Scene2D and both vector faces removed
 - [x] A fixed design space rendered through an offscreen surface, on a snapping viewport
 - [x] One shared screen frame, and a palette rule the build enforces
+
+Built on the **`audio`** branch, not yet released — sound:
+
+- [x] 29 synthesized sound effects, each on its animation's beat, weighted by the card's value
+- [x] Menu and run music, win and death cues, and a crackling torch on every screen
+- [x] MUSIC and SOUND levels on the title, M to mute, the levels saved between launches
+- [ ] Replace the weakest placeholders with sourced sounds
 
 Not planned, and deliberately so: mid-game save/resume, a replay format, online scores. A run is
 a single sitting, which is the shape of the game.
