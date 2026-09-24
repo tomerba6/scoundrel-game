@@ -29,8 +29,11 @@ import java.util.Map;
  */
 public final class SoundBank implements Disposable {
 
-    /** One sound playing, as LibGDX identifies it, so the oldest can be stopped. */
-    private record Voice(com.badlogic.gdx.audio.Sound sound, long id) {
+    /**
+     * One sound playing, as LibGDX identifies it, so the oldest can be stopped — and
+     * its volume before the player's gain, so a level change reaches it mid-play.
+     */
+    private record Voice(com.badlogic.gdx.audio.Sound sound, long id, float base) {
     }
 
     private final Map<String, com.badlogic.gdx.audio.Sound> loaded = new HashMap<>();
@@ -57,9 +60,23 @@ public final class SoundBank implements Disposable {
         return choice;
     }
 
-    /** The player's sound-effect volume, 0..1: {@code AudioSettings.soundGain()}. */
+    /**
+     * The sound-effect gain as it should sound now, 0..1: the player's level, or
+     * silence while muted or minimised. Sounds already playing follow it, so a chime
+     * that has just begun goes quiet with the window.
+     */
     public void setGain(float gain) {
         this.gain = gain;
+        for (ArrayDeque<Voice> playing : voices.values()) {
+            for (Voice voice : playing) {
+                try {
+                    // Harmless if it has already finished on its own.
+                    voice.sound().setVolume(voice.id(), gain * voice.base());
+                } catch (RuntimeException e) {
+                    Gdx.app.error("audio", "could not change a playing sound's volume", e);
+                }
+            }
+        }
     }
 
     /** Plays a sound now. Past its voice limit, the oldest copy stops first. */
@@ -80,7 +97,7 @@ public final class SoundBank implements Disposable {
             }
             long id = sound.play(volume, sfx.pitch(), 0f);
             if (id != -1) {
-                playing.add(new Voice(sound, id));
+                playing.add(new Voice(sound, id, sfx.volume()));
             }
         } catch (RuntimeException e) {
             Gdx.app.error("audio", "could not play " + sfx.file(), e);

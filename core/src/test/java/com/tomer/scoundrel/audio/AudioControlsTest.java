@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AudioControlsTest {
@@ -85,6 +86,53 @@ class AudioControlsTest {
         controls.toggleMute();
 
         assertEquals(new AudioSettings(3, 3, false), controls.cycleMusic());
+    }
+
+    @Test
+    void shownTheGainsAreTheLevels() {
+        AudioControls controls = controls();
+
+        assertEquals(AudioSettings.DEFAULTS.musicGain(), controls.musicGain());
+        assertEquals(AudioSettings.DEFAULTS.soundGain(), controls.soundGain());
+    }
+
+    /**
+     * Minimised, nothing is heard - but the audio keeps time with the picture, so
+     * this only silences: the levels stay as they are and nothing is saved.
+     */
+    @Test
+    void minimisingSilencesEverythingWithoutTouchingTheLevels() {
+        AudioControls controls = controls();
+
+        controls.windowMinimised(true);
+
+        assertEquals(0f, controls.musicGain());
+        assertEquals(0f, controls.soundGain());
+        assertEquals(AudioSettings.DEFAULTS, controls.settings());
+        assertFalse(Files.exists(dir.resolve("audio.settings")), "a window state is not a setting");
+    }
+
+    @Test
+    void restoringTheWindowBringsTheLevelsBack() {
+        AudioControls controls = controls();
+        controls.windowMinimised(true);
+
+        controls.windowMinimised(false);
+
+        assertEquals(AudioSettings.DEFAULTS.musicGain(), controls.musicGain());
+        assertEquals(AudioSettings.DEFAULTS.soundGain(), controls.soundGain());
+    }
+
+    @Test
+    void mutedStaysSilentWhenTheWindowComesBack() {
+        AudioControls controls = controls();
+        controls.toggleMute();
+        controls.windowMinimised(true);
+
+        controls.windowMinimised(false);
+
+        assertEquals(0f, controls.musicGain());
+        assertEquals(0f, controls.soundGain());
     }
 
     @Test

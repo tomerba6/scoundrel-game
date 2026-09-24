@@ -17,6 +17,7 @@ public final class AudioControls {
     private final AudioSettingsStore store;
     private final Consumer<RuntimeException> onFailure;
     private AudioSettings settings;
+    private boolean minimised;
 
     public AudioControls(AudioSettingsStore store, Consumer<RuntimeException> onFailure) {
         this.store = store;
@@ -42,6 +43,26 @@ public final class AudioControls {
     /** M: silence everything, or bring it back at the levels it had. Saved at once. */
     public AudioSettings toggleMute() {
         return change(settings.toggleMute());
+    }
+
+    /**
+     * The window went down or came back. Minimised, nothing is heard, but nothing
+     * stops either: the audio keeps time with the picture, which goes on rendering,
+     * so a cue due meanwhile plays out unheard rather than minutes late. Not a
+     * setting, so nothing is saved.
+     */
+    public void windowMinimised(boolean minimised) {
+        this.minimised = minimised;
+    }
+
+    /** The music's gain as it should sound now: the level, or silence while minimised. */
+    public float musicGain() {
+        return minimised ? 0f : settings.musicGain();
+    }
+
+    /** The sound effects' gain as they should sound now, likewise. */
+    public float soundGain() {
+        return minimised ? 0f : settings.soundGain();
     }
 
     private AudioSettings read() {

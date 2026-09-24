@@ -46,6 +46,9 @@ public final class MusicDeck implements Disposable {
     private final Map<Track, Float> lastGain = new EnumMap<>(Track.class);
     private final Map<Cue, Float> lastCueGain = new EnumMap<>(Cue.class);
     private float lastLight = 1f;
+    /** For the log: seconds since the window went down, or -1 while it is up. */
+    private float minimisedFor = -1f;
+    private boolean reported;
 
     public MusicDeck(SoundBank sounds, MusicDirector director) {
         this.sounds = sounds;
@@ -86,11 +89,14 @@ public final class MusicDeck implements Disposable {
     }
 
     /**
-     * For the sound log only: the window went down or came back. Nothing changes —
-     * the audio plays on with the picture, which LibGDX keeps rendering.
+     * For the sound log: the window went down or came back. The silencing itself is
+     * the gains ({@code AudioControls.windowMinimised}); here the streams simply run
+     * on at them, keeping time with the picture, which LibGDX keeps rendering.
      */
     public void windowMinimised(boolean minimised) {
-        sounds.log(minimised ? "window minimised (or closing): the audio plays on" : "window restored");
+        sounds.log(minimised ? "window minimised (or closing): silent, keeping time" : "window restored");
+        minimisedFor = minimised ? 0f : -1f;
+        reported = false;
     }
 
     /**
@@ -104,6 +110,9 @@ public final class MusicDeck implements Disposable {
         for (Command command : director.tick(delta, boardIdle)) {
             carryOut(command);
         }
+        // A track runs while the director has it up, whatever the player's level: a
+        // level of zero - off, muted, minimised - is silence, not a stopped clock, so
+        // the music comes back where it would have been.
         for (Track track : Track.values()) {
             float gain = director.gain(track);
             logCrossing(track.name(), lastGain.get(track), gain);
@@ -112,11 +121,10 @@ public final class MusicDeck implements Disposable {
             if (music == null) {
                 continue;
             }
-            float volume = gain * musicGain;
-            music.setVolume(volume);
-            if (volume > 0f && !music.isPlaying()) {
+            music.setVolume(gain * musicGain);
+            if (gain > 0f && !music.isPlaying()) {
                 music.play();
-            } else if (volume <= 0f && music.isPlaying()) {
+            } else if (gain <= 0f && music.isPlaying()) {
                 music.pause();
             }
         }
@@ -140,6 +148,23 @@ public final class MusicDeck implements Disposable {
             if (!torch.isPlaying()) {
                 torch.play();
             }
+        }
+        reportWhileMinimised(delta);
+    }
+
+    /** For the log, once, a second into a minimise: what is still running, and how loud. */
+    private void reportWhileMinimised(float delta) {
+        if (minimisedFor < 0f || reported || !sounds.logging()) {
+            return;
+        }
+        minimisedFor += delta;
+        if (minimisedFor >= 1f) {
+            reported = true;
+            long playing = loaded.values().stream().filter(Music::isPlaying).count();
+            double loudest = loaded.values().stream().filter(Music::isPlaying)
+                    .mapToDouble(Music::getVolume).max().orElse(0);
+            sounds.log(String.format(Locale.ROOT, "minimised 1 s: %d streams running, loudest at volume %.3f",
+                    playing, loudest));
         }
     }
 

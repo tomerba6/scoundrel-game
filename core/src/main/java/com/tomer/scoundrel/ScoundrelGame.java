@@ -108,20 +108,24 @@ public class ScoundrelGame extends Game {
     }
 
     /**
-     * The window was minimised (or is closing). The audio plays on, in step with
-     * the picture, which LibGDX keeps rendering: holding it back until the window
-     * returned put a death cue minutes after the death it belonged to. Only
-     * logged, so the sound log shows what played while the window was down.
+     * The window was minimised (or is closing). Nothing is heard until it comes
+     * back, but nothing stops: the audio keeps time with the picture, which LibGDX
+     * keeps rendering. Holding it instead put a death cue minutes after the death
+     * it belonged to.
      */
     @Override
     public void pause() {
         super.pause();
+        audio.windowMinimised(true);
+        applyVolume();
         musicDeck.windowMinimised(true);
     }
 
     @Override
     public void resume() {
         super.resume();
+        audio.windowMinimised(false);
+        applyVolume();
         musicDeck.windowMinimised(false);
     }
 
@@ -167,10 +171,10 @@ public class ScoundrelGame extends Game {
         }
     }
 
+    /** The gains as they should sound now: the levels, or silence while minimised or muted. */
     private void applyVolume() {
-        AudioSettings now = audio.settings();
-        sounds.setGain(now.soundGain());
-        musicDeck.setGains(now.musicGain(), now.soundGain());
+        sounds.setGain(audio.soundGain());
+        musicDeck.setGains(audio.musicGain(), audio.soundGain());
     }
 
     /** The sound effects, shared by every screen like the theme and the sprites. */
