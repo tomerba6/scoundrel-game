@@ -31,9 +31,11 @@ intent and progress. **This file is the record of what ships.**
 >
 >   The user signed off the plates' placement from the screenshots on 2026-09-24.
 >
-> Every section below carries a **Status** line. It says **planned** until the part is built,
-> then **shipped** with the commit that shipped it. A section marked *planned* describes a
-> decision, not the game. Don't cite it as current behaviour.
+> Every section below carries a **Status** line. It said **planned** until the part was built,
+> then **shipped** with the commit that shipped it. **Nothing is planned any more:** every
+> section is shipped, or *decided* for the locked design. The one open-ended item is sourcing
+> replacements for weak placeholders (see **Sourcing**). None of this is released yet; it is all
+> on the `audio` branch.
 
 ## Locked decisions (from the design interview)
 
@@ -483,9 +485,11 @@ for the sound effects and streams. Listening rounds 1 (heard alone), 2 (in play)
 music, cues and torch) signed them off.
 
 - **Pure logic is unit-tested first:** weights, versions, event-to-sound mapping, pending cues,
-  the music director, and settings. Eight test classes in `core/src/test/java/.../audio`, plus
-  the `ProgressTest` guard. `core:check` gates it: `audio` had 100% line coverage when Task 3
-  closed.
+  the music director, the settings and their controls. Eleven test classes in
+  `core/src/test/java/.../audio` (`AudioAssetsTest` among them), plus the `ProgressTest` guard.
+  `core:check` gates it; measured when Task 8 closed, `audio` had 100% line and 99.4% branch
+  coverage. The screens' pure helpers (`Beats`, `AudioLog`) and the root's `LaunchSwitch` are
+  tested the same way.
 - **`AudioAssetsTest`** (JUnit, using the JDK's `javax.sound.sampled`, no LibGDX) checks the
   file set, format, peak and leading silence of the sound effects.
 - **`check.py`** measures what Java can't: loudness against each target, silent tails, DC,
