@@ -11,15 +11,16 @@ intent and progress. **This file is the record of what ships.**
 
 > ## Where this stands, 2026-09-24
 >
-> **Nothing plays yet.** The game makes no sound: no screen calls audio code. Three things
-> exist:
-> - The synthesis toolchain (`audio-source/`: `6d2e267`, `81cc0a3`).
-> - The 29 **placeholder** sound effects it renders, in `assets/audio/sfx/`. They pass every
->   measurement and were **signed off by ear in listening round 1**, heard on their own and
->   in simulated scenes. Round 2 hears them in play.
-> - The pure `audio` package, built and tested (`e49a6bb`…`b8e7f74`) but not yet wired in. It
->   decides which sound each moment makes, holds sounds for their beats, sequences the music,
->   and keeps the volume settings.
+> **The sound effects play; the music doesn't yet.** What exists:
+> - **The 29 placeholder sound effects,** in `assets/audio/sfx/`, synthesized by
+>   `audio-source/`. They were signed off by ear in listening round 1 and now **play in the
+>   game** (`a00041d`): menu clicks, and every board moment on its animation's beat, verified
+>   from the in-game sound log. Listening round 2, played in the game, is pending.
+> - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`), which decides what each moment
+>   sounds like. Its music sequencing (`MusicDirector`) and the volume settings are built but not
+>   yet wired in.
+> - **Not yet built:** the music and the torch loop (Task 6), and the MUSIC/SOUND controls and M
+>   (Task 7). Until then, sound plays at full level.
 >
 > Every section below carries a **Status** line. It says **planned** until the part is built,
 > then **shipped** with the commit that shipped it. A section marked *planned* describes a
@@ -50,8 +51,8 @@ intent and progress. **This file is the record of what ships.**
 
 ## The sounds
 
-**Status:** the choice of sound is implemented and tested (`Sound`, `SfxChoice`: `c7c2251`).
-Nothing plays it yet.
+**Status: shipped.** The choice of sound is in `Sound` and `SfxChoice` (`c7c2251`), and the game
+plays it (`a00041d`). The torch loop is planned (Task 6).
 
 | Sound | Plays when | Weighted by |
 |---|---|---|
@@ -113,9 +114,10 @@ each weight, because the file already says "heavier".
 
 ## Timing
 
-**Status:** the queue that holds each sound for its beat and flushes everything at once on a
-skip, collapsing flips, is implemented (`PendingCues`, `4b63cd0`). Reading the beats from the
-effects and firing them is planned.
+**Status: shipped.** `Beats` reads each beat off its effect (`abddca8`), `PendingCues` holds
+the sounds (`4b63cd0`), and `BoardView` fires them (`a00041d`). Measured in the running game,
+every beat below lands within a frame. A skipped deal plays one flip, and a sound still
+pending when an effect is skipped or cut into plays at once.
 
 The beats are read from the effect classes, which run at 12 fps (one frame = 83 ms). Times are from the start of each effect. Figures re-derived from the constants on
 2026-09-24.
@@ -225,7 +227,9 @@ no-device check are planned.
 
 ## Architecture
 
-**Status:** the pure half has shipped (`e49a6bb`…`b8e7f74`). The screens half is planned.
+**Status:** the pure half has shipped (`e49a6bb`…`b8e7f74`, `c658e86`). So have the sound-effect
+wiring (`Beats`, `SoundBank`, `BoardView`, `PixelScreen.pressAt`: `abddca8`, `a00041d`) and
+the sound log. `MusicDeck` and the director's wiring are planned (Task 6).
 
 The engine already exposes everything audio needs. `apply(state, move)` returns the events,
 and the effects already have their beats. Nothing in `model` or `rules` changes.
@@ -270,14 +274,24 @@ flowchart LR
   is passed in.
 - **`screens`** decides *when*:
   - `Beats` is a pure, tested helper that reads each beat from the effect classes.
-  - `BoardView` fires sounds on their beats, and on `skip()`.
-  - `SoundBank` plays the sound effects and caps how many copies of each play at once.
-  - `MusicDeck` streams the tracks.
-  - The F9 animation lab plays the same sounds through the same `BoardView`.
-- **`ScoundrelGame`** owns the bank, the deck, the director and the settings, like `Theme` and
-  `Sprites`. Running the director there is what lets music survive screen changes.
-- **Sound log:** `-Dscoundrel.audio.log=true` logs every sound and one-shot with a millisecond
-  timestamp. This is how GL-side timing is verified.
+  - `BoardView` holds each effect's sounds for its beat, and schedules a flip for each newly
+    dealt card as it lands. On `skip()`, or when a new effect cuts in, it plays everything
+    still waiting at once.
+  - `SoundBank` plays the sound effects at the player's volume and caps how many copies of each
+    play at once (`Sound.voices()`: four flips, one chime, two of the rest). It owns the one
+    shared `SfxChoice`. A file that won't load, or a play that fails, is logged and silent.
+  - `PixelScreen.pressAt()` plays the menu click as a pressed plate sinks. `GameScreen` lets
+    only its end panel click.
+  - `MusicDeck` (planned) streams the tracks.
+  - The F9 animation lab plays the same sounds through the same `BoardView`, from the events
+    the game would report.
+- **`ScoundrelGame`** owns the bank, and later the deck, the director and the settings, like
+  `Theme` and `Sprites`. Screens reach the bank through `game.sounds()`. Running the director
+  there is what will let music survive screen changes.
+- **Sound log:** `SCOUNDREL_AUDIO_LOG=1` in the environment (which `gradlew lwjgl3:run`
+  passes through), or `-Dscoundrel.audio.log=true` for a jar. It logs every play, effect start,
+  deal, skip and cut-in with seconds since launch (`screens/AudioLog`). This is how the
+  GL-side timing is verified.
 
 ## Asset contract
 
@@ -361,8 +375,9 @@ author and licence recorded on replacement.
 
 ## Verification
 
-**Status:** the unit tests, `AudioAssetsTest` and `check.py` for the sound effects are in force.
-The in-game sound log and the listening rounds are still ahead.
+**Status:** the unit tests, `AudioAssetsTest`, `check.py` and the in-game sound log are in force
+for the sound effects. Listening round 1 signed them off heard alone; round 2 (in play) and
+round 3 (music) are ahead.
 
 - **Pure logic is unit-tested first:** weights, versions, event-to-sound mapping, pending cues,
   the music director, and settings. Eight test classes in `core/src/test/java/.../audio`, plus
