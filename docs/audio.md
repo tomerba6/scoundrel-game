@@ -11,9 +11,11 @@ intent and progress. **This file is the record of what ships.**
 
 > ## Where this stands, 2026-09-24
 >
-> **Nothing plays yet.** The game makes no sound: there's no audio file, and no screen calls
-> audio code. Two things exist:
-> - The synthesis toolchain's pinned requirements (`audio-source/requirements.txt`, `6d2e267`).
+> **Nothing plays yet.** The game makes no sound: no screen calls audio code. Three things
+> exist:
+> - The synthesis toolchain (`audio-source/`: `6d2e267`, `81cc0a3`).
+> - The 29 **placeholder** sound effects it renders, in `assets/audio/sfx/`. They pass every
+>   measurement but haven't been through listening round 1.
 > - The pure `audio` package, built and tested (`e49a6bb`…`b8e7f74`) but not yet wired in. It
 >   decides which sound each moment makes, holds sounds for their beats, sequences the music,
 >   and keeps the volume settings.
@@ -192,12 +194,18 @@ no-device check are planned.
   mock when OpenAL can't start ("Couldn't initialize audio, disabling audio", checked in the
   jar). Every load and play is also guarded, so a missing or bad file is silent plus one log
   line.
-- **Starting mix targets**, tuned by ear in listening round 1:
-  - Every file peaks at or below −1 dBFS, measured on the **decoded** OGG (Vorbis overshoots by
-    about 0.2 dB).
+- **Mix targets** (the sound-effect ones are enforced by `check.py`, and the music ones will be
+  in Task 6):
+  - Every file peaks at or below −1 dBFS. For OGG that's measured on the **decoded** file, since
+    Vorbis overshoots by about 0.2 dB.
   - At most 5 ms of silence at the start of a sound effect.
   - Tails decay to silence, with no DC offset.
-  - Sound effects matched on RMS loudness within a category, and music below them.
+  - **Each sound effect has a loudness target**, measured as its loudest 50 ms, and they're set
+    relative to one another. The board's impacts sit around −16 dBFS (heavier weights 1 dB
+    louder per step). The flips and the click are at −24, because they come four at a time or
+    on every menu press. The chime is at −18. The live values are in
+    `audio-source/recipes.py`, and they get tuned by ear.
+  - Music sits below the sound effects.
 
 ## Architecture
 
@@ -257,14 +265,15 @@ flowchart LR
 
 ## Asset contract
 
-**Status:** the list of names is in code (`Sound.allFiles()`, `c7c2251`). The files themselves
-are planned.
+**Status:** the list of names is in code (`Sound.allFiles()`, `c7c2251`). The 29 sound-effect
+files exist as placeholders (`81cc0a3`), and `AudioAssetsTest` holds them to the list
+(`7542da4`). The five streamed files are planned.
 
 **File names are the contract**, like the sprite region names. Unweighted sounds are
 `<sound>_<version>`; weighted ones are `<sound>_<weight>_<version>`, where the weight is
 `light`, `medium` or `heavy`. The Java side's list is `Sound.allFiles()` (`c7c2251`), which
-`SoundTest` pins to the table below by hand. The planned `AudioAssetsTest` will check the
-folder matches it **exactly**: a stray file fails too, because everything in `assets/` ships.
+`SoundTest` pins to the table below by hand. `AudioAssetsTest` checks the folder matches it
+**exactly**: a stray file fails too, because everything in `assets/` ships.
 
 **Sound effects**, in `assets/audio/sfx/`. WAV, 16-bit PCM, mono, 44.1 kHz. **29 files:**
 
@@ -290,19 +299,26 @@ the game shouldn't need either, so the renders are committed and a test guards t
 
 ## Regenerating the audio
 
-**Status:** the requirements shipped (`6d2e267`); the scripts are planned.
+**Status:** shipped for the sound effects (`6d2e267`, `81cc0a3`). The music scripts are planned
+(Task 6).
 
 ```bash
-python -m pip install --user -r audio-source/requirements.txt   # shipped: numpy 2.5.3, soundfile 0.14.0
-python audio-source/render.py                                   # planned: renders assets/audio/
-python audio-source/check.py                                    # planned: measures; non-zero exit on failure
+python -m pip install --user -r audio-source/requirements.txt   # numpy 2.5.3, soundfile 0.14.0
+python audio-source/render.py      # renders assets/audio/sfx/ (under a second)
+python audio-source/check.py       # measures every file; non-zero exit on any failure
+python audio-source/audition.py    # builds audio-source/build/audition.html to listen to
 ```
+
+`audio-source/README.md` describes each script.
 
 - **`audio-source/`** sits outside `assets/`, like `art-source/`.
 - **Recipes use fixed seeds**, so the same seed gives a byte-identical file. That's why the
   requirements pin exact versions.
 - **Audition pages and scratch renders go in `audio-source/build/`** (gitignored), never in
   `assets/`.
+- **A replaced placeholder is never rendered over.** Its name goes in
+  `audio-source/replaced.txt`, which `render.py` skips and `check.py` stops comparing against a
+  fresh render.
 
 ## Sourcing
 
@@ -322,14 +338,15 @@ author and licence recorded on replacement.
 
 | Files | Status | Source | Licence |
 |---|---|---|---|
-| `sfx/*` (29) | planned | synth | ours |
+| `sfx/*` (29) | placeholder (`81cc0a3`), awaiting round 1 | synth | ours |
 | `ambience/torch` | planned | synth | ours |
 | `music/menu`, `music/run` | planned | synth | ours; most likely to be replaced |
 | `music/win`, `music/death` | planned | synth | ours |
 
 ## Verification
 
-**Status:** the unit tests are in force. The rest is planned.
+**Status:** the unit tests, `AudioAssetsTest` and `check.py` for the sound effects are in force.
+The in-game sound log and the listening rounds are still ahead.
 
 - **Pure logic is unit-tested first:** weights, versions, event-to-sound mapping, pending cues,
   the music director, and settings. Eight test classes in `core/src/test/java/.../audio`, plus
@@ -337,8 +354,9 @@ author and licence recorded on replacement.
   closed.
 - **`AudioAssetsTest`** (JUnit, using the JDK's `javax.sound.sampled`, no LibGDX) checks the
   file set, format, peak and leading silence of the sound effects.
-- **`check.py`** measures what Java can't: loudness per category, loop seams, and the decoded
-  OGGs.
+- **`check.py`** measures what Java can't: loudness against each target, silent tails, DC,
+  length, versions that aren't near-copies, and the committed files matching a fresh render. It
+  also reports brightness by weight. From Task 6 it will cover loop seams and the decoded OGGs.
 - **Timing in the game** is checked from the sound log during a run driven by the
   `run-scoundrel` skill, compared against **Timing** above to within one render frame.
 - **Whether it sounds right is the user's call**, in three listening rounds: the sounds alone,
