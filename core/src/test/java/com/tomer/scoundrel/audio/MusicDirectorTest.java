@@ -264,6 +264,35 @@ class MusicDirectorTest {
         assertEquals(1, count(play(FRAME), new Play(Cue.CHIME)));
     }
 
+    @Test
+    void anEndThatFollowsAnotherWithoutANewRunStillPlaysItsCue() {
+        // Only the lab does this - V, then X - but a run's end starts afresh either
+        // way. Found in the lab: the win's cue was still remembered, so the death
+        // thought it had already cued and stayed silent.
+        settledInRun();
+        director.won();
+        play(MusicDirector.WIN_FADE + 0.1f);
+        director.cueEnded(Cue.WIN);
+        director.dying(FADE_START, FADE_END, CUE_AT);
+        assertEquals(1, count(play(4f), new Play(Cue.DEATH)));
+    }
+
+    @Test
+    void aSecondEndsChimeWaitsForItsOwnPanelAndCue() {
+        settledInRun();
+        director.trophiesUnlocked();
+        director.won();
+        play(MusicDirector.WIN_FADE + 0.1f);
+        director.cueEnded(Cue.WIN);
+        assertEquals(1, count(play(FRAME), new Play(Cue.CHIME)));
+        director.dying(FADE_START, FADE_END, CUE_AT);
+        play(4f);
+        director.cueEnded(Cue.DEATH);
+        assertEquals(0, count(play(1f), new Play(Cue.CHIME)), "the death's panel is not up yet");
+        director.settled();
+        assertEquals(1, count(play(FRAME), new Play(Cue.CHIME)));
+    }
+
     // --- the end panel and after --------------------------------------------
 
     @Test

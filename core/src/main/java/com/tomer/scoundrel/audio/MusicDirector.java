@@ -119,6 +119,7 @@ public final class MusicDirector {
      * {@code cueAt}.
      */
     public void dying(float fadeStart, float fadeEnd, float cueAt) {
+        beginRunEnd();
         this.fadeStart = fadeStart;
         this.fadeEnd = fadeEnd;
         this.cueAt = cueAt;
@@ -144,6 +145,7 @@ public final class MusicDirector {
 
     /** The run was won. The end panel is up already; the music waits for the board. */
     public void won() {
+        beginRunEnd();
         state = State.WINNING;
         winFading = false;
         panelUp = true;
@@ -222,6 +224,20 @@ public final class MusicDirector {
             pending.add(new Play(Cue.CHIME));
             chimed = true;
         }
+    }
+
+    /**
+     * A run's end begins: whatever the last end cued, and whether it chimed, is
+     * forgotten - but not the trophies, which the game reports just before the end
+     * it belongs to. In the game an end always follows a new run, which forgets
+     * everything anyway; the lab can end twice in a row, and a remembered win cue
+     * once left a death silent.
+     */
+    private void beginRunEnd() {
+        endCue = null;
+        cueFinished = false;
+        panelUp = false;
+        chimed = false;
     }
 
     private void forgetRunEnd() {
