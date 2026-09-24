@@ -4,7 +4,10 @@ This documents the UI: the decisions locked in the design interview, the
 visual tokens, the architecture, and every component on screen. It complements
 [`design.md`](design.md) (the rules engine); keep both in sync with the code.
 
-> ## Where this stands, 2026-08-14
+> ## Where this stands, 2026-09-24
+>
+> **Sound** is on the `audio` branch: the title's volume row and the M key are described here;
+> everything else is in [`audio.md`](audio.md).
 >
 > **This document is current.** It was for a while a mix of what shipped and what was being
 > replaced, with a banner telling you to read parts of it as history; that mix has been
@@ -302,13 +305,25 @@ to 8.
   "Drank the 7 of hearts — healed 5" / "— already full",
   "… wasted — one potion a turn", "Equipped the 5 of diamonds",
   "The weapon dulls — slays < 6" / "The weapon is spent",
-  "Avoided the room".
-- **Title screen** — `SCOUNDREL` in Silkscreen at 38px with a 4px hard shadow, then New game,
-  **How to play**, Records, and Trophies buttons, and a dim designer-credit
-  line. **New game** opens the mode picker; **How to play** starts the tutorial.
-  On the very first launch (`!TutorialFlag.isSeen()`) a modal **New here?** prompt
-  pops over the menu — **Play tutorial** / **Maybe later** — and either choice
-  marks it seen, so it is offered exactly once.
+  "Avoided the room", and "Sound off" / "Sound on" when M is pressed mid-run.
+- **Sound** (everything else in [`audio.md`](audio.md)) — each sound fires on its animation's
+  beat and a skip plays what is pending; menu buttons click on press; the music crossfades while
+  the screens cut, and on a death dies with the torch. **M** mutes everything from any screen,
+  polled in `ScoundrelGame` beside F11. Minimised, nothing is heard but the audio keeps time with
+  the picture, so nothing plays late when the window comes back.
+- **Title screen** — The Debt idling at ×3 in its well; beside it `SCOUNDREL` in Silkscreen at
+  52px (the 26px face at ×2) with a 4px hard shadow, then the NEW GAME, HOW TO PLAY, THE LEDGER
+  and TROPHIES buttons, the volume row, and a dim designer-credit line. **New game** opens the
+  mode picker; **How to play** starts the tutorial. On the very first launch
+  (`!TutorialFlag.isSeen()`) a modal **New here?** prompt pops over the menu — **Play
+  tutorial** / **Maybe later** — and either choice marks it seen, so it is offered exactly once.
+  - **The volume row** (not in the mock; signed off by screenshot): **MUSIC** and **SOUND**
+    plates side by side under TROPHIES, 129×36 each — the column's width and gaps, the back
+    plate's height. Each shows its level as three pips (gold lit, a sunk slot unlit, grey while
+    muted) and cycles OFF → 1 → 2 → 3 on release, un-muting. MUSIC clicks on press like every
+    button; SOUND clicks on release, *at its new level*, so the click previews what you chose.
+    Under the row, always, a line says what M does: `M TO MUTE ALL`, or `MUTED · M TO UNMUTE`.
+    Geometry in `ScreenArt`, text in `Labels.muteHint`, the plate in `Chrome.levelPlate`.
 - **Tutorial** — a scripted, guided run played on the real board
   (`GameScreen` in tutorial mode, given a `TutorialGuide`). It deals the curated
   `TutorialScript` deck, records nothing, and layers guidance on top: each step
@@ -494,8 +509,14 @@ to 8.
   the drained bottle, the struck creature, and its outline.
 - `core/src/main/java/com/tomer/scoundrel/ScoundrelGame.java` — the navigator:
   creates the Theme, RunLog and AchievementStore, boots into `TitleScreen`,
-  owns disposal.
-- `lwjgl3` launcher — 1280×720 window, title "Scoundrel".
+  owns disposal. It also owns the audio (`SoundBank`, `MusicDeck`, the `MusicDirector`, the
+  `AudioControls` volume), polls F11, F9 and M, and silences the audio while minimised.
+- `core/src/main/java/com/tomer/scoundrel/screens/SoundBank.java` / `MusicDeck.java` /
+  `Beats.java` / `AudioLog.java` — the GL side of the audio: the effects, the streams, each
+  effect's beat, and the optional sound log. The pure side is the `audio` package; both are in
+  [`audio.md`](audio.md).
+- `lwjgl3` launcher — borderless-fullscreen at the monitor's resolution (F11 / Alt+Enter toggle a
+  1280×720 window), title "Scoundrel"; `SCOUNDREL_NO_AUDIO=1` starts it with no audio device.
 - `assets/fonts/` — `Silkscreen-Regular.ttf`, `Silkscreen-Bold.ttf` and the one OFL licence.
   Nothing else: the vector faces and the default libGDX skin were deleted once nothing loaded
   them, 881 KB that had been shipping in every build.
