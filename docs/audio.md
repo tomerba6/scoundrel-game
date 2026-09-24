@@ -11,7 +11,7 @@ intent and progress. **This file is the record of what ships.**
 
 > ## Where this stands, 2026-09-24
 >
-> **The sound effects, music, cues and torch all play; the volume controls don't exist yet.**
+> **The sound effects, music, cues and torch all play, and the player controls their volume.**
 > - **The 29 placeholder sound effects,** in `assets/audio/sfx/`, synthesized by
 >   `audio-source/`. They play on their animations' beats (`a00041d`) and were signed off by ear
 >   in listening rounds 1 (heard alone) and 2 (in play).
@@ -20,10 +20,12 @@ intent and progress. **This file is the record of what ships.**
 >   log. **Signed off by ear in listening round 3**, after one pass that rebuilt the torch and
 >   the fist and brought the music down a notch (`8af222e`).
 > - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`, `f6b11d4`, `29bb050`), which
->   decides what each moment sounds like and sequences the music. The volume settings are built
->   but not yet wired in.
-> - **Not yet built:** the MUSIC/SOUND controls, M, the minimise pause and the no-device check
->   (Task 7). Until then, sound plays at full level and music at the default level 2.
+>   decides what each moment sounds like and sequences the music, and `AudioControls`
+>   (`6cccf54`), which keeps the volume and saves it.
+> - **The controls** (`71eddaa`…`c0b45d9`): the title's MUSIC and SOUND plates, M to mute from
+>   any screen, the levels saved in `~/.scoundrel/audio.settings`, the audio held while the
+>   window is minimised, and `SCOUNDREL_NO_AUDIO=1` to run without a device. **The plates'
+>   placement is waiting on the user's screenshot sign-off.**
 >
 > Every section below carries a **Status** line. It says **planned** until the part is built,
 > then **shipped** with the commit that shipped it. A section marked *planned* describes a
@@ -201,33 +203,64 @@ would record it.
 
 ## Mix and controls
 
-**Status:** the levels, gains, mute and settings file are implemented and tested
-(`AudioSettings`, `AudioSettingsStore`: `4e98b05`). The plates, M, the minimise pause and the
-no-device check are planned.
+**Status: shipped**, and verified in the running game from the sound log and screenshots:
+- The levels, gains, mute and settings file: `AudioSettings` and `AudioSettingsStore`
+  (`4e98b05`), and `AudioControls` (`6cccf54`).
+- The plates and M: `71eddaa` and `63a8c84`.
+- The minimise pause: `652a013`.
+- The no-device switch: `c0b45d9`.
 
-- **Two plates on the title, MUSIC and SOUND**, below the four menu buttons. Each cycles up
-  through three levels and wraps to OFF on release, like any menu button, and the SOUND plate
-  plays the click at its new level. **Changing a level also un-mutes**, since turning a volume
-  is a request to hear it. The mock has no plates, so placement is signed off by screenshot.
+The plates' placement is waiting on the user's screenshot sign-off.
+
+- **Two plates on the title, MUSIC and SOUND**, in one row under the four menu buttons.
+  - **Layout:** the column's 10 px gap above and between them, together exactly the column's
+    width, and the back plate's 36 px height, so they read as settings rather than places to
+    go. The geometry is in `ScreenArt` and headless-tested.
+  - **Pips:** each plate shows its level as three pips. A lit pip is gold and an empty one is
+    a sunk slot; muted, the lit pips turn grey and "MUTED · M TO UNMUTE" appears under the row.
+    All three colours were already in the palette.
+  - **Cycling:** each plate cycles up through three levels and wraps to OFF on release, like
+    any menu button. **Changing a level also un-mutes**, since turning a volume is a request
+    to hear it.
+  - **Clicks:** MUSIC clicks on press like every button. SOUND clicks on release instead, at
+    its new level, so the click is how you hear the level you chose; at OFF it's silent.
 - **Level gains:** 3 = 0 dB, 2 = −6 dB, 1 = −12 dB, 0 = off. On first launch music is at 2 and
   sound at 3, so music sits below the effects.
-- **M mutes and unmutes everything from any screen.** It's checked in `ScoundrelGame.render()`
-  beside F11, and was unbound when this was written. During a run the event feed shows SOUND
-  OFF / SOUND ON, since nothing else on the board would show it.
+- **M mutes and unmutes everything from any screen**, the F9 lab included. It's checked in
+  `ScoundrelGame.render()` beside F11. During a run the event feed shows "Sound off" or
+  "Sound on" (`FeedText.mute`), since nothing else on the board would show it.
+  - A cue already playing follows the level every frame, so M silences a death cue that's
+    under way. Before Task 7, a cue's volume was set once, when it started.
 - **Settings file:** `~/.scoundrel/audio.settings`, one versioned line of tab-separated
   key=value tokens (`v=1	music=2	sound=3	muted=false`), the shape of a run-log line.
   - A missing file, or one that isn't version 1, means the defaults.
   - In a version-1 file, a bad value falls back for that key alone.
-  - Read or write failures throw, as the sibling stores do, and the game carries on with the
-    defaults.
+  - The store throws on a read or write failure, as its siblings do. `AudioControls` catches
+    it: a failed read means the defaults, and a failed save keeps the change for the session.
+    Either way it logs one line.
+  - It's loaded in `ScoundrelGame.create()` and saved on every change.
   - **The full progress reset doesn't touch it:** it's a setting, not progress. `ProgressTest`
     pins this.
-- **Minimising the window pauses the audio.** This is checked by logging from the running game,
-  not by reasoning about the backend.
-- **No audio device means silence, never a crash.** LibGDX 1.14.2 already switches to a silent
-  mock when OpenAL can't start ("Couldn't initialize audio, disabling audio", checked in the
-  jar). Every load and play is also guarded, so a missing or bad file is silent plus one log
-  line.
+- **Minimising the window holds the audio.**
+  - **Why a flag:** LibGDX 1.14.2 calls `pause()` on minimise, but it keeps rendering and
+    streaming (read in the backend's source). So a flag in `MusicDeck` and `SoundBank` holds
+    playback: everything playing stops where it is, and nothing new starts.
+  - **Meanwhile:** the director keeps time with the picture, which also runs on. A cue that
+    comes due while minimised starts when the window comes back.
+  - **Verified from the log:** 146 frames a second go on while minimised, with 0 streams
+    playing. The held streams resume on restore, and a death cue that came due while the
+    window was down played in full after it.
+- **No audio device means silence, never a crash.**
+  - **The fallback:** LibGDX 1.14.2 already switches to a silent mock when OpenAL can't start
+    ("Couldn't initialize audio, disabling audio", checked in the jar). Every load and play is
+    also guarded, so a missing or bad file is silent plus one log line.
+  - **Simulating it:** `SCOUNDREL_NO_AUDIO=1` (or `-Dscoundrel.no.audio=true`) starts the game
+    on that mock. The sound log's first line names the backend ("on MockAudio").
+  - **Verified on the mock:** the plates, M, a real Standard run's first room, every lab effect
+    but the chime, the death and win cues, and a minimise. There were no exceptions, and
+    `crash.log` was unchanged.
+  - **The chime:** the mock never reports a stream finished, so after a win it never comes.
+    With no device nothing is audible, so nothing is lost.
 - **Mix targets** (all enforced by `check.py`, for the streams since Task 6):
   - Every file peaks at or below −1 dBFS. For OGG that's measured on the **decoded** file, since
     Vorbis overshoots by about 0.2 dB.
@@ -250,10 +283,15 @@ no-device check are planned.
 
 ## Architecture
 
-**Status: shipped**, apart from the volume controls (Task 7). The pure half is in `e49a6bb`…`b8e7f74`,
-`c658e86`, `f6b11d4` and `29bb050`. The sound-effect wiring (`Beats`, `SoundBank`, `BoardView`,
-`PixelScreen.pressAt`) is in `abddca8` and `a00041d`. The music wiring (`MusicDeck`, the
-director in `ScoundrelGame`, `GameScreen`'s calls) is in `4d0a625`. The sound log shipped too.
+**Status: shipped.**
+- **The pure half:** `e49a6bb`…`b8e7f74`, `c658e86`, `f6b11d4`, `29bb050` and `6cccf54`.
+- **The sound-effect wiring** (`Beats`, `SoundBank`, `BoardView`, `PixelScreen.pressAt`):
+  `abddca8` and `a00041d`.
+- **The music wiring** (`MusicDeck`, the director in `ScoundrelGame`, `GameScreen`'s calls):
+  `4d0a625`.
+- **The controls:** `71eddaa`…`c0b45d9`.
+
+The sound log shipped too.
 
 The engine already exposes everything audio needs. `apply(state, move)` returns the events,
 and the effects already have their beats. Nothing in `model` or `rules` changes.
@@ -263,6 +301,7 @@ flowchart LR
   subgraph pure["audio (pure, gated)"]
     SC[SfxChoice]
     MD[MusicDirector]
+    AC[AudioControls]
     AS[AudioSettings]
   end
   subgraph gl["screens + ScoundrelGame (LibGDX)"]
@@ -278,9 +317,11 @@ flowchart LR
   BV -->|when: beat or skip| SB
   PS -->|menu click on press| SB
   GS -->|run / dying / idle / end| MD
-  SG -->|tick each frame, M key| MD
+  SG -->|tick each frame| MD
   MD -->|stream gains + one-shots| DK
   SG -->|torch gain = level x backdropLight| DK
+  SG -->|M, the title's plates| AC
+  AC -->|loaded, saved| AS
   AS --> SB
   AS --> DK
 ```
@@ -292,7 +333,8 @@ flowchart LR
   - `SfxChoice`, with `VariantPicker`, turns events into `Sfx` (file, pitch, volume).
   - `PendingCues`: holds sounds for their beats.
   - `MusicDirector`: sequences the tracks and cues.
-  - `AudioSettings` and `AudioSettingsStore`: the volume.
+  - `AudioSettings` and `AudioSettingsStore`: the volume. `AudioControls`: the volume through a
+    session, read at launch and saved on change, where a disk failure stops being a crash.
 
   It references only `rules`. Timing that lives in `screens` (the death sequence's constants)
   is passed in.
@@ -314,14 +356,21 @@ flowchart LR
     timings), the panel settling, a win, trophies, and a new run begun in place.
   - The F9 animation lab plays the same sounds through the same `BoardView`, from the events
     the game would report, and has music keys (R, X, V) with its own torch light.
-- **`ScoundrelGame`** owns the bank, the deck and the director (and, from Task 7, the settings),
-  like `Theme` and `Sprites`. Screens reach them through `game.sounds()` and `game.music()`.
-  Every screen switch tells the director run or menus, and each frame passes the showing
-  screen's board idleness and torch light. That's what lets music survive screen changes.
-- **Sound log:** `SCOUNDREL_AUDIO_LOG=1` in the environment (which `gradlew lwjgl3:run`
-  passes through), or `-Dscoundrel.audio.log=true` for a jar. It logs every play, effect start,
-  deal, skip and cut-in with seconds since launch (`screens/AudioLog`). This is how the
-  GL-side timing is verified.
+- **`ScoundrelGame`** owns the bank, the deck, the director and the settings (`AudioControls`),
+  like `Theme` and `Sprites`.
+  - Screens reach them through `game.sounds()`, `game.music()` and `game.audioSettings()`.
+  - Every screen switch tells the director run or menus, and each frame passes the showing
+    screen's board idleness and torch light. That's what lets music survive screen changes.
+  - It polls M, applies each change to the bank and the deck, and holds the audio in
+    `pause()` / `resume()`.
+- **Launch switches** (`LaunchSwitch`, in the root package): each one is on with its
+  environment variable set to `1`, which `gradlew lwjgl3:run` passes through, or its `-D`
+  property for a jar.
+  - **`SCOUNDREL_AUDIO_LOG=1`** (`-Dscoundrel.audio.log=true`) turns on the sound log. It logs
+    every play, effect start, deal, skip, cut-in, level change, cue level and minimise, with
+    seconds since launch (`screens/AudioLog`). This is how the GL-side timing is verified.
+  - **`SCOUNDREL_NO_AUDIO=1`** (`-Dscoundrel.no.audio=true`) simulates a machine with no
+    audio device.
 
 ## Asset contract
 
