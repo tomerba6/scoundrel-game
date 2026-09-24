@@ -18,6 +18,19 @@ Motion (deal-in, avoid sweep, per-card effects, HP pulses) and the atmosphere sh
 `BoardView` over `CardFlight` / `HpPulse` and the rest — `Choreographer` and `Motion` went with
 the pixel conversion, so a `docs/ui.md` entry naming them describes what was replaced.
 
+## Sound
+
+- **A sound fires on its animation's beat, never when the move is applied.** `GameScreen` picks
+  *what* from the move's events (`SfxChoice`) and hands it to `BoardView`, which holds it in a
+  `PendingCues` until the beat `Beats` reads off the effect's own constants. Move an animation
+  and its sound moves with it. A skip or a cut-in plays everything still pending at once, so
+  every action sounds exactly once.
+- **Menu buttons click on press**, as the plate sinks (`PixelScreen.pressAt`). Buttons pressed
+  during a run are silent (`clicks()`), except the end panel's. The title's SOUND plate clicks
+  on release instead, at its new level.
+- Audio never takes the game down: every load and play is guarded, and a failure is silence plus
+  one log line. The whole reference is the root's `docs/audio.md`.
+
 ## Palette and sprite regions
 
 - **The palette has two tiers, and both are tested.** `Ramps` is the 80 and governs sprite
