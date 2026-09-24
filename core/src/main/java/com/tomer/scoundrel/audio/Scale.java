@@ -1,5 +1,7 @@
 package com.tomer.scoundrel.audio;
 
+import java.util.List;
+
 /**
  * The value ranges a weighted sound is split along, and where a value sits
  * inside its weight.
@@ -45,6 +47,13 @@ enum Scale {
         this.lightMax = lightMax;
         this.mediumMax = mediumMax;
         this.max = max;
+    }
+
+    /** The weights a value on this scale can land in: every one, unless the medium band is empty. */
+    List<Weight> weights() {
+        return mediumMax > lightMax
+                ? List.of(Weight.LIGHT, Weight.MEDIUM, Weight.HEAVY)
+                : List.of(Weight.LIGHT, Weight.HEAVY);
     }
 
     Weight weightOf(int value) {
