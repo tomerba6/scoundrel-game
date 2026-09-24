@@ -26,7 +26,7 @@ final class Barehanded {
 
     /** The blows land on frames 0 and 1 — as fast as this grid can strike twice. */
     private static final int HIT_LENGTH = 2;
-    private static final int[] HIT_FRAMES = {0, 1};
+    static final int[] HIT_FRAMES = {0, 1};
 
     /** The star box before scaling, and its three discrete sizes. */
     static final int STAR_BOX = 80;

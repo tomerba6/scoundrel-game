@@ -43,7 +43,7 @@ final class WeaponKill {
      * that still holds. Separating the slash from the parting only added a
      * frame in which a blade hung over an uncut card.
      */
-    private static final float SLASH_START = RIM_TIME + FRAME;
+    static final float SLASH_START = RIM_TIME + FRAME;
     private static final float SLASH_TIME = 2 * FRAME;
     private static final float HALVES_START = RIM_TIME + FRAME;
     private static final float HALVES_STEPS = 2;
