@@ -22,14 +22,14 @@ intent and progress. **This file is the record of what ships.**
 > - **The pure `audio` package** (`e49a6bb`…`b8e7f74`, `c658e86`, `f6b11d4`, `29bb050`), which
 >   decides what each moment sounds like and sequences the music, and `AudioControls`
 >   (`6cccf54`), which keeps the volume and saves it.
-> - **The controls** (`71eddaa`…`c3f94c9`):
+> - **The controls** (`71eddaa`…`8491e49`):
 >   - the title's MUSIC and SOUND plates, with a line under them saying what M does;
 >   - M to mute from any screen;
 >   - the levels saved in `~/.scoundrel/audio.settings`;
->   - the audio playing on, in step with the picture, while the window is minimised;
+>   - the audio silent while the window is minimised, but keeping time with the picture;
 >   - `SCOUNDREL_NO_AUDIO=1` to run without a device.
 >
->   **The plates' placement is waiting on the user's screenshot sign-off.**
+>   The user signed off the plates' placement from the screenshots on 2026-09-24.
 >
 > Every section below carries a **Status** line. It says **planned** until the part is built,
 > then **shipped** with the commit that shipped it. A section marked *planned* describes a
@@ -212,10 +212,11 @@ would record it.
   (`4e98b05`), and `AudioControls` (`6cccf54`).
 - The plates and M: `71eddaa` and `63a8c84`.
 - The M line under the plates: `61475a7`.
-- Audio playing on while minimised: `c3f94c9`, which reverses the hold that `652a013` built.
+- Minimised, silent but keeping time: `8491e49`. It came third: first a hold (`652a013`), then
+  audible playing on (`c3f94c9`). See below.
 - The no-device switch: `c0b45d9`.
 
-The plates' placement is waiting on the user's screenshot sign-off.
+The plates' placement was signed off by the user from the screenshots.
 
 - **Two plates on the title, MUSIC and SOUND**, in one row under the four menu buttons.
   - **Layout:** the column's 10 px gap above and between them, together exactly the column's
@@ -237,6 +238,10 @@ The plates' placement is waiting on the user's screenshot sign-off.
   "Sound on" (`FeedText.mute`), since nothing else on the board would show it.
   - A cue already playing follows the level every frame, so M silences a death cue that's
     under way. Before Task 7, a cue's volume was set once, when it started.
+  - **A zero level is silence, not a stopped clock** (`8491e49`). Muted, at OFF or minimised,
+    a track keeps running silently and comes back where it would have been; before that, a
+    zero level paused it where it stood. A track pauses only when the director takes it out.
+    Sounds already playing follow a level change too.
 - **Settings file:** `~/.scoundrel/audio.settings`, one versioned line of tab-separated
   key=value tokens (`v=1	music=2	sound=3	muted=false`), the shape of a run-log line.
   - A missing file, or one that isn't version 1, means the defaults.
@@ -247,14 +252,22 @@ The plates' placement is waiting on the user's screenshot sign-off.
   - It's loaded in `ScoundrelGame.create()` and saved on every change.
   - **The full progress reset doesn't touch it:** it's a setting, not progress. `ProgressTest`
     pins this.
-- **Minimising the window leaves the audio playing**, in step with the picture.
+- **Minimised, the audio is silent but keeps time with the picture** (`8491e49`).
   - **The backend:** LibGDX 1.14.2 calls `pause()` on minimise, but it keeps rendering and
     streaming (read in the backend's source, and seen at 146 frames a second while minimised).
-    The game keeps both: `ScoundrelGame.pause()` / `resume()` only log the change.
-  - **Why not hold it** (the user's call, reversing `652a013`): a cue that came due while the
-    window was down would start when it came back, which could be minutes after its moment.
-  - **Verified from the log:** after "window minimised", the lab's death cue started at +3.42 s
-    and played to its end (`cue ended DEATH`), all before "window restored".
+  - **How:** `ScoundrelGame.pause()` / `resume()` tell `AudioControls`, which reports zero
+    gains while minimised without touching the saved levels. The streams run on at zero, so
+    the music comes back mid-track, and a cue that came due while the window was down has
+    played out unheard.
+  - **How it got here:** the user's call, in two steps.
+    - As first built (`652a013`), the audio was held until the window came back. The user
+      pointed out that this could play a death cue minutes after its death.
+    - It was then left playing out loud (`c3f94c9`). The user asked for silence instead: the
+      audio keeps time, but isn't heard.
+  - **Verified from the log:**
+    - On the title, a second into a minimise: "2 streams running, loudest at volume 0.000".
+    - In the lab: the death cue came due at +3.42 s while minimised and ended there (`cue
+      ended DEATH`). On restore the levels came back, and nothing started late.
 - **No audio device means silence, never a crash.**
   - **The fallback:** LibGDX 1.14.2 already switches to a silent mock when OpenAL can't start
     ("Couldn't initialize audio, disabling audio", checked in the jar). Every load and play is
@@ -262,8 +275,9 @@ The plates' placement is waiting on the user's screenshot sign-off.
   - **Simulating it:** `SCOUNDREL_NO_AUDIO=1` (or `-Dscoundrel.no.audio=true`) starts the game
     on that mock. The sound log's first line names the backend ("on MockAudio").
   - **Verified on the mock:** the plates, M, a real Standard run's first room, every lab effect
-    but the chime, the death and win cues, and a minimise. The minimise ran under the hold
-    that's since reversed; minimising now changes no audio at all. There were no exceptions,
+    but the chime, the death and win cues, and a minimise. The minimise ran under the first
+    design (the hold, since replaced); a minimise now only sets gains of zero, which the mock
+    takes like any other. There were no exceptions,
     and `crash.log` was unchanged.
   - **The chime:** the mock never reports a stream finished, so after a win it never comes.
     With no device nothing is audible, so nothing is lost.
@@ -295,7 +309,7 @@ The plates' placement is waiting on the user's screenshot sign-off.
   `abddca8` and `a00041d`.
 - **The music wiring** (`MusicDeck`, the director in `ScoundrelGame`, `GameScreen`'s calls):
   `4d0a625`.
-- **The controls:** `71eddaa`…`c3f94c9`.
+- **The controls:** `71eddaa`…`8491e49`.
 
 The sound log shipped too.
 
@@ -368,7 +382,7 @@ flowchart LR
   - Every screen switch tells the director run or menus, and each frame passes the showing
     screen's board idleness and torch light. That's what lets music survive screen changes.
   - It polls M and applies each change to the bank and the deck. Its `pause()` / `resume()`
-    only log a minimise: the audio plays on.
+    silence the audio while minimised, through `AudioControls`, and the streams keep time.
 - **Launch switches** (`LaunchSwitch`, in the root package): each one is on with its
   environment variable set to `1`, which `gradlew lwjgl3:run` passes through, or its `-D`
   property for a jar.
