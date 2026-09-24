@@ -52,6 +52,18 @@ def describe(recipe):
     return " ".join((recipe.build.__doc__ or "").split())
 
 
+CANDIDATE_DIR = OUT.parent / "candidates"
+
+
+def candidates():
+    """Audition-only options: the CANDIDATES recipes, rendered here, plus any reference
+    files already saved in build/candidates/ (such as the flips as last heard)."""
+    CANDIDATE_DIR.mkdir(parents=True, exist_ok=True)
+    for job in recipes.jobs(recipes.CANDIDATES):
+        (CANDIDATE_DIR / f"{job.name}.wav").write_bytes(render.wav_bytes(recipes.render(job)))
+    return {p.stem: base64.b64encode(p.read_bytes()).decode("ascii") for p in sorted(CANDIDATE_DIR.glob("*.wav"))}
+
+
 def main():
     files, facts = {}, {}
     for job in recipes.jobs():
@@ -59,6 +71,7 @@ def main():
         files[job.name] = base64.b64encode(path.read_bytes()).decode("ascii")
         x = check.read_wav(path)[0]
         facts[job.name] = f"{len(x) / synth.SR * 1000:.0f} ms, {synth.loudness_db(x):.1f} dBFS"
+    files.update(candidates())
 
     sections = []
     for recipe in recipes.RECIPES:
@@ -119,13 +132,27 @@ scenes that behave the way the game will. Claude built them without hearing them
   <li>Does anything <b>grate on repeat</b> (the scenes with eight in a row)?</li>
   <li>Is the <b>loudness even</b> — nothing jumping out, nothing lost?</li>
 </ol>
-<section class="scene"><h3>Changed since your first listen</h3>
-  <p><b>Flips</b>: softer and lower — a papery settle instead of a snap — with a slower attack, versions
-  that differ in shape, and 3.4 dB quieter. <b>Weapon kill</b>: rebuilt as a slice — a swoosh of air
-  into a thin 'shing' that swells in, no struck ring and no thump. <b>Thud</b>: rebuilt with a hollow
-  knock at 300–520 Hz that small speakers can play, and 6–7 dB louder: level with the blade it sits under.
-  Everything else is within 0.2 dB of what you heard. Loudness is now measured the way the ear
-  weighs it (ITU-R BS.1770), which is why the thud read as "loud enough" on paper before.</p></section>
+<section class="scene"><h3>Round 1, second pass: the deal — pick one</h3>
+  <p>The blade and the thud are signed off. The flips were "still a bit like a machine gun": four cards land
+  exactly a frame (83 ms) apart, and four even, separate taps at a steady beat is a machine gun, however
+  soft each one is. What you heard dropped to silence between cards; the new flip is a swish that swells in
+  and settles over ~0.35 s, so the cards overlap and the level only bumps ~12 dB between them.</p>
+  <div class="row"><span class="value">once</span>
+    <button data-scene="deal-now">what you heard</button>
+    <button data-scene="deal-a">A. riffle (recommended)</button>
+    <button data-scene="deal-a-flat">A without the fade</button>
+    <button data-scene="deal-b">B. one sound per deal</button>
+    <button data-scene="deal-c">C. first card only</button></div>
+  <div class="row"><span class="value">×4</span>
+    <button data-scene="deals-now">what you heard</button>
+    <button data-scene="deals-a">A. riffle</button>
+    <button data-scene="deals-a-flat">A without the fade</button>
+    <button data-scene="deals-b">B. one per deal</button>
+    <button data-scene="deals-c">C. first card only</button></div>
+  <p><b>A</b> keeps a flip per card on its landing (decision 2 stands), but shapes the four as one gesture:
+  the overlapping swish, and each card a little quieter and lower than the one before, like a hand
+  dealing. <b>B</b> replaces the per-card flips with one riffle for the whole deal (changes decision 2 and
+  the file contract). <b>C</b> sounds only the first card of a deal (changes decision 2).</p></section>
 <div class="bar">
   <label>volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8"></label>
   <label><input id="vary" type="checkbox" checked> game variation (versions, ±pitch, quieter)</label>
@@ -133,9 +160,7 @@ scenes that behave the way the game will. Claude built them without hearing them
 </div>
 
 <h2>Scenes, as the game will play them</h2>
-<section class="scene"><h3>Dealing</h3>
-  <p>Four cards landing a frame (83 ms) apart — a fresh room.</p>
-  <div class="row"><button data-scene="deal">deal a room</button></div></section>
+<p>The scenes below deal with option A.</p>
 <section class="scene"><h3>A weapon kill: clean, then costly</h3>
   <p>The blade alone when the weapon takes it all; a thud under it when damage gets through (1–4 light, 5+ heavy).</p>
   <div class="row"><button data-scene="clean">clean kill (weapon 6)</button>
@@ -144,7 +169,7 @@ scenes that behave the way the game will. Claude built them without hearing them
 <section class="scene"><h3>Repetition</h3>
   <p>The same moment eight times in a row, the way a run repeats it. Listen for a machine gun.</p>
   <div class="row"><button data-scene="kills">8 weapon kills</button><button data-scene="fists">8 bare-handed fights</button>
-  <button data-scene="deals">4 deals</button><button data-scene="clicks">menu clicks</button></div></section>
+  <button data-scene="clicks">menu clicks</button></div></section>
 <section class="scene"><h3>A fast room</h3>
   <p>A quick run through one room: deal, take a heavy weapon, kill with it (some damage through), drink,
   a second potion wasted, avoid the next room, deal.</p>
@@ -214,34 +239,47 @@ function pickVersion(stem, versions) {
   lastVersion[stem] = v;
   return v;
 }
-function sfx(sound, value, when = 0) {
-  const rule = RULES.sounds[sound];
-  let stem = sound, pitch = 1, volume = 1;
-  if (rule.scale) { stem += "_" + weightOf(rule.scale, value); pitch = pitchOf(rule.scale, value); }
-  const version = pickVersion(stem, rule.versions);
-  if (rule.versions > 1 && document.getElementById("vary").checked) {
+// A sound the game's way: its weight file and value nudge, a version that does not repeat,
+// and - for sounds with several versions - the per-play variation. `stem` may name a
+// candidate's files instead (e.g. "flip_now"), with `versions` given.
+function sfx(sound, value, when = 0, gain = 1, pitchStep = 1, stem = null, versions = null) {
+  const rule = RULES.sounds[sound] || { versions: versions, scale: null };
+  let base = stem || sound, pitch = pitchStep, volume = gain;
+  if (rule.scale) { base += "_" + weightOf(rule.scale, value); pitch *= pitchOf(rule.scale, value); }
+  const n = versions || rule.versions;
+  const version = pickVersion(base, n);
+  if (n > 1 && document.getElementById("vary").checked) {
     pitch *= 1 + RULES.pitchJitter * (2 * Math.random() - 1);
-    volume = 1 - RULES.volumeJitter * Math.random();
+    volume *= 1 - RULES.volumeJitter * Math.random();
   }
-  play(stem + "_" + version, when, pitch, volume);
+  play(base + "_" + version, when, pitch, volume);
 }
+// Each card of a deal lands three frames after it sets off, one frame after the card before it.
+function landing(i) { return (i + 3) * FRAME; }
+// Option A's riffle: each card a little quieter and a touch lower than the one before.
+const RIFFLE_GAIN = [1, 0.78, 0.62, 0.5];
+const RIFFLE_PITCH = [1, 0.985, 0.97, 0.955];
 function deal(at, cards = 4) {
-  // Each card lands three frames after it sets off, one frame after the card before it.
-  for (let i = 0; i < cards; i++) sfx("flip", 0, at + (i + 3) * FRAME);
+  for (let i = 0; i < cards; i++) sfx("flip", 0, at + landing(i), RIFFLE_GAIN[i], RIFFLE_PITCH[i]);
 }
+const DEALS = {
+  "now": (at) => { for (let i = 0; i < 4; i++) sfx("flip", 0, at + landing(i), 1, 1, "flip_now", 3); },
+  "a": (at) => deal(at),
+  "a-flat": (at) => { for (let i = 0; i < 4; i++) sfx("flip", 0, at + landing(i)); },
+  "b": (at) => sfx("deal_riffle", 0, at + landing(0) - 0.05, 1, 1, "deal_riffle", 2),
+  "c": (at) => sfx("flip", 0, at + landing(0)),
+};
 function weaponKill(weapon, damage, at) {
   sfx("blade", weapon, at);
   if (damage > 0) sfx("thud", damage, at);
 }
 
 const SCENES = {
-  "deal": () => deal(0),
   "clean": () => weaponKill(6, 0, 0),
   "costly-light": () => weaponKill(6, 3, 0),
   "costly-heavy": () => weaponKill(6, 8, 0),
   "kills": () => { for (let i = 0; i < 8; i++) weaponKill(7, i % 3 === 0 ? 2 : 0, i * 0.45); },
   "fists": () => { for (let i = 0; i < 8; i++) sfx("fist", 8, i * 0.5); },
-  "deals": () => { for (let i = 0; i < 4; i++) deal(i * 0.9); },
   "clicks": () => { for (let i = 0; i < 6; i++) sfx("click", 0, i * 0.35); },
   "room": () => {
     let t = 0;
@@ -253,6 +291,10 @@ const SCENES = {
     sfx("sweep", 0, t); deal(t + 3 * FRAME, 4);                   // the room goes, the next comes
   },
 };
+for (const [key, dealIt] of Object.entries(DEALS)) {
+  SCENES["deal-" + key] = () => dealIt(0);
+  SCENES["deals-" + key] = () => { for (let i = 0; i < 4; i++) dealIt(i * 0.9); };
+}
 
 const values = document.getElementById("values");
 for (const [label, sound, lo, hi] of [["equip", "equip", 2, 10], ["blade", "blade", 2, 10],

@@ -44,16 +44,24 @@ def flip(rng, w, v):
     attack, alike enough that four in a row read as a machine gun. Now lower and wider,
     a slower attack, and versions that differ in shape: a plain settle, one with a second
     brush as the card's face follows its edge, and a duller one with more pat."""
-    n = s.samples(0.095)
-    centre, attack, t60, pat = ((1300, 0.004, 0.06, 0.45), (1700, 0.003, 0.05, 0.3),
-                                (1050, 0.005, 0.07, 0.6))[v - 1]
+    # Round 1, second pass: still "a bit like a machine gun" - four even, separate
+    # attacks at a steady 83 ms, with the level falling ~34 dB between them. Now each
+    # flip swells in over 25 ms and settles over ~0.35 s, so the cards of a deal overlap:
+    # the level only bumps ~12 dB between cards (~10 with the riffle's fading contour)
+    # and the deal reads as one gesture. The low pat that thumped on every card is
+    # softened for the same reason.
+    centre, t60, pat = ((1150, 0.33, 0.12), (1400, 0.30, 0.10), (950, 0.37, 0.18))[v - 1]
+    n = s.samples(t60 + 0.05)
+    t = s.times(n)
     centre *= 1 + 0.05 * rng.uniform(-1, 1)
-    air = s.lowpass(s.bandpass(s.noise(n, rng), centre, q=0.6), 3500) * s.attack_decay(n, attack, t60)
-    x = air + pat * s.sweep_sine(n, 190, 110, 0.02) * s.attack_decay(n, 0.003, 0.04)
+    # The band slides down a little as the card settles.
+    centres = centre * (1.25 - 0.25 * np.clip(t / 0.05, 0, 1))
+    air = s.lowpass(s.swept_bandpass(s.noise(n, rng), centres, q=0.7) * s.attack_decay(n, 0.025, t60), 3000)
+    x = air + pat * s.sweep_sine(n, 170, 110, 0.02) * s.attack_decay(n, 0.015, 0.05)
     if v == 2:
-        brush = s.lowpass(s.bandpass(s.noise(n, rng), centre * 0.8, q=0.6), 3000) \
-            * s.attack_decay(n, 0.002, 0.035)
-        x += 0.5 * s.place(n, brush, s.samples(0.012))
+        brush = s.lowpass(s.bandpass(s.noise(n, rng), centre * 0.8, q=0.6), 2500) \
+            * s.attack_decay(n, 0.01, 0.12)
+        x += 0.35 * s.place(n, brush, s.samples(0.02))
     return x
 
 
@@ -237,7 +245,7 @@ class Recipe:
 # about 3.5 dB under where they were heard.
 RECIPES = (
     Recipe("click", click, 1, target_db=(-23,), max_seconds=0.12),
-    Recipe("flip", flip, 3, target_db=(-25,), max_seconds=0.10),
+    Recipe("flip", flip, 3, target_db=(-25,), max_seconds=0.45),
     Recipe("sweep", sweep, 1, target_db=(-18.5,), max_seconds=0.45),
     Recipe("equip", equip, 1, WEIGHTS, (-16.5, -16, -15.5), max_seconds=0.8),
     Recipe("blade", blade, 2, WEIGHTS, (-13.5, -13, -12.5), max_seconds=0.6, lofi={"cutoff": 9500}),
@@ -251,6 +259,35 @@ RECIPES = (
 )
 
 
+def deal_riffle(rng, w, v):
+    """CANDIDATE (option B, round 1): one sound for a whole deal instead of a flip per card -
+    a quick riffle of cards leaving the dungeon: a run of soft paper flutters, bunched then
+    thinning, over a swish that settles. Rendered to build/ for the audition page only;
+    it ships nowhere unless chosen."""
+    n = s.samples(0.45)
+    x = np.zeros(n)
+    at, amp = 0, 1.0
+    for _ in range(7):
+        m = s.samples(0.06)
+        flutter = s.lowpass(s.bandpass(s.noise(m, rng), rng.uniform(1100, 1900), q=0.8), 3200) \
+            * s.attack_decay(m, 0.002, 0.03)
+        x += amp * s.place(n, flutter, at)
+        at += s.samples(rng.uniform(0.03, 0.055))
+        amp *= 0.85
+    t = s.times(n)
+    centres = 1600 * (800 / 1600) ** (t / t[-1])
+    bed = s.swept_bandpass(s.noise(n, rng), centres, q=0.9) \
+        * np.clip(t / 0.04, 0, 1) * np.exp(-t * s.LN_1000 / 0.42)
+    return x + 0.5 * bed
+
+
+# Options put to the user by ear, rendered only into build/candidates/ by audition.py.
+# Not part of the contract, never under assets/. Removed once one is chosen.
+CANDIDATES = (
+    Recipe("deal_riffle", deal_riffle, 2, target_db=(-22,), max_seconds=0.5),
+)
+
+
 @dataclass(frozen=True)
 class Job:
     """One file to render."""
@@ -261,10 +298,11 @@ class Job:
     target_db: float
 
 
-def jobs():
-    """Every sound-effect file, in the Java enum's order, with the parameters to build it."""
+def jobs(recipes=None):
+    """Every sound-effect file, in the Java enum's order, with the parameters to build it.
+    Pass CANDIDATES instead to get the audition-only options."""
     out = []
-    for recipe in RECIPES:
+    for recipe in RECIPES if recipes is None else recipes:
         if recipe.weights:
             for weight_name, target in zip(recipe.weights, recipe.target_db):
                 w = WEIGHTS.index(weight_name)
