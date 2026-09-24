@@ -1,5 +1,7 @@
 package com.tomer.scoundrel.screens;
 
+import com.tomer.scoundrel.LaunchSwitch;
+
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -19,9 +21,6 @@ import java.util.function.LongSupplier;
  */
 final class AudioLog {
 
-    static final String PROPERTY = "scoundrel.audio.log";
-    static final String ENVIRONMENT = "SCOUNDREL_AUDIO_LOG";
-
     private final boolean enabled;
     private final LongSupplier nanos;
     private final Consumer<String> sink;
@@ -34,15 +33,9 @@ final class AudioLog {
         this.start = nanos.getAsLong();
     }
 
-    /** The log as this process was launched: on if either switch says so, to standard out. */
+    /** The log as this process was launched: on if {@link LaunchSwitch#AUDIO_LOG} is, to standard out. */
     static AudioLog fromLaunch() {
-        return new AudioLog(enabledBy(System.getProperty(PROPERTY), System.getenv(ENVIRONMENT)),
-                System::nanoTime, System.out::println);
-    }
-
-    static boolean enabledBy(String property, String environment) {
-        return "true".equalsIgnoreCase(property)
-                || "1".equals(environment) || "true".equalsIgnoreCase(environment);
+        return new AudioLog(LaunchSwitch.AUDIO_LOG.isOn(), System::nanoTime, System.out::println);
     }
 
     boolean enabled() {

@@ -50,7 +50,8 @@ public final class SoundBank implements Disposable {
                 Gdx.app.error("audio", "could not load " + path + "; it will be silent", e);
             }
         }
-        log.log("loaded " + loaded.size() + " of " + Sound.allFiles().size() + " sound effects");
+        log.log("loaded " + loaded.size() + " of " + Sound.allFiles().size() + " sound effects on "
+                + Gdx.audio.getClass().getSimpleName());
     }
 
     /** What each moment sounds like. Shared, so versions do not repeat across screens. */

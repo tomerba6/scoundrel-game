@@ -33,17 +33,4 @@ class AudioLogTest {
         assertEquals(List.of("audio     1.235 play blade_light_1", "audio     1.485 effect SLICE"), lines);
         assertTrue(log.enabled());
     }
-
-    @Test
-    void eitherTheSystemPropertyOrTheEnvironmentTurnsItOn() {
-        // gradlew lwjgl3:run does not forward -D to the game's JVM, but the
-        // environment reaches it; a packaged jar takes the property.
-        assertTrue(AudioLog.enabledBy("true", null));
-        assertTrue(AudioLog.enabledBy(null, "1"));
-        assertTrue(AudioLog.enabledBy(null, "true"));
-        assertTrue(AudioLog.enabledBy("TRUE", "0"));
-        assertFalse(AudioLog.enabledBy(null, null));
-        assertFalse(AudioLog.enabledBy("false", "0"));
-        assertFalse(AudioLog.enabledBy("yes please", ""));
-    }
 }
