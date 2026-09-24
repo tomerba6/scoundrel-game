@@ -190,6 +190,45 @@ class PressGestureTest {
         assertEquals(PressGesture.NONE, fire(press));
     }
 
+    // --- a press that is already down (the click sound's guard) ------------------
+
+    @Test
+    void aHeldTargetIsAlreadyDownUntilItComesUp() {
+        // Seen once, on the session's first click after leaving fullscreen: one
+        // press delivered twice, which played the menu click twice. A button that
+        // is already down cannot go down again.
+        PressGesture press = new PressGesture();
+        assertFalse(press.alreadyDown(2), "nothing is down yet");
+        press.press(2);
+        assertTrue(press.alreadyDown(2));
+        assertFalse(press.alreadyDown(3), "only the one it went down on");
+        press.release(2);
+        assertFalse(press.alreadyDown(2), "up again, so the next press is a new one");
+    }
+
+    @Test
+    void slidingOffDoesNotLetTheSameButtonGoDownAgain() {
+        PressGesture press = new PressGesture();
+        press.press(2);
+        press.moveOver(PressGesture.NONE);
+        assertTrue(press.alreadyDown(2), "still held, only lifted - no release came");
+    }
+
+    @Test
+    void nothingIsAlreadyDownOnNothing() {
+        PressGesture press = new PressGesture();
+        press.press(PressGesture.NONE);
+        assertFalse(press.alreadyDown(PressGesture.NONE));
+    }
+
+    @Test
+    void aCancelLetsTheButtonGoDownAfresh() {
+        PressGesture press = new PressGesture();
+        press.press(2);
+        press.cancel();
+        assertFalse(press.alreadyDown(2));
+    }
+
     /** Runs frames until something acts, or gives up. */
     private static int fire(PressGesture press) {
         for (int frame = 0; frame < 60; frame++) {
