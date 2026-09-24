@@ -1,5 +1,6 @@
 package com.tomer.scoundrel.screens;
 
+import com.tomer.scoundrel.audio.AudioSettings;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -412,5 +413,143 @@ class ScreenArtTest {
                 + ScreenArt.BUTTON_H / 2f;
         assertEquals(3, ScreenArt.buttonAt(x, 4, x + 10, fourth));
         assertEquals(-1, ScreenArt.buttonAt(x, 3, x + 10, fourth));
+    }
+
+    // --- the end panel's unlocked trophies ---
+
+    /**
+     * An unlocked trophy's description stops where the rule above it stops — the
+     * panel's own right margin — not wherever its words run out. Drawn as one
+     * unbounded line, Rock Bottom's ran about 65 px off the panel.
+     */
+    @Test
+    void anUnlockedTrophysTextStopsWhereTheRuleDoes() {
+        assertEquals(ScreenArt.END_RULE_X + ScreenArt.END_RULE_W, ScreenArt.END_TEXT_RIGHT);
+        assertTrue(ScreenArt.END_TEXT_RIGHT < ScreenArt.END_X + ScreenArt.END_W - ScreenArt.THICK,
+                "inside the panel's frame");
+        assertEquals(ScreenArt.END_TEXT_RIGHT - 600, ScreenArt.endTrophyDescWidth(600));
+    }
+
+    /** One line centres on the seal; two split its height evenly, one under the other. */
+    @Test
+    void anUnlockedTrophysLinesShareTheSealsHeight() {
+        int row = ScreenArt.endTrophyY(1);
+        assertEquals(ScreenArt.END_TROPHY_SEAL, ScreenArt.endTrophyLineH(1));
+        assertEquals(row, ScreenArt.endTrophyLineY(row, 0, 1));
+        int half = ScreenArt.endTrophyLineH(2);
+        assertEquals(ScreenArt.END_TROPHY_SEAL, 2 * half, "two lines fill the seal exactly");
+        assertEquals(row, ScreenArt.endTrophyLineY(row, 0, 2));
+        assertEquals(row + half, ScreenArt.endTrophyLineY(row, 1, 2));
+    }
+
+    /** Two lines is the budget, and a line of the small face fits its half of the seal. */
+    @Test
+    void anUnlockedTrophyHasRoomForTwoLines() {
+        assertEquals(2, ScreenArt.END_TROPHY_DESC_LINES);
+        assertTrue(ScreenArt.endTrophyLineH(2) >= PixelType.SMALL);
+        assertTrue(ScreenArt.END_TROPHY_SEAL < ScreenArt.END_TROPHY_PITCH, "the rows still do not touch");
+    }
+
+    // --- the title's MUSIC and SOUND plates ---
+
+    /**
+     * The two plates are one row under the menu: the column's own gap above them
+     * and between them, and exactly the column's width, so the column keeps one
+     * left edge and one right edge.
+     */
+    @Test
+    void theAudioPlatesAreOneRowUnderTheMenu() {
+        int gap = ScreenArt.BUTTON_PITCH - ScreenArt.BUTTON_H;
+        assertEquals(ScreenArt.buttonY(3) + ScreenArt.BUTTON_H + gap, ScreenArt.AUDIO_Y);
+        assertEquals(ScreenArt.COLUMN_X, ScreenArt.audioPlateX(0));
+        assertEquals(ScreenArt.audioPlateX(0) + ScreenArt.AUDIO_W + gap, ScreenArt.audioPlateX(1));
+        assertEquals(ScreenArt.COLUMN_X + ScreenArt.BUTTON_W,
+                ScreenArt.audioPlateX(1) + ScreenArt.AUDIO_W, "the row is exactly the column's width");
+        assertEquals(ScreenArt.BACK_H, ScreenArt.AUDIO_H,
+                "the back plate's height: settings, not places to go");
+    }
+
+    /** Neither the row nor the M line under it may reach the credit line. */
+    @Test
+    void theAudioRowAndItsCaptionClearTheCredit() {
+        assertTrue(ScreenArt.AUDIO_Y + ScreenArt.AUDIO_H < ScreenArt.MUTE_HINT_TOP);
+        assertTrue(ScreenArt.MUTE_HINT_TOP + PixelType.SMALL < ScreenArt.CREDIT_TOP);
+    }
+
+    @Test
+    void eachAudioPlateIsHitWhereItIsDrawn() {
+        float middleY = CardArt.toWorldY(ScreenArt.AUDIO_Y, ScreenArt.AUDIO_H) + ScreenArt.AUDIO_H / 2f;
+        for (int i = 0; i < 2; i++) {
+            float left = ScreenArt.audioPlateX(i);
+            assertEquals(i, ScreenArt.audioPlateAt(left, middleY), "plate " + i + " at its left edge");
+            assertEquals(i, ScreenArt.audioPlateAt(left + ScreenArt.AUDIO_W - 1, middleY),
+                    "plate " + i + " at its right edge");
+        }
+    }
+
+    @Test
+    void theGapsAroundTheAudioPlatesHitNothing() {
+        float middleY = CardArt.toWorldY(ScreenArt.AUDIO_Y, ScreenArt.AUDIO_H) + ScreenArt.AUDIO_H / 2f;
+        float between = ScreenArt.audioPlateX(0) + ScreenArt.AUDIO_W + 1;
+        assertEquals(-1, ScreenArt.audioPlateAt(between, middleY), "between the two");
+        assertEquals(-1, ScreenArt.audioPlateAt(ScreenArt.COLUMN_X - 1, middleY), "left of the row");
+        assertEquals(-1, ScreenArt.audioPlateAt(ScreenArt.COLUMN_X + ScreenArt.BUTTON_W, middleY),
+                "right of it");
+        float above = CardArt.toWorldY(ScreenArt.AUDIO_Y - 2, 0);
+        float below = CardArt.toWorldY(ScreenArt.AUDIO_Y + ScreenArt.AUDIO_H + 2, 0);
+        assertEquals(-1, ScreenArt.audioPlateAt(ScreenArt.COLUMN_X + 10, above), "in the gap above");
+        assertEquals(-1, ScreenArt.audioPlateAt(ScreenArt.COLUMN_X + 10, below), "below");
+    }
+
+    /**
+     * Three pips, right-aligned inside the plate's bevel and centred on its
+     * height, left to right, apart from one another, in whole pixels.
+     */
+    @Test
+    void thePipsSitInsideThePlateInARow() {
+        int x = ScreenArt.audioPlateX(1);
+        int inside = 2 * ScreenArt.THICK;
+        int right = x + ScreenArt.AUDIO_W - inside;
+        for (int pip = 0; pip < 3; pip++) {
+            int left = ScreenArt.pipX(x, pip);
+            assertTrue(left > x + inside, "pip " + pip + " inside the left bevel");
+            assertTrue(left + ScreenArt.PIP_W <= right, "pip " + pip + " inside the right bevel");
+            if (pip > 0) {
+                assertTrue(ScreenArt.pipX(x, pip - 1) + ScreenArt.PIP_W < left,
+                        "pip " + pip + " is apart from the one before");
+            }
+        }
+        assertEquals(right - ScreenArt.AUDIO_PAD, ScreenArt.pipX(x, 2) + ScreenArt.PIP_W,
+                "the last pip keeps the plate's padding");
+        int top = ScreenArt.pipY();
+        assertEquals(ScreenArt.AUDIO_Y + (ScreenArt.AUDIO_H - ScreenArt.PIP_H) / 2, top);
+        assertTrue(top > ScreenArt.AUDIO_Y + inside
+                && top + ScreenArt.PIP_H < ScreenArt.AUDIO_Y + ScreenArt.AUDIO_H - inside);
+    }
+
+    /** A level lights that many pips; off lights none; muted dims what is lit. */
+    @Test
+    void aLevelLightsThatManyPipsAndMutingDimsThem() {
+        assertEquals(AudioSettings.MAX_LEVEL, ScreenArt.PIPS, "a pip for every step");
+        for (int level = 0; level <= 3; level++) {
+            for (int pip = 0; pip < 3; pip++) {
+                boolean lit = pip < level;
+                assertEquals(lit ? ScreenArt.PIP_ON : ScreenArt.PIP_OFF, ScreenArt.pipColour(pip, level, false),
+                        "level " + level + ", pip " + pip);
+                assertEquals(lit ? ScreenArt.PIP_MUTED : ScreenArt.PIP_OFF, ScreenArt.pipColour(pip, level, true),
+                        "muted, level " + level + ", pip " + pip);
+            }
+        }
+    }
+
+    /** Three different colours, all ones the game already draws. */
+    @Test
+    void thePipColoursAreApartAndAlreadyInTheGame() {
+        assertNotEquals(ScreenArt.PIP_ON, ScreenArt.PIP_MUTED);
+        assertNotEquals(ScreenArt.PIP_MUTED, ScreenArt.PIP_OFF);
+        assertNotEquals(ScreenArt.PIP_ON, ScreenArt.PIP_OFF);
+        assertEquals(ScreenArt.GOLD, ScreenArt.PIP_ON);
+        assertEquals(ScreenArt.DARK_DARK, ScreenArt.PIP_OFF);
+        assertEquals(ScreenArt.WELL_DIGIT_OFF, ScreenArt.PIP_MUTED);
     }
 }

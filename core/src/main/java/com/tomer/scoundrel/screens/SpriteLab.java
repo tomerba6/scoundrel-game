@@ -11,9 +11,11 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.tomer.scoundrel.ScoundrelGame;
+import com.tomer.scoundrel.audio.Sfx;
 import com.tomer.scoundrel.model.Card;
 import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.rules.CardDefinition;
+import com.tomer.scoundrel.rules.GameEvent;
 import com.tomer.scoundrel.rules.StandardDeck;
 
 import java.util.ArrayList;
@@ -40,6 +42,9 @@ public final class SpriteLab extends ScreenAdapter {
     private static final int HIT_FROM = 148;
     private static final int HIT_TO = 64;
 
+    /** The room's weapon (the 7 of diamonds), which the lab's kills are made with. */
+    private static final int LAB_WEAPON = 7;
+
     /** ROOM shows four framed cards; SHEET shows every object by rank. */
     private enum View { ROOM, SHEET }
 
@@ -55,6 +60,8 @@ public final class SpriteLab extends ScreenAdapter {
     private View view = View.ROOM;
     /** S slows effects 8x. Sub-second animation cannot be screenshotted at speed. */
     private boolean slowMotion;
+    /** R: the run track, rather than the menu's. */
+    private boolean labRunMusic;
     private final GlyphLayout titleLayout = new GlyphLayout();
     private final PixelSurface surface =
             new PixelSurface((int) Theme.WORLD_WIDTH, (int) Theme.WORLD_HEIGHT);
@@ -69,7 +76,7 @@ public final class SpriteLab extends ScreenAdapter {
         this.game = game;
         this.theme = theme;
         this.sprites = sprites;
-        this.board = new BoardView(theme, sprites);
+        this.board = new BoardView(theme, sprites, game.sounds());
         this.hud = new BoardHud(theme);
         // One fixed virtual resolution, so the layout numbers are literal and
         // the art is guaranteed to land on whole pixels.
@@ -113,6 +120,7 @@ public final class SpriteLab extends ScreenAdapter {
             deathElapsed += step;
             if (DeathCinematic.finished(deathElapsed)) {
                 deathElapsed = -1f;
+                game.music().settled();
             }
         }
 
@@ -139,7 +147,8 @@ public final class SpriteLab extends ScreenAdapter {
 
         theme.pixelSmall.setColor(Theme.BONE);
         theme.pixelSmall.draw(batch,
-                "K KILL  B BARE  A AVOID  E EQUIP  P POTION  W WASTED  D HIT  H HEAL  X DEATH  S SLOW",
+                "K KILL  B BARE  A AVOID  E EQUIP  P POTION  W WASTED  D HIT  H HEAL  X DEATH  S SLOW"
+                        + "  R RUN MUSIC  V WIN",
                 40, 48);
         theme.pixelSmall.setColor(Color.WHITE);
         batch.end();
@@ -176,11 +185,26 @@ public final class SpriteLab extends ScreenAdapter {
             healElapsed = 0f;
         }
         Card hovered = board.hovered();
+        // The music, to be heard on demand: the run track against the menu's, and the
+        // two ends of a run - without dying or winning for real, which the lab cannot
+        // record and a real run would.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            labRunMusic = !labRunMusic;
+            if (labRunMusic) {
+                game.music().enterRun();
+            } else {
+                game.music().enterMenus();
+            }
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
+            game.music().won();
+            game.music().trophiesUnlocked(); // so the chime is heard after the cue
+        }
         if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
             List<Card> outgoing = board.room();
             board.beginMove();
             board.setRoom(room());
-            board.playSweep(outgoing);
+            board.playSweep(outgoing, sound(new GameEvent.RoomAvoided(outgoing)));
         }
         if (hovered == null) {
             return true;
@@ -188,23 +212,48 @@ public final class SpriteLab extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
             deathElapsed = 0f;
             killerSlotX = board.slotX(board.room().indexOf(hovered));
+            game.music().dying(DeathCinematic.DITHER_START, DeathCinematic.DITHER_END,
+                    DeathCinematic.TITLE_START);
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
-            without(hovered, () -> board.playSlice(hovered));
+            int through = Math.max(0, hovered.value() - LAB_WEAPON);
+            without(hovered, () -> board.playSlice(hovered, false,
+                    sound(new GameEvent.MonsterDefeated(hovered, true, through))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.B)) {
-            without(hovered, () -> board.playStrike(hovered));
+            without(hovered, () -> board.playStrike(hovered, false,
+                    sound(new GameEvent.MonsterDefeated(hovered, false, hovered.value()))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.E) && hovered.type() == CardType.WEAPON) {
-            without(hovered, () -> board.playEquip(hovered));
+            without(hovered, () -> board.playEquip(hovered, sound(new GameEvent.WeaponEquipped(hovered))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.P) && hovered.type() == CardType.POTION) {
-            without(hovered, () -> board.playPotion(hovered, () -> healElapsed = 0f));
+            without(hovered, () -> board.playPotion(hovered, () -> healElapsed = 0f,
+                    sound(new GameEvent.PotionUsed(hovered, hovered.value()))));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.W) && hovered.type() == CardType.POTION) {
-            without(hovered, () -> board.playSpill(hovered));
+            without(hovered, () -> board.playSpill(hovered, sound(new GameEvent.PotionWasted(hovered))));
         }
         return true;
+    }
+
+    /**
+     * The torch's light as the lab's death leaves it — the same curve the game's
+     * death draws — so the torch's crackle gutters out here too, where it can be
+     * heard without dying for real.
+     */
+    public float torchLight() {
+        return deathElapsed >= 0f ? DeathCinematic.torchLight(deathElapsed) : 1f;
+    }
+
+    /**
+     * What an effect sounds like here: the game's own choice, from the event the
+     * game would have reported, so the lab is a listening instrument as well as a
+     * looking one. Kills are made with the room's own weapon, the 7 of diamonds —
+     * the ten lets 3 through (a light thud), the queen 5 (a heavy one).
+     */
+    private List<Sfx> sound(GameEvent event) {
+        return game.sounds().choice().forEvents(List.of(event), LAB_WEAPON);
     }
 
     /**

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.tomer.scoundrel.CrashLog;
+import com.tomer.scoundrel.LaunchSwitch;
 import com.tomer.scoundrel.ScoundrelGame;
 
 import java.nio.file.Path;
@@ -60,6 +61,12 @@ public class Lwjgl3Launcher {
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         //// They can also be loaded from the root of assets/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx48.png", "libgdx32.png", "libgdx16.png");
+
+        // A machine with no audio device, on demand: SCOUNDREL_NO_AUDIO=1 (or
+        // -Dscoundrel.no.audio=true) hands the game LibGDX's silent stand-in, which
+        // is what the backend falls back to when it finds no device. The game must
+        // run on it unchanged.
+        configuration.disableAudio(LaunchSwitch.NO_AUDIO.isOn());
 
         //// This could improve compatibility with Windows machines with buggy OpenGL drivers, Macs
         //// with Apple Silicon that have to emulate compatibility with OpenGL anyway, and more.

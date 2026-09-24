@@ -3,6 +3,8 @@ package com.tomer.scoundrel.screens;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.utils.Array;
+import com.tomer.scoundrel.audio.PendingCues;
+import com.tomer.scoundrel.audio.Sfx;
 import com.tomer.scoundrel.model.Card;
 import com.tomer.scoundrel.model.CardType;
 
@@ -26,6 +28,13 @@ import java.util.Random;
  * <p>Every effect's timing lives in its own pure class ({@link CardFlight},
  * {@link WeaponKill}, {@link Barehanded}, {@link PotionDrink}); what is here is
  * the sequencing and the draw calls.
+ *
+ * <p>And the sound, on the same clocks. Each effect is handed the sounds its move
+ * makes and holds them until its beat ({@link Beats}): the blade is heard as the
+ * slash crosses, not on the click. The deal's flips wait on the deal's clock,
+ * one per card the dungeon sends up, stepping down the riffle. A skip plays
+ * whatever is still waiting, at once — every click during an animation skips it,
+ * so in fast play that is most of them, and every action must still sound once.
  */
 final class BoardView {
 
@@ -84,9 +93,18 @@ final class BoardView {
     private Runnable onPour;
     private boolean poured;
 
-    BoardView(Theme theme, Sprites sprites) {
+    // --- what is waiting to be heard ------------------------------------------
+
+    private final SoundBank sounds;
+    /** The current effect's sounds, on the effect's clock. */
+    private final PendingCues effectCues = new PendingCues();
+    /** The deal's flips, on the deal's clock. */
+    private final PendingCues dealCues = new PendingCues();
+
+    BoardView(Theme theme, Sprites sprites, SoundBank sounds) {
         this.theme = theme;
         this.sprites = sprites;
+        this.sounds = sounds;
         this.cardFrame = new CardFrame(theme);
         this.pips = new Pips();
         this.cardFace = new CardFace(theme, pips);
@@ -144,14 +162,20 @@ final class BoardView {
                     onPour.run();
                 }
             }
+            sounds.playAll(effectCues.due(effectElapsed));
             if (effectElapsed >= effectLength()) {
+                // Every beat is inside its effect (BeatsTest), but a sound must
+                // never outlive the effect it belongs to unheard.
+                sounds.playAll(effectCues.due(Float.MAX_VALUE));
                 kind = Kind.NONE;
                 subject = null;
                 outgoing = List.of();
             }
         } else if (dealing) {
             dealElapsed += delta;
+            sounds.playAll(dealCues.due(dealElapsed));
             if (dealElapsed >= dealLength()) {
+                sounds.playAll(dealCues.due(Float.MAX_VALUE));
                 dealing = false;
             }
         }
@@ -231,12 +255,16 @@ final class BoardView {
         return kind == Kind.EQUIP || kind == Kind.SLICE;
     }
 
-    /** Ends whatever is playing at once. The state underneath is already final. */
+    /**
+     * Ends whatever is playing at once. The state underneath is already final.
+     * Whatever had not yet been heard is heard now, as the heal still lands.
+     */
     void skip() {
         if (kind == Kind.POTION && !poured && onPour != null) {
             poured = true;
             onPour.run(); // the heal must still land, even skipped
         }
+        playPending("skip");
         kind = Kind.NONE;
         subject = null;
         outgoing = List.of();
@@ -251,6 +279,7 @@ final class BoardView {
      * out of the dungeon rather than appearing already dealt.
      */
     void dealFresh(List<Card> room) {
+        playPending("fresh deal");
         previousX.clear();
         outgoingX.clear();
         kind = Kind.NONE;
@@ -271,6 +300,36 @@ final class BoardView {
         closeElapsed = 0f;
         dealing = hasUndealtCards();
         dealElapsed = 0f;
+        scheduleFlips();
+    }
+
+    /**
+     * A flip for each card the dungeon sends up, as it lands: the {@code n}-th of
+     * them steps {@code n} down the riffle. A card already out slides and is
+     * silent. Replaces any earlier schedule; anything genuinely pending was
+     * played when the effect began.
+     */
+    private void scheduleFlips() {
+        dealCues.flush();
+        int card = 0;
+        for (int slot = 0; slot < room.size(); slot++) {
+            if (!previousX.containsKey(room.get(slot).id())) {
+                dealCues.schedule(sounds.choice().flip(card++), Beats.dealLanding(slot));
+            }
+        }
+        if (card > 0) {
+            sounds.log("deal " + card + (card == 1 ? " card" : " cards"));
+        }
+    }
+
+    /** Plays everything still waiting, at once — a skip, or something new cutting in. */
+    private void playPending(String why) {
+        List<Sfx> pending = new ArrayList<>(effectCues.flush());
+        pending.addAll(dealCues.flush());
+        if (!pending.isEmpty()) {
+            sounds.log(why + ": " + pending.size() + " pending, played now");
+            sounds.playAll(pending);
+        }
     }
 
     /** Whether the dungeon actually owes the room anything, or it merely shrank. */
@@ -290,8 +349,8 @@ final class BoardView {
      * card that was just swept away. Handing the outgoing positions to their
      * own map is what says that: nothing carries over.
      */
-    void playSweep(List<Card> avoided) {
-        start(Kind.SWEEP, null);
+    void playSweep(List<Card> avoided, List<Sfx> sfx) {
+        start(Kind.SWEEP, null, 1f, sfx, Beats.sweep());
         outgoing = List.copyOf(avoided);
         outgoingX.clear();
         outgoingX.putAll(previousX);
@@ -299,14 +358,14 @@ final class BoardView {
         playDeal();
     }
 
-    void playEquip(Card weapon) {
-        start(Kind.EQUIP, weapon);
+    void playEquip(Card weapon, List<Sfx> sfx) {
+        start(Kind.EQUIP, weapon, 1f, sfx, Beats.equip());
         playDeal();
     }
 
     /** The potion collapses, flies to the bar, and pours — then the room refills. */
-    void playPotion(Card potion, Runnable onPour) {
-        start(Kind.POTION, potion);
+    void playPotion(Card potion, Runnable onPour, List<Sfx> sfx) {
+        start(Kind.POTION, potion, 1f, sfx, Beats.drink());
         this.onPour = onPour;
         this.poured = false;
         playDeal();
@@ -317,17 +376,9 @@ final class BoardView {
      * out where it stood. It never reaches the bar, because nothing reaches
      * you — that is the whole message of the effect.
      */
-    void playSpill(Card potion) {
-        start(Kind.SPILL, potion);
+    void playSpill(Card potion, List<Sfx> sfx) {
+        start(Kind.SPILL, potion, 1f, sfx, Beats.spill());
         playDeal();
-    }
-
-    void playStrike(Card monster) {
-        playStrike(monster, false);
-    }
-
-    void playSlice(Card monster) {
-        playSlice(monster, false);
     }
 
     /**
@@ -336,21 +387,16 @@ final class BoardView {
      * over the gap, but you are not being dealt another card, because you are
      * not playing on.
      */
-    void playStrike(Card monster, boolean fatal) {
-        start(Kind.STRIKE, monster, fatal);
+    void playStrike(Card monster, boolean fatal, List<Sfx> sfx) {
+        start(Kind.STRIKE, monster, fatal, sfx, Beats.strike());
     }
 
-    void playSlice(Card monster, boolean fatal) {
-        start(Kind.SLICE, monster, fatal);
+    void playSlice(Card monster, boolean fatal, List<Sfx> sfx) {
+        start(Kind.SLICE, monster, fatal, sfx, Beats.slice());
     }
 
-    private void start(Kind kind, Card subject) {
-        start(kind, subject, 1f);
-        playDeal();
-    }
-
-    private void start(Kind kind, Card subject, boolean fatal) {
-        start(kind, subject, fatal ? 0.5f : 1f);
+    private void start(Kind kind, Card subject, boolean fatal, List<Sfx> sfx, float beat) {
+        start(kind, subject, fatal ? 0.5f : 1f, sfx, beat);
         if (fatal) {
             closeOnly();
         } else {
@@ -358,12 +404,24 @@ final class BoardView {
         }
     }
 
-    private void start(Kind kind, Card subject, float rate) {
+    /**
+     * Sets an effect going, and holds its sounds for {@code beat} on its clock.
+     * Anything still waiting from the one before is heard first: in the game a
+     * click skips before it moves, but the lab cuts straight in.
+     *
+     * <p>Deliberately does not deal. Every caller deals itself, afterwards — a
+     * sweep must move the old positions aside first — and dealing twice would
+     * choose the deal's flips twice.
+     */
+    private void start(Kind kind, Card subject, float rate, List<Sfx> sfx, float beat) {
+        playPending("cut in");
         this.kind = kind;
         this.subject = subject;
         this.effectElapsed = 0f;
         this.effectRate = rate;
         this.onPour = null;
+        sounds.log("effect " + kind + (rate != 1f ? " (half speed)" : ""));
+        effectCues.scheduleAll(sfx, beat);
     }
 
     /** The room closes, but nothing comes up to replace what left. */

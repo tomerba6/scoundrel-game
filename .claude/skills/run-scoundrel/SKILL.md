@@ -126,14 +126,25 @@ no `up:` leaves the OS mouse button stuck down for whatever runs next.
 `F1`-`F12` — the bindings the game polls per frame rather than through an
 input processor:
 **F11** toggles fullscreen, **F9** opens the developer sprite inspector
-(`SpriteLab`), **Esc** leaves it.
+(`SpriteLab`), **Esc** leaves it, **M** mutes all audio (any screen; writes
+`~/.scoundrel/audio.settings`).
 
 Inside the lab, one key per effect, acting on whatever card the pointer is over:
 **K** weapon kill, **B** barehanded, **A** avoid sweep, **E** equip, **P** potion,
-**W** wasted potion, **D** hit, **H** heal, **X** death, **Tab** the all-sprites
-sheet, **S** slow motion (÷8). Sub-second effects cannot be frame-grabbed at
+**W** wasted potion, **D** hit, **H** heal, **X** death (with its music and
+guttering torch), **Tab** the all-sprites sheet, **S** slow motion (÷8). Two need
+no card: **R** toggles the run music, **V** plays a win (its cue, then the chime).
+An effect removes its card and the other three **re-centre** (440/640/840), so
+re-aim the pointer before the next key. Sub-second effects cannot be frame-grabbed at
 their own speed — turn **S** on first, then trigger, and pace the `shot:`s at
 eight times the timing you are checking.
+
+**Audio has no pixels, so verify it from the sound log.** Launch with
+`SCOUNDREL_AUDIO_LOG=1` in the environment (`gradlew lwjgl3:run` does not forward
+`-D`); every play, effect, cue, level change and minimise prints to stdout as
+`audio <seconds since launch> <event>`. `SCOUNDREL_NO_AUDIO=1` runs the game on
+LibGDX's silent stand-in, as a machine with no audio device would. Keys are
+sometimes dropped — check the log after each one that matters.
 
 ```powershell
 & powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\run-scoundrel\drive.ps1 `
@@ -155,11 +166,12 @@ Client pixels, origin **top-left**, window 1280x720 — so these hold only after
 |---|---|---|
 | Title (pixel) | New game / How to play / The ledger / Trophies | 731,349 / 731,405 / 731,461 / 731,517 |
 | Title (pixel) | First-run prompt: Play tutorial / Maybe later | 640,349 / 640,405 |
+| Title (pixel) | MUSIC / SOUND plates (cycle on release) | 661,568 / 800,568 |
 | Mode picker (pixel) | Standard / Relentless / Frail | 638,159 / 638,262 / 638,365 |
 | Mode picker (pixel) | `ESC · BACK` in the header band | 1174,45 |
 | Game board | Avoid button | 1198,46 |
 | Game board | card centres, y = 342 | see formula below |
-| End overlay | New game / Main menu / Trophies / Records | 639,423 / 639,464 / 639,505 / 639,546 |
+| End panel | New game / Main menu / Trophies / The ledger, one row | 444 / 573 / 698 / 825, at y = 533 with trophies unlocked, 476 without |
 
 The room row is **centred**, so card centres shift as the room shrinks. Since the
 pixel conversion cards are **176 wide on a 200 pitch**; for `n` cards the i-th
@@ -182,6 +194,9 @@ These all cost real time in this container.
   appends to `runs.log` and can unlock achievements in the player's actual
   history. Abandoning mid-run (kill the app) records nothing - runs persist only
   at game end. Back up `runs.log` / `achievements.log` before automating full games.
+  A volume plate or **M** writes `audio.settings`; remove it afterwards if it was
+  not there before. **The user also plays in the same window**, so check file
+  timestamps against your own drives before blaming automation for a change.
 - **The window moves between launches.** Observed at screen 449,174 then 531,167
   then 320,144. The driver recomputes the client origin on every invocation -
   never hardcode screen coordinates.

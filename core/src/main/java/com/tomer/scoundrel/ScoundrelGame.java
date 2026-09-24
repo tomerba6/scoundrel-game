@@ -6,6 +6,10 @@ import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.tomer.scoundrel.achievements.AchievementStore;
+import com.tomer.scoundrel.audio.AudioControls;
+import com.tomer.scoundrel.audio.AudioSettings;
+import com.tomer.scoundrel.audio.AudioSettingsStore;
+import com.tomer.scoundrel.audio.MusicDirector;
 import com.tomer.scoundrel.rules.GameMode;
 import com.tomer.scoundrel.rules.GameModes;
 import com.tomer.scoundrel.runs.RunLog;
@@ -14,7 +18,10 @@ import com.tomer.scoundrel.tutorial.TutorialGuide;
 import com.tomer.scoundrel.tutorial.TutorialScript;
 import com.tomer.scoundrel.screens.GameScreen;
 import com.tomer.scoundrel.screens.ModeSelectScreen;
+import com.tomer.scoundrel.screens.MusicDeck;
+import com.tomer.scoundrel.screens.PixelScreen;
 import com.tomer.scoundrel.screens.RecordsScreen;
+import com.tomer.scoundrel.screens.SoundBank;
 import com.tomer.scoundrel.screens.SpriteLab;
 import com.tomer.scoundrel.screens.Sprites;
 import com.tomer.scoundrel.screens.Theme;
@@ -35,6 +42,12 @@ public class ScoundrelGame extends Game {
 
     private Theme theme;
     private Sprites sprites;
+    private SoundBank sounds;
+    /** Which music plays and how loud: pure, and here so it outlives the screens. */
+    private final MusicDirector music = new MusicDirector();
+    private MusicDeck musicDeck;
+    /** The player's volume: the title's plates and M change it, and it is saved as it changes. */
+    private AudioControls audio;
     private RunLog runLog;
     private AchievementStore achievements;
     private TutorialFlag tutorialFlag;
@@ -47,10 +60,16 @@ public class ScoundrelGame extends Game {
     public void create() {
         theme = new Theme();
         sprites = new Sprites();
+        sounds = new SoundBank();
+        musicDeck = new MusicDeck(sounds, music);
         Path home = Path.of(System.getProperty("user.home"), ".scoundrel");
         runLog = new RunLog(home.resolve("runs.log"));
         achievements = new AchievementStore(home.resolve("achievements.log"));
         tutorialFlag = new TutorialFlag(home.resolve("tutorial.seen"));
+        // A setting, not progress: the full reset leaves it alone.
+        audio = new AudioControls(new AudioSettingsStore(home.resolve("audio.settings")),
+                e -> Gdx.app.error("audio", "could not read or save the audio settings", e));
+        applyVolume();
         // First ever launch offers the tutorial; afterward it lives under "How to play".
         switchTo(new TitleScreen(this, theme, sprites, runLog, !tutorialFlag.isSeen()));
     }
@@ -71,7 +90,43 @@ public class ScoundrelGame extends Game {
         if (Gdx.input.isKeyJustPressed(Input.Keys.F9) && !(getScreen() instanceof SpriteLab)) {
             switchTo(new SpriteLab(this, theme, sprites));
         }
+        // M mutes everything, and brings it back, from any screen — polled here
+        // like F11 so no screen has to route it.
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            toggleMute();
+        }
         super.render(); // draws the current screen
+
+        // The music, after the screen: whatever the frame asked of the director (a
+        // death, a win, a new run) is carried out in the same frame. Read off the
+        // screen now showing, which the frame may just have switched to.
+        Screen screen = getScreen();
+        boolean boardIdle = !(screen instanceof GameScreen run) || run.boardIdle();
+        float torchLight = screen instanceof PixelScreen pixel ? pixel.torchLight()
+                : screen instanceof SpriteLab lab ? lab.torchLight() : 1f;
+        musicDeck.update(Gdx.graphics.getDeltaTime(), boardIdle, torchLight);
+    }
+
+    /**
+     * The window was minimised (or is closing). Nothing is heard until it comes
+     * back, but nothing stops: the audio keeps time with the picture, which LibGDX
+     * keeps rendering. Holding it instead put a death cue minutes after the death
+     * it belonged to.
+     */
+    @Override
+    public void pause() {
+        super.pause();
+        audio.windowMinimised(true);
+        applyVolume();
+        musicDeck.windowMinimised(true);
+    }
+
+    @Override
+    public void resume() {
+        super.resume();
+        audio.windowMinimised(false);
+        applyVolume();
+        musicDeck.windowMinimised(false);
     }
 
     private void toggleFullscreen() {
@@ -84,6 +139,56 @@ public class ScoundrelGame extends Game {
             Gdx.graphics.setWindowedMode(desktop.width, desktop.height);
         }
         fullscreen = !fullscreen;
+    }
+
+    /** The player's volume as it stands, for the title's plates to show. */
+    public AudioSettings audioSettings() {
+        return audio.settings();
+    }
+
+    /** The title's MUSIC plate: up a step, round to off. */
+    public void cycleMusic() {
+        audio.cycleMusic();
+        applyVolume();
+    }
+
+    /**
+     * The title's SOUND plate: up a step, round to off — and a click at the new
+     * level, which is how the player hears what they chose. At off it is silent.
+     */
+    public void cycleSound() {
+        audio.cycleSound();
+        applyVolume();
+        sounds.play(sounds.choice().click());
+    }
+
+    /** M: silence everything or bring it back. A run says which in its feed. */
+    private void toggleMute() {
+        AudioSettings now = audio.toggleMute();
+        applyVolume();
+        if (getScreen() instanceof GameScreen run) {
+            run.announceMute(now.muted());
+        }
+    }
+
+    /** The gains as they should sound now: the levels, or silence while minimised or muted. */
+    private void applyVolume() {
+        sounds.setGain(audio.soundGain());
+        musicDeck.setGains(audio.musicGain(), audio.soundGain());
+    }
+
+    /** The sound effects, shared by every screen like the theme and the sprites. */
+    public SoundBank sounds() {
+        return sounds;
+    }
+
+    /**
+     * The music's director, for the moments only a screen sees: a death, a win,
+     * trophies, a new run started in place. Which track plays is decided here, on
+     * every screen switch.
+     */
+    public MusicDirector music() {
+        return music;
     }
 
     public void showTitle() {
@@ -134,12 +239,21 @@ public class ScoundrelGame extends Game {
         Progress.eraseAll(runLog, achievements, tutorialFlag);
     }
 
-    /** setScreen only hides the previous screen; it must also be disposed. */
+    /**
+     * setScreen only hides the previous screen; it must also be disposed. And the
+     * music follows: a run plays the run track, anything else (the lab included) the
+     * menu track — which carries on, without restarting, from one menu to the next.
+     */
     private void switchTo(Screen next) {
         Screen previous = getScreen();
         setScreen(next);
         if (previous != null) {
             previous.dispose();
+        }
+        if (next instanceof GameScreen) {
+            music.enterRun();
+        } else {
+            music.enterMenus();
         }
     }
 
@@ -151,5 +265,7 @@ public class ScoundrelGame extends Game {
         }
         sprites.dispose();
         theme.dispose();
+        musicDeck.dispose();
+        sounds.dispose();
     }
 }

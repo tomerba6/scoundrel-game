@@ -104,6 +104,30 @@ final class ScreenArt {
     static final int CREDIT_TOP = 680;
     static final float CREDIT_ALPHA = 0.22f;
 
+    // The MUSIC and SOUND plates. The mock has none, so these are not measured off
+    // it: they are the menu column's own measures, reused. One row under the fourth
+    // button, the column's gap above and between, together exactly its width; the
+    // back plate's height, because they are settings, not places to go.
+    private static final int AUDIO_GAP = BUTTON_PITCH - BUTTON_H;
+    static final int AUDIO_Y = BUTTONS_Y + 4 * BUTTON_PITCH;
+    static final int AUDIO_W = (BUTTON_W - AUDIO_GAP) / 2;
+    static final int AUDIO_H = ScreenArt.BACK_H;
+    /** Inside the bevel: before the label on the left, after the last pip on the right. */
+    static final int AUDIO_PAD = 10;
+    /** The line under the row that says what M does ({@link Labels#muteHint}). */
+    static final int MUTE_HINT_TOP = AUDIO_Y + AUDIO_H + 12;
+    /** A level is three pips, whole-pixel bars; a pip lit per step. */
+    static final int PIP_W = 6;
+    static final int PIP_H = 12;
+    private static final int PIP_GAP = 4;
+    static final int PIPS = 3;
+    /** Lit: the gold every other live thing on the menus is. */
+    static final int PIP_ON = GOLD;
+    /** A step the level has not reached: a slot sunk into the plate. */
+    static final int PIP_OFF = DARK_DARK;
+    /** A step reached but muted: the unlit digit's grey, remembered but silent. */
+    static final int PIP_MUTED = ScreenArt.WELL_DIGIT_OFF;
+
     // --- the header band, on every screen except the title -----------------
 
     /** 88px of band with the rule at its foot, measured to 89 on the render. */
@@ -335,6 +359,14 @@ final class ScreenArt {
     static final int END_TROPHY_DESC_GAP = 14;
     /** Two fit above the buttons; a run cannot realistically unlock more at once. */
     static final int END_TROPHIES_SHOWN = 2;
+    /**
+     * Where an unlocked trophy's description must stop: the rule's right end, the
+     * panel's own margin. Drawn as one unbounded line, Rock Bottom's ran about 65 px
+     * off the panel; now a description wraps within it.
+     */
+    static final int END_TEXT_RIGHT = END_RULE_X + END_RULE_W;
+    /** A long description takes a second line beside the name, sharing the seal's height. */
+    static final int END_TROPHY_DESC_LINES = 2;
 
     static final int END_BUTTONS_DY = 376;
     static final int END_BUTTON_H = 38;
@@ -431,6 +463,21 @@ final class ScreenArt {
 
     static int endTrophyY(int index) {
         return endY(true) + END_TROPHY_DY + index * END_TROPHY_PITCH;
+    }
+
+    /** How wide a description beginning at {@code descX} may run before the margin. */
+    static int endTrophyDescWidth(int descX) {
+        return END_TEXT_RIGHT - descX;
+    }
+
+    /** Each line's share of the seal's height: all of it for one, half each for two. */
+    static int endTrophyLineH(int lines) {
+        return END_TROPHY_SEAL / lines;
+    }
+
+    /** The top of a description line's share, the lines stacked down the seal. */
+    static int endTrophyLineY(int rowY, int line, int lines) {
+        return rowY + line * endTrophyLineH(lines);
     }
 
     /**
@@ -547,6 +594,44 @@ final class ScreenArt {
 
     static int buttonY(int index) {
         return BUTTONS_Y + index * BUTTON_PITCH;
+    }
+
+    /** 0 is MUSIC, 1 is SOUND. */
+    static int audioPlateX(int index) {
+        return COLUMN_X + index * (AUDIO_W + AUDIO_GAP);
+    }
+
+    /** Which audio plate a world point is on — 0 MUSIC, 1 SOUND — or -1, the gap between included. */
+    static int audioPlateAt(float worldX, float worldY) {
+        float bottom = CardArt.toWorldY(AUDIO_Y, AUDIO_H);
+        if (worldY < bottom || worldY >= bottom + AUDIO_H) {
+            return -1;
+        }
+        for (int i = 0; i < 2; i++) {
+            int x = audioPlateX(i);
+            if (worldX >= x && worldX < x + AUDIO_W) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** The left edge of a pip, the three right-aligned against the plate's padding. */
+    static int pipX(int plateX, int pip) {
+        int right = plateX + AUDIO_W - 2 * THICK - AUDIO_PAD;
+        return right - (PIPS - pip) * PIP_W - (PIPS - 1 - pip) * PIP_GAP;
+    }
+
+    static int pipY() {
+        return AUDIO_Y + (AUDIO_H - PIP_H) / 2;
+    }
+
+    /** A pip's colour: lit up to the level, dimmed while muted, a sunk slot past it. */
+    static int pipColour(int pip, int level, boolean muted) {
+        if (pip >= level) {
+            return PIP_OFF;
+        }
+        return muted ? PIP_MUTED : PIP_ON;
     }
 
     static int promptX() {

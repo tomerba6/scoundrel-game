@@ -18,6 +18,7 @@ import com.tomer.scoundrel.achievements.AchievementTracker;
 import com.tomer.scoundrel.achievements.Achievements;
 import com.tomer.scoundrel.achievements.RunSummary;
 import com.tomer.scoundrel.achievements.UnlockedAchievement;
+import com.tomer.scoundrel.audio.Sfx;
 import com.tomer.scoundrel.model.Card;
 import com.tomer.scoundrel.model.CardType;
 import com.tomer.scoundrel.model.EquippedWeapon;
@@ -131,7 +132,7 @@ public final class GameScreen extends PixelScreen {
         this.tutorial = tutorial;
         this.rules = mode.ruleset();
         this.engine = new ScoundrelEngine(rules);
-        this.board = new BoardView(theme, sprites);
+        this.board = new BoardView(theme, sprites, game.sounds());
         this.hud = new BoardHud(theme);
         startRun();
         board.dealFresh(state.room());
@@ -164,7 +165,7 @@ public final class GameScreen extends PixelScreen {
             // button — but only the run end is modal. The tutorial's callout
             // deliberately lets everything except Skip and Next through, since
             // playing the board is the whole point of it.
-            if (press.press(overlayHit(screenX, screenY)) || endSummary != null) {
+            if (pressAt(overlayHit(screenX, screenY)) || endSummary != null) {
                 return true;
             }
             Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
@@ -293,6 +294,16 @@ public final class GameScreen extends PixelScreen {
     @Override
     protected int hit(int screenX, int screenY) {
         return overlayHit(screenX, screenY);
+    }
+
+    /**
+     * The end panel's buttons click, like any menu's: the run is over. The
+     * tutorial callout's SKIP and NEXT do not — they are pressed mid-run, where
+     * buttons are silent (the ids below {@code -1}).
+     */
+    @Override
+    protected boolean clicks(int target) {
+        return target >= 0;
     }
 
     @Override
@@ -470,6 +481,7 @@ public final class GameScreen extends PixelScreen {
 
     /** The cinematic is over (or was clicked through): show the score. */
     private void settleEnd() {
+        game.music().settled(); // the end panel is up: the death cue now, if it has not played
         deathElapsed = -1f;
         if (endPending) {
             endPending = false;
@@ -560,6 +572,7 @@ public final class GameScreen extends PixelScreen {
         feed.clear();
         board.dealFresh(state.room());
         syncBoard();
+        game.music().enterRun(); // from the end panel: the run track from the top
     }
 
     // --- the run-end panel: screen five of §11 ---
@@ -661,10 +674,16 @@ public final class GameScreen extends PixelScreen {
             int nameX = ScreenArt.END_UNLOCKED_X + ScreenArt.END_TROPHY_NAME_DX;
             chrome.textInRow(batch, theme.pixelLabel, name, nameX, y,
                     ScreenArt.END_TROPHY_SEAL, ScreenArt.BODY, 1f);
-            chrome.textInRow(batch, theme.pixelSmall,
-                    earned.description().toUpperCase(Locale.ROOT),
-                    nameX + chrome.width(theme.pixelLabel, name) + ScreenArt.END_TROPHY_DESC_GAP,
-                    y, ScreenArt.END_TROPHY_SEAL, ScreenArt.CELL_QUIET, 1f);
+            // Wrapped to the panel's margin: one unbounded line once ran off it.
+            int descX = nameX + chrome.width(theme.pixelLabel, name) + ScreenArt.END_TROPHY_DESC_GAP;
+            List<String> lines = TextWrap.wrap(earned.description().toUpperCase(Locale.ROOT),
+                    ScreenArt.endTrophyDescWidth(descX), ScreenArt.END_TROPHY_DESC_LINES,
+                    s -> chrome.width(theme.pixelSmall, s));
+            for (int line = 0; line < lines.size(); line++) {
+                chrome.textInRow(batch, theme.pixelSmall, lines.get(line), descX,
+                        ScreenArt.endTrophyLineY(y, line, lines.size()),
+                        ScreenArt.endTrophyLineH(lines.size()), ScreenArt.CELL_QUIET, 1f);
+            }
         }
     }
 
@@ -966,6 +985,9 @@ public final class GameScreen extends PixelScreen {
                 newlyUnlocked = List.of();
             }
         }
+        if (!newlyUnlocked.isEmpty()) {
+            game.music().trophiesUnlocked(); // the chime, once the panel and the cue are done
+        }
     }
 
     private void applyMove(Move move) {
@@ -1011,9 +1033,39 @@ public final class GameScreen extends PixelScreen {
             killerSlotX = move instanceof Move.CardMove cm
                     ? orMinusOne(board.previousSlotX(cm.targetCard().id()))
                     : -1;
+            // The music dies with the torch, on the cinematic's own clock: left alone
+            // through the settle, out across the gutter, the cue as YOU DIED grows in.
+            game.music().dying(DeathCinematic.DITHER_START, DeathCinematic.DITHER_END,
+                    DeathCinematic.TITLE_START);
         } else {
             syncBoard();
+            endOfRunMusic();
         }
+    }
+
+    /**
+     * A run that ended without the death cinematic. A win: the director waits for
+     * the winning blow to land before the run music gives way to the cue. A loss in
+     * the tutorial, which has no cinematic to gutter the torch over: the music just
+     * goes, and the cue plays.
+     */
+    private void endOfRunMusic() {
+        if (state.status() == Status.WON) {
+            game.music().won();
+        } else if (state.status() == Status.LOST) {
+            game.music().dying(0f, 0f, 0f);
+            game.music().settled();
+        }
+    }
+
+    /** Whether the board has finished animating — the win's music waits for it. */
+    public boolean boardIdle() {
+        return !board.isPlaying();
+    }
+
+    /** M was pressed: nothing on the board changes, so the feed says what it did. */
+    public void announceMute(boolean muted) {
+        feed.push(FeedText.mute(muted));
     }
 
     private static int orMinusOne(Integer value) {
@@ -1024,13 +1076,19 @@ public final class GameScreen extends PixelScreen {
      * The effect is chosen purely by move type; the rest is the wiring. Every
      * one of them ends by dealing the room back in, so a refill follows without
      * being asked for.
+     *
+     * <p>So is the sound: what the move sounds like is decided from its events
+     * ({@code SfxChoice}), the blade weighted by the weapon that was held when the
+     * move was made, and the board holds it for the effect's beat.
      */
     private void playEffect(Move move, MoveResult result, List<Card> roomBefore, boolean fatal) {
+        List<Sfx> sfx = game.sounds().choice().forEvents(result.events(),
+                weaponBeforeMove == null ? 0 : weaponBeforeMove.weapon().value());
         switch (ResolveEffect.of(move)) {
-            case AVOID -> board.playSweep(roomBefore);
-            case STRIKE -> board.playStrike(((Move.FightBarehanded) move).targetCard(), fatal);
-            case SLICE -> board.playSlice(((Move.FightWithWeapon) move).targetCard(), fatal);
-            case EQUIP -> board.playEquip(((Move.TakeWeapon) move).targetCard());
+            case AVOID -> board.playSweep(roomBefore, sfx);
+            case STRIKE -> board.playStrike(((Move.FightBarehanded) move).targetCard(), fatal, sfx);
+            case SLICE -> board.playSlice(((Move.FightWithWeapon) move).targetCard(), fatal, sfx);
+            case EQUIP -> board.playEquip(((Move.TakeWeapon) move).targetCard(), sfx);
             case POTION -> {
                 Card drunk = ((Move.TakePotion) move).targetCard();
                 boolean wasted = result.events().stream()
@@ -1039,9 +1097,9 @@ public final class GameScreen extends PixelScreen {
                 // stood. Sending it to a bar that then does not move read as the
                 // heal being broken rather than as the potion being wasted.
                 if (wasted) {
-                    board.playSpill(drunk);
+                    board.playSpill(drunk, sfx);
                 } else {
-                    board.playPotion(drunk, this::startHeal);
+                    board.playPotion(drunk, this::startHeal, sfx);
                 }
             }
         }

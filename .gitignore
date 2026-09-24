@@ -164,3 +164,8 @@ Thumbs.db
 ## You could also add that configuration to the text in nativeimage.gradle .
 ## You should delete or comment out the next line if you have configuration in a different resource-config.json .
 **/resource-config.json
+
+## Audio synthesis (audio-source/): the audition page and scratch renders are local only,
+## and never under assets/ (everything there ships).
+/audio-source/build/
+__pycache__/

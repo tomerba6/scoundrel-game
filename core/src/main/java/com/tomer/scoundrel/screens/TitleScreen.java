@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.tomer.scoundrel.ScoundrelGame;
+import com.tomer.scoundrel.audio.AudioSettings;
 import com.tomer.scoundrel.runs.HighScores;
 import com.tomer.scoundrel.runs.RunLog;
 import com.tomer.scoundrel.runs.RunRecord;
@@ -44,6 +45,10 @@ public final class TitleScreen extends PixelScreen {
      * suits are separate drawings, not a recolour.
      */
     private static final String PORTRAIT_STEM = "creature_14_the_debt_clubs_idle";
+
+    /** The volume plates' targets, after the menu's four in the same index space. */
+    private static final int MUSIC_PLATE = 4;
+    private static final int SOUND_PLATE = 5;
 
     private final Sprites sprites;
     private final RunLog runLog;
@@ -109,9 +114,25 @@ public final class TitleScreen extends PixelScreen {
     @Override
     protected int hit(int screenX, int screenY) {
         Vector2 point = unproject(screenX, screenY);
-        return offeringTutorial
-                ? ScreenArt.promptButtonAt(point.x, point.y)
-                : ScreenArt.buttonAt(ScreenArt.COLUMN_X, menu.size(), point.x, point.y);
+        if (offeringTutorial) {
+            return ScreenArt.promptButtonAt(point.x, point.y);
+        }
+        int button = ScreenArt.buttonAt(ScreenArt.COLUMN_X, menu.size(), point.x, point.y);
+        if (button >= 0) {
+            return button;
+        }
+        int plate = ScreenArt.audioPlateAt(point.x, point.y);
+        return plate < 0 ? PressGesture.NONE : MUSIC_PLATE + plate;
+    }
+
+    /**
+     * Every button clicks as it goes down but SOUND, which clicks when it acts, at
+     * the level it has just been turned to: the click is how you hear the level
+     * you chose, and at OFF it is silent.
+     */
+    @Override
+    protected boolean clicks(int target) {
+        return offeringTutorial || target != SOUND_PLATE;
     }
 
     /**
@@ -143,7 +164,11 @@ public final class TitleScreen extends PixelScreen {
             }
             return;
         }
-        menu.get(index).action().run();
+        switch (index) {
+            case MUSIC_PLATE -> game.cycleMusic();
+            case SOUND_PLATE -> game.cycleSound();
+            default -> menu.get(index).action().run();
+        }
     }
 
     /** The Debt's idle runs off this screen's own clock, not the backdrop's. */
@@ -213,9 +238,26 @@ public final class TitleScreen extends PixelScreen {
                     ScreenArt.BUTTON_H, menu.get(i).label(),
                     i == 0 ? Chrome.Plate.GOLD : Chrome.Plate.DARK, i == sunk);
         }
+        drawVolume(sunk);
 
         chrome.centredOn(batch, theme.pixelSmall, CREDIT, (int) (Theme.WORLD_WIDTH / 2),
                 ScreenArt.CREDIT_TOP, ScreenArt.BODY, ScreenArt.CREDIT_ALPHA);
+    }
+
+    /**
+     * MUSIC and SOUND, one row under the menu, each showing its level as pips, and
+     * under them the line that says what M does. Not in the mock, which has no
+     * audio: built from the menu's own measures and parts.
+     */
+    private void drawVolume(int sunk) {
+        AudioSettings volume = game.audioSettings();
+        chrome.levelPlate(batch, ScreenArt.audioPlateX(0), "MUSIC", volume.music(), volume.muted(),
+                sunk == MUSIC_PLATE);
+        chrome.levelPlate(batch, ScreenArt.audioPlateX(1), "SOUND", volume.sound(), volume.muted(),
+                sunk == SOUND_PLATE);
+        chrome.centredOn(batch, theme.pixelSmall, Labels.muteHint(volume.muted()),
+                ScreenArt.COLUMN_X + ScreenArt.BUTTON_W / 2, ScreenArt.MUTE_HINT_TOP,
+                ScreenArt.BODY, ScreenArt.BODY_ALPHA);
     }
 
     // --- the first-run prompt ---

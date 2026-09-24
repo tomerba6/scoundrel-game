@@ -116,6 +116,16 @@ final class PressGesture {
         return NONE;
     }
 
+    /**
+     * Whether {@code target} is already held down — pressed, and not yet released or
+     * cancelled, whether or not the pointer is still on it. A button that is down
+     * cannot go down again: the one time a single press arrived twice (the session's
+     * first click after leaving fullscreen) it played the menu click twice.
+     */
+    boolean alreadyDown(int target) {
+        return target != NONE && held == target;
+    }
+
     /** Which target draws pressed this frame, or {@link #NONE}. */
     int sunk() {
         if (armed != NONE) {

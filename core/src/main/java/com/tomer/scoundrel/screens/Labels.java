@@ -93,4 +93,12 @@ final class Labels {
         return win + " Die instead and the score goes negative: your health, minus every "
                 + "monster still left in the dungeon.";
     }
+
+    /**
+     * The line under the title's volume plates. Always there, because nothing
+     * else says M exists; muted, it says why everything has gone quiet.
+     */
+    static String muteHint(boolean muted) {
+        return muted ? "MUTED · M TO UNMUTE" : "M TO MUTE ALL";
+    }
 }

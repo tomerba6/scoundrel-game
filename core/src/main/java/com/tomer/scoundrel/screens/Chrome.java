@@ -172,6 +172,26 @@ final class Chrome {
     }
 
     /**
+     * A MUSIC or SOUND plate on the title: the dark plate with its label on the
+     * left rather than centred, and its level as three pips on the right. Still
+     * the one button shape — {@link #plate} draws it, with no label of its own —
+     * and it sinks like any other, the label and the pips going down together.
+     */
+    void levelPlate(Batch batch, int x, String text, int level, boolean muted, boolean pressed) {
+        int y = ScreenArt.AUDIO_Y;
+        plate(batch, x, y, ScreenArt.AUDIO_W, ScreenArt.AUDIO_H, "", Plate.DARK, pressed);
+        int travel = pressed ? ScreenArt.SINK : 0;
+        layout.setText(theme.pixelLabel, text);
+        int top = y + Math.round((ScreenArt.AUDIO_H - layout.height) / 2f);
+        text(batch, theme.pixelLabel, text, x + 2 * ScreenArt.THICK + ScreenArt.AUDIO_PAD + travel,
+                top + travel, ScreenArt.DARK_LABEL, ScreenArt.DARK_LABEL_ALPHA);
+        for (int pip = 0; pip < ScreenArt.PIPS; pip++) {
+            face(batch, ScreenArt.pipX(x, pip) + travel, ScreenArt.pipY() + travel,
+                    ScreenArt.PIP_W, ScreenArt.PIP_H, ScreenArt.pipColour(pip, level, muted));
+        }
+    }
+
+    /**
      * The band every screen but the title carries: the screen's name, a caption
      * beside it on the same baseline, {@code ESC · BACK} on the right, and a
      * rule along the foot. Four screens share it, so it is drawn once here.

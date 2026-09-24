@@ -108,6 +108,13 @@ test {
   if (referenceArt.isDirectory()) {
     inputs.dir(referenceArt).withPathSensitivity(PathSensitivity.RELATIVE)
   }
+  // And again for AudioAssetsTest, which holds the committed sound files under
+  // assets/audio to the Sound contract: a re-render or a stray file there must
+  // re-run it, or the check that nothing unexpected ships goes quiet.
+  def shippedAudio = rootProject.file('assets/audio')
+  if (shippedAudio.isDirectory()) {
+    inputs.dir(shippedAudio).withPathSensitivity(PathSensitivity.RELATIVE)
+  }
 }
 
 jacocoTestReport {
@@ -132,6 +139,7 @@ jacocoTestCoverageVerification {
         'com.tomer.scoundrel.runs',
         'com.tomer.scoundrel.achievements',
         'com.tomer.scoundrel.tutorial',
+        'com.tomer.scoundrel.audio',
       ]
       limit { counter = 'LINE';   value = 'COVEREDRATIO'; minimum = 0.90 }
       limit { counter = 'BRANCH'; value = 'COVEREDRATIO'; minimum = 0.75 }
