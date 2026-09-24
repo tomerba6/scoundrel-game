@@ -15,7 +15,8 @@ intent and progress. **This file is the record of what ships.**
 > exist:
 > - The synthesis toolchain (`audio-source/`: `6d2e267`, `81cc0a3`).
 > - The 29 **placeholder** sound effects it renders, in `assets/audio/sfx/`. They pass every
->   measurement but haven't been through listening round 1.
+>   measurement and were **signed off by ear in listening round 1**, heard on their own and
+>   in simulated scenes. Round 2 hears them in play.
 > - The pure `audio` package, built and tested (`e49a6bb`…`b8e7f74`) but not yet wired in. It
 >   decides which sound each moment makes, holds sounds for their beats, sequences the music,
 >   and keeps the volume settings.
@@ -55,7 +56,7 @@ Nothing plays it yet.
 | Sound | Plays when | Weighted by |
 |---|---|---|
 | **Click** | A menu button is pressed: title, mode select, ledger, trophies, and the end-of-run panel | — |
-| **Flip** | Each card dealt into the room lands | — |
+| **Flip** | Each card dealt into the room lands. A deal's flips are shaped as one riffle | its place in the deal |
 | **Sweep** | A room is avoided | — |
 | **Equip** | A weapon lands on the rail | weapon value |
 | **Weapon kill** | The blade lands on a monster: a *blade* weighted by the weapon, plus a *thud* only if damage got through | weapon; damage let through |
@@ -98,6 +99,15 @@ each weight, because the file already says "heavier".
   than the file was mastered. These are the flip, blade, thud and fist, the sounds with more
   than one version. The ±4% nudge, ±2% pitch and 10% volume are starting values for the
   listening rounds.
+- **A deal is a riffle, not a volley.** The cards land exactly one frame (83 ms) apart, and in
+  round 1 four even, separate flips on that beat sounded like a machine gun, twice. So:
+  - Each flip is a swish that swells in over 25 ms and settles over about 0.35 s, and the
+    flips of a deal overlap.
+  - Each later card plays quieter (0, −2.2, −4.2, −6 dB) and a touch lower (1.5% per card)
+    than the one before (`SfxChoice.RIFFLE_GAIN` / `RIFFLE_PITCH`, via `flip(card)`). Past the
+    fourth card it keeps the last step.
+
+  The user chose this by ear over one sound per deal and over sounding the first card alone.
 - **Rare moments have one version on purpose.** Sounding identical every time is what makes the
   spill, the chime and the cues recognisable.
 
@@ -344,7 +354,7 @@ author and licence recorded on replacement.
 
 | Files | Status | Source | Licence |
 |---|---|---|---|
-| `sfx/*` (29) | placeholder (`81cc0a3`). Round 1: flips, blade and thud rebuilt; re-listen pending | synth | ours |
+| `sfx/*` (29) | **approved** in round 1 (2026-09-24), heard alone. The flips, blade and thud were rebuilt on the way. Round 2 hears them in play | synth | ours |
 | `ambience/torch` | planned | synth | ours |
 | `music/menu`, `music/run` | planned | synth | ours; most likely to be replaced |
 | `music/win`, `music/death` | planned | synth | ours |

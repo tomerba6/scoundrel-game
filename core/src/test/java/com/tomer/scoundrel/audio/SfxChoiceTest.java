@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SfxChoiceTest {
@@ -164,7 +165,7 @@ class SfxChoiceTest {
         Set<Float> pitches = new HashSet<>();
         String previous = null;
         for (int i = 0; i < 200; i++) {
-            Sfx flip = choice.flip();
+            Sfx flip = choice.flip(0);
             assertTrue(flip.pitch() >= 1f - SfxChoice.PITCH_JITTER - EPSILON
                     && flip.pitch() <= 1f + SfxChoice.PITCH_JITTER + EPSILON, "pitch " + flip.pitch());
             assertTrue(flip.volume() >= 1f - SfxChoice.VOLUME_JITTER - EPSILON
@@ -194,8 +195,69 @@ class SfxChoiceTest {
         SfxChoice a = new SfxChoice(99);
         SfxChoice b = new SfxChoice(99);
         for (int i = 0; i < 30; i++) {
-            assertEquals(a.flip(), b.flip(), "flip " + i);
+            assertEquals(a.flip(i % 4), b.flip(i % 4), "flip " + i);
         }
+    }
+
+    // --- the deal's riffle (round 1: four even flips a frame apart read as a machine gun) ---
+
+    @Test
+    void eachLaterCardOfADealIsQuieterThanTheOneBefore() {
+        // With the variation on top, the fade must still order them: a card's loudest
+        // play is quieter than the previous card's quietest.
+        SfxChoice choice = new SfxChoice(21);
+        for (int card = 1; card < 4; card++) {
+            float louder = SfxChoice.RIFFLE_GAIN[card - 1] * (1f - SfxChoice.VOLUME_JITTER);
+            for (int i = 0; i < 50; i++) {
+                assertTrue(choice.flip(card).volume() < louder, "card " + card);
+            }
+        }
+    }
+
+    @Test
+    void eachCardPlaysWithinItsStepOfTheRiffle() {
+        SfxChoice choice = new SfxChoice(8);
+        for (int card = 0; card < 4; card++) {
+            float gain = SfxChoice.RIFFLE_GAIN[card];
+            float pitch = SfxChoice.RIFFLE_PITCH[card];
+            for (int i = 0; i < 50; i++) {
+                Sfx flip = choice.flip(card);
+                assertTrue(flip.volume() <= gain + EPSILON
+                        && flip.volume() >= gain * (1f - SfxChoice.VOLUME_JITTER) - EPSILON,
+                        "card " + card + " volume " + flip.volume());
+                assertTrue(flip.pitch() <= pitch * (1f + SfxChoice.PITCH_JITTER) + EPSILON
+                        && flip.pitch() >= pitch * (1f - SfxChoice.PITCH_JITTER) - EPSILON,
+                        "card " + card + " pitch " + flip.pitch());
+            }
+        }
+    }
+
+    @Test
+    void theRiffleStartsFullAndFallsInLevelAndPitch() {
+        assertEquals(1f, SfxChoice.RIFFLE_GAIN[0], 0f);
+        assertEquals(1f, SfxChoice.RIFFLE_PITCH[0], 0f);
+        for (int card = 1; card < SfxChoice.RIFFLE_GAIN.length; card++) {
+            assertTrue(SfxChoice.RIFFLE_GAIN[card] < SfxChoice.RIFFLE_GAIN[card - 1], "gain " + card);
+            assertTrue(SfxChoice.RIFFLE_PITCH[card] < SfxChoice.RIFFLE_PITCH[card - 1], "pitch " + card);
+        }
+    }
+
+    @Test
+    void cardsPastTheFourthKeepTheLastStep() {
+        // A ruleset with a bigger room deals more; the riffle holds its last step.
+        SfxChoice choice = new SfxChoice(4);
+        int last = SfxChoice.RIFFLE_GAIN.length - 1;
+        for (int i = 0; i < 20; i++) {
+            Sfx flip = choice.flip(6);
+            assertTrue(flip.volume() <= SfxChoice.RIFFLE_GAIN[last] + EPSILON, "volume " + flip.volume());
+            assertTrue(flip.pitch() <= SfxChoice.RIFFLE_PITCH[last] * (1f + SfxChoice.PITCH_JITTER) + EPSILON,
+                    "pitch " + flip.pitch());
+        }
+    }
+
+    @Test
+    void aCardHasAPlaceInTheDeal() {
+        assertThrows(IllegalArgumentException.class, () -> new SfxChoice(1).flip(-1));
     }
 
     @Test

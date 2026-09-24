@@ -79,9 +79,32 @@ public final class SfxChoice {
         return sounds;
     }
 
-    /** One card landing in the room. */
-    public Sfx flip() {
-        return plain(Sound.FLIP);
+    /**
+     * The deal's riffle: each card of a deal a little quieter than the one before
+     * (0, −2.2, −4.2, −6 dB)...
+     *
+     * <p>The cards land exactly a frame apart, and four even flips on that beat read as
+     * a machine gun however soft each one is — round 1's verdict, twice. Shaped like
+     * this, with each flip's tail overlapping the next, the four read as one hand
+     * dealing. Chosen by ear over one sound per deal and over the first card alone.
+     */
+    static final float[] RIFFLE_GAIN = {1f, 0.78f, 0.62f, 0.5f};
+    /** ...and a touch lower: 1.5% a card. */
+    static final float[] RIFFLE_PITCH = {1f, 0.985f, 0.97f, 0.955f};
+
+    /**
+     * One card landing in the room: the {@code card}-th of its deal to land, counted
+     * from 0. Later cards step down the riffle; past its end they keep its last step,
+     * for a ruleset that deals a bigger room.
+     */
+    public Sfx flip(int card) {
+        if (card < 0) {
+            throw new IllegalArgumentException("a card's place in its deal starts at 0, got " + card);
+        }
+        int step = Math.min(card, RIFFLE_GAIN.length - 1);
+        Sfx flip = plain(Sound.FLIP);
+        return new Sfx(flip.sound(), flip.file(), flip.pitch() * RIFFLE_PITCH[step],
+                flip.volume() * RIFFLE_GAIN[step]);
     }
 
     /** A menu button going down. */

@@ -259,33 +259,10 @@ RECIPES = (
 )
 
 
-def deal_riffle(rng, w, v):
-    """CANDIDATE (option B, round 1): one sound for a whole deal instead of a flip per card -
-    a quick riffle of cards leaving the dungeon: a run of soft paper flutters, bunched then
-    thinning, over a swish that settles. Rendered to build/ for the audition page only;
-    it ships nowhere unless chosen."""
-    n = s.samples(0.45)
-    x = np.zeros(n)
-    at, amp = 0, 1.0
-    for _ in range(7):
-        m = s.samples(0.06)
-        flutter = s.lowpass(s.bandpass(s.noise(m, rng), rng.uniform(1100, 1900), q=0.8), 3200) \
-            * s.attack_decay(m, 0.002, 0.03)
-        x += amp * s.place(n, flutter, at)
-        at += s.samples(rng.uniform(0.03, 0.055))
-        amp *= 0.85
-    t = s.times(n)
-    centres = 1600 * (800 / 1600) ** (t / t[-1])
-    bed = s.swept_bandpass(s.noise(n, rng), centres, q=0.9) \
-        * np.clip(t / 0.04, 0, 1) * np.exp(-t * s.LN_1000 / 0.42)
-    return x + 0.5 * bed
-
-
 # Options put to the user by ear, rendered only into build/candidates/ by audition.py.
-# Not part of the contract, never under assets/. Removed once one is chosen.
-CANDIDATES = (
-    Recipe("deal_riffle", deal_riffle, 2, target_db=(-22,), max_seconds=0.5),
-)
+# Not part of the contract, never under assets/. Removed once one is chosen: round 1
+# tried one riffle per deal against a flip per card, and the flip per card won.
+CANDIDATES = ()
 
 
 @dataclass(frozen=True)

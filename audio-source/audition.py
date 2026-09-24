@@ -36,13 +36,18 @@ def java_rules():
     def constant(source, name):
         return float(re.search(rf"static final float {name} = ([0-9.]+)f;", source).group(1))
 
+    def array(source, name):
+        body = re.search(rf"static final float\[\] {name} = \{{([^}}]*)\}};", source).group(1)
+        return [float(v.strip().rstrip("f")) for v in body.split(",")]
+
     bands = {m.group(1): [int(v) for v in m.group(2).split(",")]
              for m in re.finditer(r"^\s{4}([A-Z]+)\(([0-9,\s]+)\);?,?$", scale, re.M)}
     sounds = {}
     for m in re.finditer(r"^\s{4}([A-Z]+)\((\d+)(?:,\s*Scale\.([A-Z]+))?\)[,;]", sound, re.M):
         sounds[m.group(1).lower()] = {"versions": int(m.group(2)), "scale": m.group(3)}
     rules = {"nudge": constant(scale, "NUDGE"), "pitchJitter": constant(choice, "PITCH_JITTER"),
-             "volumeJitter": constant(choice, "VOLUME_JITTER"), "scales": bands, "sounds": sounds}
+             "volumeJitter": constant(choice, "VOLUME_JITTER"), "scales": bands, "sounds": sounds,
+             "riffleGain": array(choice, "RIFFLE_GAIN"), "rifflePitch": array(choice, "RIFFLE_PITCH")}
     if len(bands) != 4 or len(sounds) != 10:
         sys.exit(f"could not read the Java rules (found {len(bands)} scales, {len(sounds)} sounds)")
     return rules
@@ -123,36 +128,16 @@ TEMPLATE = r"""<!doctype html>
   .value { min-width: 38px; }
 </style></head>
 <body><main>
-<h1>SCOUNDREL — LISTENING ROUND 1</h1>
-<p>Nothing plays in the game yet; these are the 29 synthesized placeholder sound effects on their own and in
-scenes that behave the way the game will. Claude built them without hearing them — you are the ear.</p>
+<h1>SCOUNDREL — AUDITION</h1>
+<p>The 29 synthesized placeholder sound effects, on their own and in scenes that behave the way the game
+will. Claude built them without hearing them — you are the ear. Signed off in listening round 1
+(2026-09-24); what to listen for:</p>
 <ol>
   <li>Does each sound fit <b>crunchy lo-fi</b> in a torchlit dungeon, and is it the thing its description says?</li>
   <li>Can you tell <b>light / medium / heavy</b> apart?</li>
   <li>Does anything <b>grate on repeat</b> (the scenes with eight in a row)?</li>
   <li>Is the <b>loudness even</b> — nothing jumping out, nothing lost?</li>
 </ol>
-<section class="scene"><h3>Round 1, second pass: the deal — pick one</h3>
-  <p>The blade and the thud are signed off. The flips were "still a bit like a machine gun": four cards land
-  exactly a frame (83 ms) apart, and four even, separate taps at a steady beat is a machine gun, however
-  soft each one is. What you heard dropped to silence between cards; the new flip is a swish that swells in
-  and settles over ~0.35 s, so the cards overlap and the level only bumps ~12 dB between them.</p>
-  <div class="row"><span class="value">once</span>
-    <button data-scene="deal-now">what you heard</button>
-    <button data-scene="deal-a">A. riffle (recommended)</button>
-    <button data-scene="deal-a-flat">A without the fade</button>
-    <button data-scene="deal-b">B. one sound per deal</button>
-    <button data-scene="deal-c">C. first card only</button></div>
-  <div class="row"><span class="value">×4</span>
-    <button data-scene="deals-now">what you heard</button>
-    <button data-scene="deals-a">A. riffle</button>
-    <button data-scene="deals-a-flat">A without the fade</button>
-    <button data-scene="deals-b">B. one per deal</button>
-    <button data-scene="deals-c">C. first card only</button></div>
-  <p><b>A</b> keeps a flip per card on its landing (decision 2 stands), but shapes the four as one gesture:
-  the overlapping swish, and each card a little quieter and lower than the one before, like a hand
-  dealing. <b>B</b> replaces the per-card flips with one riffle for the whole deal (changes decision 2 and
-  the file contract). <b>C</b> sounds only the first card of a deal (changes decision 2).</p></section>
 <div class="bar">
   <label>volume <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8"></label>
   <label><input id="vary" type="checkbox" checked> game variation (versions, ±pitch, quieter)</label>
@@ -160,7 +145,11 @@ scenes that behave the way the game will. Claude built them without hearing them
 </div>
 
 <h2>Scenes, as the game will play them</h2>
-<p>The scenes below deal with option A.</p>
+<section class="scene"><h3>Dealing</h3>
+  <p>A flip per card as it lands, a frame (83 ms) apart, shaped as one riffle: each flip overlaps the
+  next, and each card is a little quieter and lower than the one before (chosen in round 1 over one
+  sound per deal and over the first card alone).</p>
+  <div class="row"><button data-scene="deal">deal a room</button><button data-scene="deals">4 deals</button></div></section>
 <section class="scene"><h3>A weapon kill: clean, then costly</h3>
   <p>The blade alone when the weapon takes it all; a thud under it when damage gets through (1–4 light, 5+ heavy).</p>
   <div class="row"><button data-scene="clean">clean kill (weapon 6)</button>
@@ -256,25 +245,21 @@ function sfx(sound, value, when = 0, gain = 1, pitchStep = 1, stem = null, versi
 }
 // Each card of a deal lands three frames after it sets off, one frame after the card before it.
 function landing(i) { return (i + 3) * FRAME; }
-// Option A's riffle: each card a little quieter and a touch lower than the one before.
-const RIFFLE_GAIN = [1, 0.78, 0.62, 0.5];
-const RIFFLE_PITCH = [1, 0.985, 0.97, 0.955];
+// The deal's riffle (SfxChoice.RIFFLE_*): each card a little quieter and lower than the one before.
 function deal(at, cards = 4) {
-  for (let i = 0; i < cards; i++) sfx("flip", 0, at + landing(i), RIFFLE_GAIN[i], RIFFLE_PITCH[i]);
+  for (let i = 0; i < cards; i++) {
+    const step = Math.min(i, RULES.riffleGain.length - 1);
+    sfx("flip", 0, at + landing(i), RULES.riffleGain[step], RULES.rifflePitch[step]);
+  }
 }
-const DEALS = {
-  "now": (at) => { for (let i = 0; i < 4; i++) sfx("flip", 0, at + landing(i), 1, 1, "flip_now", 3); },
-  "a": (at) => deal(at),
-  "a-flat": (at) => { for (let i = 0; i < 4; i++) sfx("flip", 0, at + landing(i)); },
-  "b": (at) => sfx("deal_riffle", 0, at + landing(0) - 0.05, 1, 1, "deal_riffle", 2),
-  "c": (at) => sfx("flip", 0, at + landing(0)),
-};
 function weaponKill(weapon, damage, at) {
   sfx("blade", weapon, at);
   if (damage > 0) sfx("thud", damage, at);
 }
 
 const SCENES = {
+  "deal": () => deal(0),
+  "deals": () => { for (let i = 0; i < 4; i++) deal(i * 0.9); },
   "clean": () => weaponKill(6, 0, 0),
   "costly-light": () => weaponKill(6, 3, 0),
   "costly-heavy": () => weaponKill(6, 8, 0),
@@ -291,10 +276,6 @@ const SCENES = {
     sfx("sweep", 0, t); deal(t + 3 * FRAME, 4);                   // the room goes, the next comes
   },
 };
-for (const [key, dealIt] of Object.entries(DEALS)) {
-  SCENES["deal-" + key] = () => dealIt(0);
-  SCENES["deals-" + key] = () => { for (let i = 0; i < 4; i++) dealIt(i * 0.9); };
-}
 
 const values = document.getElementById("values");
 for (const [label, sound, lo, hi] of [["equip", "equip", 2, 10], ["blade", "blade", 2, 10],
