@@ -12,10 +12,10 @@ intent and progress. **This file is the record of what ships.**
 > ## Where this stands, 2026-09-24
 >
 > **The sound effects, music, cues and torch all play, and the player controls their volume.**
-> - **The 29 placeholder sound effects,** in `assets/audio/sfx/`, synthesized by
+> - **The 29 sound effects,** in `assets/audio/sfx/`, synthesized by
 >   `audio-source/`. They play on their animations' beats (`a00041d`) and were signed off by ear
 >   in listening rounds 1 (heard alone) and 2 (in play).
-> - **The placeholder music, both cues and the torch loop,** in `assets/audio/music/` and
+> - **The music, both cues and the torch loop,** in `assets/audio/music/` and
 >   `ambience/` (`c62b309`), playing in the game (`4d0a625`) and verified from the in-game sound
 >   log. **Signed off by ear in listening round 3**, after one pass that rebuilt the torch and
 >   the fist and brought the music down a notch (`8af222e`).
@@ -33,9 +33,9 @@ intent and progress. **This file is the record of what ships.**
 >
 > Every section below carries a **Status** line. It said **planned** until the part was built,
 > then **shipped** with the commit that shipped it. **Nothing is planned any more:** every
-> section is shipped, or *decided* for the locked design. The one open-ended item is sourcing
-> replacements for weak placeholders (see **Sourcing**). None of this is released yet; it is all
-> on the `audio` branch.
+> section is shipped, or *decided* for the locked design. **The synthesized audio is final:** on
+> 2026-09-24 the user decided to keep every sound, so no replacement will be sourced (see
+> **Sourcing**). None of this is released yet; it is all on the `audio` branch.
 
 ## Locked decisions (from the design interview)
 
@@ -57,6 +57,8 @@ intent and progress. **This file is the record of what ships.**
   crossfades instead: audio is a deliberate exception, like the smooth torch backdrop.
 - **Placeholder-first.** Claude synthesizes every sound so the whole game is wired and timed,
   then the user listens and weak sounds are replaced from approved sources (see **Sourcing**).
+  *Settled 2026-09-24: after three listening rounds the user kept every synthesized sound as
+  final, so none is replaced.*
 - **Claude can't hear.** Audio is verified by measurement and by an in-game sound log; the user
   is the ear (see **Verification**).
 
@@ -156,7 +158,7 @@ The beats are read from the effect classes, which run at 12 fps (one frame = 83 
 in-game sound log, the death and win through the F9 lab. Signed off in listening round 3, after
 the torch was rebuilt and the music brought down a notch (`8af222e`).
 
-**Placeholder composition** (`audio-source/music.py`, where the note data lives):
+**Composition** (`audio-source/music.py`, where the note data lives):
 
 - D minor, 64 BPM, 16-bar loops of exactly 60 s.
 - Two bars per chord: i–VI–iv–V, i–VI–VII–V, using A major for the pull home.
@@ -397,7 +399,7 @@ flowchart LR
 ## Asset contract
 
 **Status:** the list of names is in code (`Sound.allFiles()`, `c7c2251`). The 29 sound-effect
-files exist as placeholders (`81cc0a3`), and `AudioAssetsTest` holds them to the list
+files exist, synthesized (`81cc0a3`), and `AudioAssetsTest` holds them to the list
 (`7542da4`). The five streamed files exist too (`c62b309`, 3.2 MB). `AudioAssetsTest` holds them
 to `StreamFile` (each must be an Ogg stream, with nothing stray in their folders or in
 `assets/audio/`).
@@ -457,9 +459,11 @@ python audio-source/audition.py    # builds audio-source/build/audition.html to 
 
 ## Sourcing
 
-**Status:** the rules are in force; the ledger starts empty of replacements.
+**Status: closed with nothing replaced.** On 2026-09-24 the user decided to keep every
+synthesized sound as final ("I like the audio we have"), so every file is *approved* and none is
+sourced. The rules below and `audio-source/replaced.txt` stay in place in case that ever changes.
 
-Placeholders are ours (synthesized). A replacement may come from:
+Every sound is ours (synthesized). Had a replacement been wanted, it could have come from:
 
 - **CC0:** no credit needed.
 - **CC-BY:** credited in `assets/audio/CREDITS.txt`, created with the first CC-BY file.
@@ -475,7 +479,7 @@ author and licence recorded on replacement.
 |---|---|---|---|
 | `sfx/*` (29) | **approved** in round 1 (heard alone; the flips, blade and thud were rebuilt on the way) and round 2 (in play), 2026-09-24. `fist_*` (6) were rebuilt and raised in round 3 ("very silent", `8af222e`) and approved there | synth | ours |
 | `ambience/torch` | **approved** in round 3, 2026-09-24, after a rebuild ("too much white noise, not enough crackle", `8af222e`) | synth | ours |
-| `music/menu`, `music/run` | **approved** in round 3, 2026-09-24, a notch quieter (`8af222e`) | synth | ours; most likely to be replaced |
+| `music/menu`, `music/run` | **approved** in round 3, 2026-09-24, a notch quieter (`8af222e`) | synth | ours |
 | `music/win`, `music/death` | **approved** in round 3, 2026-09-24, a notch quieter (`8af222e`) | synth | ours |
 
 ## Verification

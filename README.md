@@ -324,7 +324,7 @@ Built on the **`audio`** branch, not yet released — sound:
 - [x] 29 synthesized sound effects, each on its animation's beat, weighted by the card's value
 - [x] Menu and run music, win and death cues, and a crackling torch on every screen
 - [x] MUSIC and SOUND levels on the title, M to mute, the levels saved between launches
-- [ ] Replace the weakest placeholders with sourced sounds
+- [x] Every sound synthesized in Python and signed off by ear, kept as final
 
 Not planned, and deliberately so: mid-game save/resume, a replay format, online scores. A run is
 a single sitting, which is the shape of the game.

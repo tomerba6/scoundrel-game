@@ -7,8 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-The game gets sound. Every sound is a placeholder synthesized in Python, so the whole game could
-be wired and timed before anything is sourced; each was signed off by ear before it stayed.
+The game gets sound. Every sound — effects, music, cues and the torch — is synthesized in Python,
+and each was signed off by ear before it stayed.
 
 ### Added
 - **Sound effects, one per moment.** Cards dealing (one riffle per deal), a room swept away,

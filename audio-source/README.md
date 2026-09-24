@@ -1,7 +1,8 @@
 # audio-source — Scoundrel's synthesized audio
 
-The placeholder sound effects, and later the music, are **rendered here by Python** and committed
-under `assets/audio/`. The game only ever loads the rendered files. The reference for what ships
+Every sound the game plays — the effects, the music and cues, the torch — is **rendered here by
+Python** and committed under `assets/audio/`. The game only ever loads the rendered files. They
+began as placeholders to be replaced; after three listening rounds the user kept them all. The reference for what ships
 is [`docs/audio.md`](../docs/audio.md); the plan and its progress are in
 [`docs/superpowers/plans/2026-09-24-audio.md`](../docs/superpowers/plans/2026-09-24-audio.md).
 
