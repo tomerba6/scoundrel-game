@@ -165,7 +165,7 @@ Client pixels, origin **top-left**, window 1280x720 — so these hold only after
 | Screen | Target | x, y |
 |---|---|---|
 | Title (pixel) | New game / How to play / The ledger / Trophies | 731,349 / 731,405 / 731,461 / 731,517 |
-| Title (pixel) | First-run prompt: Play tutorial / Maybe later | 640,349 / 640,405 |
+| Title (pixel) | First-run prompt: Play tutorial / Maybe later (shown while `~/.scoundrel/tutorial.seen` is absent; answering it creates the file) | 640,381 / 640,437 |
 | Title (pixel) | MUSIC / SOUND plates (cycle on release) | 661,568 / 800,568 |
 | Mode picker (pixel) | Standard / Relentless / Frail | 638,159 / 638,262 / 638,365 |
 | Mode picker (pixel) | `ESC · BACK` in the header band | 1174,45 |
@@ -197,6 +197,11 @@ These all cost real time in this container.
   A volume plate or **M** writes `audio.settings`; remove it afterwards if it was
   not there before. **The user also plays in the same window**, so check file
   timestamps against your own drives before blaming automation for a change.
+- **Esc does nothing inside a run or the tutorial.** `GameScreen` installs its own
+  input processor with no `keyDown`, so a chain that sends `key:ESC` to get back to
+  the title stays on the board, and every click after it lands on the board instead.
+  The only ways out are the end panel (which records the run) and, in the tutorial,
+  SKIP TUTORIAL. To abandon a run without recording it, `-Kill` and relaunch.
 - **The window moves between launches.** Observed at screen 449,174 then 531,167
   then 320,144. The driver recomputes the client origin on every invocation -
   never hardcode screen coordinates.
