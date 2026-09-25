@@ -194,7 +194,7 @@ These all cost real time in this container.
 
 - **The game writes to the real `~/.scoundrel/`.** Driving a game *to completion*
   appends to `runs.log` and can unlock achievements in the player's actual
-  history. Abandoning mid-run (kill the app) records nothing - runs persist only
+  history. Abandoning mid-run (ESC → Abandon run, or kill the app) records nothing - runs persist only
   at game end. Back up `runs.log` / `achievements.log` before automating full games.
   A volume plate or **M** writes `audio.settings`; remove it afterwards if it was
   not there before. **The user also plays in the same window**, so check file

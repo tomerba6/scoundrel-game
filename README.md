@@ -217,7 +217,7 @@ Full design notes, including the locked edge-case decisions and Mermaid diagrams
 
 ## Testing
 
-749 test methods — 778 runs, since one test is parameterised over every sound file — written
+759 test methods — 788 runs, since one test is parameterised over every sound file — written
 test-first for all pure logic. `./gradlew core:check` runs them and enforces a JaCoCo gate of
 **90% line / 75% branch on every pure package** — the build fails below it.
 
@@ -229,14 +229,14 @@ test-first for all pure logic. `./gradlew core:check` runs them and enforces a J
 >
 > **Every percentage here is LINE coverage**, because that is what the gate enforces
 > (`counter = 'LINE'`). Neither report states it: the XML holds raw counts
-> (`<counter type="LINE" missed="2521" covered="839"/>`) and the HTML draws percentage bars only
+> (`<counter type="LINE" missed="2545" covered="866"/>`) and the HTML draws percentage bars only
 > for instructions and branches, showing lines as a bare *missed / total*. So every line figure
 > here is that division, and you can check it off the HTML yourself — for `screens`,
-> `(3,360 − 2,521) / 3,360 = 25.0%`.
+> `(3,411 − 2,545) / 3,411 = 25.4%`.
 >
 > Which also means the HTML's leading `Cov.` column is **instructions**, not lines. Three
-> counters, three answers, and for `screens` today they are 28.8% instructions, 33.2% branches
-> and 25.0% lines.
+> counters, three answers, and for `screens` today they are 29.1% instructions, 33.4% branches
+> and 25.4% lines.
 
 | Package | Line | Branch |
 |---|---|---|
@@ -258,17 +258,17 @@ out of the GL classes stay in the same package. `screens` splits cleanly in two:
 
 | Inside `screens` | Classes | Source lines | Executable lines | Line coverage |
 |---|---|---|---|---|
-| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `Beats`, …) | 45 | 4,360 | 860 | 96.9% |
-| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, `SoundBank`, the screens themselves) | 21 | 5,799 | 2,500 | 0.2% |
+| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `Beats`, …) | 46 | 4,449 | 887 | 97.0% |
+| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, `SoundBank`, the screens themselves) | 21 | 5,849 | 2,524 | 0.2% |
 
 Two line counts because they tell different stories and only one of them is JaCoCo's. **Executable
-lines** are what coverage is computed over, and they make the package read 25.0% overall. **Source
+lines** are what coverage is computed over, and they make the package read 25.4% overall. **Source
 lines** are what `wc -l` gives you, and by that measure the pure half is 43% of the package rather
 than 26% — the helpers are comment-heavy by design, so they carry far fewer executable lines than
 their size suggests.
 
-Either way the number rises by *extraction* rather than by new tests against rendering: **45 of
-the 66 classes now have no libGDX import at all**, which is the reading that matters. It says how
+Either way the number rises by *extraction* rather than by new tests against rendering: **46 of
+the 67 classes now have no libGDX import at all**, which is the reading that matters. It says how
 much of the UI layer has stopped being untestable.
 
 The engine's determinism is used deliberately: the tutorial's scripted run, for instance, is proven
@@ -279,7 +279,7 @@ the rules.
 ## Development
 
 ```sh
-./gradlew core:test        # 778 test runs, headless, ~2s of execution
+./gradlew core:test        # 788 test runs, headless, ~2s of execution
 ./gradlew core:check       # tests + the JaCoCo gate; HTML report at
                            #   core/build/reports/jacoco/test/html/
 ./gradlew lwjgl3:run       # play the current working tree

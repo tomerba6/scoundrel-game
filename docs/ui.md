@@ -93,8 +93,10 @@ visual tokens, the architecture, and every component on screen. It complements
   Records / Trophies / a dim credit line. Win/loss dims the board under an
   overlay with the score, best line, any freshly unlocked achievements, then
   New game / Trophies / Records. **Records and Trophies are reachable only
-  between games** (title + end overlay): a run, once started, is
-  uninterruptible — consistent with quit-outs being unrecorded.
+  between games** (title + end overlay): a run, once started, can't be paused
+  to visit them. *(Revised 2026-09-25: it can be abandoned — ESC asks first —
+  and an abandoned run is recorded nowhere, consistent with quit-outs being
+  unrecorded.)*
 - **Window:** resizable, 1280×720 default, `PixelViewport` — a fit that snaps the scale down
   to a multiple of 0.5 and letterboxes the rest, so pixel art always lands on whole screen
   pixels. See the architecture note below for why a plain fit was not enough.
@@ -216,8 +218,12 @@ to 8.
   and takes the JVM down rather than throwing. The guard sits above a `drawContent` a subclass
   cannot reach until the check has passed, so the mistake is no longer expressible. Four hooks
   carry the differences — `advance` (extra clocks), `backdropLight` (the death's guttering
-  torch), `modal`, and `escape` (the title has nowhere to go). `SpriteLab` deliberately stays
-  outside it: no press gesture, no backdrop, and nobody navigates to a developer tool.
+  torch), `modal`, and `escape` (the title has nowhere to go; the ledger closes its dialog
+  first; the board asks before abandoning a run). `GameScreen` replaces the frame's input
+  processor with its own, so anything the frame routes — ESC included — reaches the board only if
+  the board routes it too; ESC didn't, and until 2026-09-25 a run could only be left by
+  finishing it. `SpriteLab` deliberately stays outside it: no press gesture, no backdrop, and
+  nobody navigates to a developer tool.
 - **No skin, and now no Scene2D.** Styles used to be built in code rather than
   from a `Skin` JSON/atlas, to keep them compiler-checked. That question is
   moot: nothing builds a widget any more. Every screen draws tinted rectangles
@@ -455,12 +461,13 @@ to 8.
   `ScreenArt.java` — the menu kit: the five parts every screen outside the board
   is assembled from (frame, face, bevel, label, rule), plus `plate` — the one
   button shape, at every size, raised or held down — `header` for the band four
-  screens share, and `dim` for a modal. All the arithmetic is in `ScreenArt`
-  where it is tested; `Chrome` only turns measurements into draw calls.
+  screens share, `dim` for a modal, and `confirmation`, the one dialog (the
+  ledger's erase and the board's abandon question). All the arithmetic is in
+  `ScreenArt` where it is tested; `Chrome` only turns measurements into draw calls.
 - `core/src/main/java/com/tomer/scoundrel/screens/GameScreen.java` — the one
-  screen: layout builders, interaction, feed, overlay, run recording, and
-  (given a `TutorialGuide`) the guided-tutorial mode — glow outline, callout,
-  gating, and the Tutorial-complete ending.
+  screen: layout builders, interaction, feed, overlays (including ESC's abandon
+  question), run recording, and (given a `TutorialGuide`) the guided-tutorial
+  mode — glow outline, callout, gating, and the Tutorial-complete ending.
 - `core/src/main/java/com/tomer/scoundrel/tutorial/` — the pure tutorial logic:
   `TutorialScript` (curated deck + narrated steps), `TutorialStep`,
   `TutorialGuide` (the gating state machine), and `TutorialFlag` (the seen
@@ -514,6 +521,8 @@ to 8.
   bar says (which is not always what the state says), and the four suit pip
   shapes. Each of these was a branch inside a screen before it was a class, and
   three of the four were extracted because that branch had a bug in it.
+  `BoardEscape.java` is the same idea written the other way round: what ESC does
+  on the board was decided and tested as a class before the screen called it.
 - `core/src/main/java/com/tomer/scoundrel/screens/CardFlight.java` /
   `WeaponKill.java` / `Barehanded.java` / `PotionDrink.java` / `PotionSpill.java` /
   `HpPulse.java` / `DeathCinematic.java` / `IdleCycle.java` — one pure timeline

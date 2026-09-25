@@ -82,7 +82,9 @@ plays it (`a00041d`). The torch loop plays too (`4d0a625`).
 
 **Deliberately silent:**
 - Buttons pressed **during a run**: the Avoid plate, the fight/weapon chooser, the tutorial
-  callout's NEXT and SKIP. The sound that follows each press covers it.
+  callout's NEXT and SKIP. The sound that follows each press covers it. The abandon question
+  that ESC opens mid-run follows the same rule: KEEP PLAYING and ABANDON RUN are silent, and
+  abandoning cuts to the title, where the menu track takes over.
 - A weapon wearing down: `WeaponDegraded` fires in the same instant as every weapon kill.
 - The old weapon being discarded: it happens inside equipping.
 - A heal: it would sit on the drink.
