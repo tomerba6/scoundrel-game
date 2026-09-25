@@ -89,6 +89,8 @@ public final class GameScreen extends PixelScreen {
     private EndSummary endSummary;
     /** The tutorial's callout is up whenever the guide has a beat left to show. */
     private boolean calloutUp;
+    /** ESC asked whether to abandon the run, and the question is still up. */
+    private boolean asking;
     /** The open move chooser: the moves offered, and the card they are about. */
     private List<Move> chooserMoves = List.of();
     private Card chooserCard;
@@ -162,10 +164,10 @@ public final class GameScreen extends PixelScreen {
                 return true;
             }
             // The overlays are buttons, so they act on release like every other
-            // button — but only the run end is modal. The tutorial's callout
-            // deliberately lets everything except Skip and Next through, since
-            // playing the board is the whole point of it.
-            if (pressAt(overlayHit(screenX, screenY)) || endSummary != null) {
+            // button — but only the run end and the abandon question are modal.
+            // The tutorial's callout deliberately lets everything except Skip and
+            // Next through, since playing the board is the whole point of it.
+            if (pressAt(overlayHit(screenX, screenY)) || endSummary != null || asking) {
                 return true;
             }
             Vector2 point = viewport.unproject(new Vector2(screenX, screenY));
@@ -212,7 +214,43 @@ public final class GameScreen extends PixelScreen {
             if (button != Input.Buttons.LEFT) {
                 return false;
             }
-            return press.release(overlayHit(screenX, screenY)) || endSummary != null;
+            return press.release(overlayHit(screenX, screenY)) || endSummary != null || asking;
+        }
+
+        /**
+         * This processor replaces the frame's, so ESC is routed here by hand —
+         * without it, a run could only be left by finishing it.
+         */
+        @Override
+        public boolean keyDown(int keycode) {
+            if (keycode != Input.Keys.ESCAPE) {
+                return false;
+            }
+            escape();
+            return true;
+        }
+    }
+
+    /**
+     * Backs out of the innermost thing first, and never throws a live run away
+     * on one press — {@link BoardEscape} decides which, and is tested for it.
+     */
+    @Override
+    protected void escape() {
+        BoardEscape.Action action = BoardEscape.of(asking, deathElapsed >= 0f,
+                state.status() != Status.IN_PROGRESS, chooserCard != null, tutorial != null);
+        switch (action) {
+            case ASK -> {
+                asking = true;
+                press.cancel();
+            }
+            case CLOSE_DIALOG -> {
+                asking = false;
+                press.cancel();
+            }
+            case CLOSE_CHOOSER -> closeChooser();
+            case SETTLE -> settleEnd();
+            case LEAVE -> game.showTitle();
         }
     }
 
@@ -220,6 +258,9 @@ public final class GameScreen extends PixelScreen {
 
     private static final int SKIP = -3;
     private static final int NEXT = -4;
+    /** The abandon question's two plates, safe one first. */
+    private static final int KEEP_PLAYING = -5;
+    private static final int ABANDON = -6;
 
     /** The four ways on from a finished run, in the render's order. */
     private static final List<String> END_BUTTONS =
@@ -241,10 +282,14 @@ public final class GameScreen extends PixelScreen {
     /**
      * What a window-space point is on, in whichever overlay is up. One id space:
      * the end panel's buttons are their own index, the tutorial's two controls
-     * take the negatives below {@code -1}.
+     * and the abandon question's two take the negatives below {@code -1}.
      */
     private int overlayHit(int screenX, int screenY) {
         Vector2 point = unproject(screenX, screenY);
+        if (asking) {
+            int button = ScreenArt.dialogButtonAt(point.x, point.y);
+            return button == 0 ? KEEP_PLAYING : button == 1 ? ABANDON : PressGesture.NONE;
+        }
         if (endSummary != null) {
             float bottom = CardArt.toWorldY(
                     ScreenArt.endButtonsY(!newlyUnlocked.isEmpty()), ScreenArt.END_BUTTON_H);
@@ -272,7 +317,13 @@ public final class GameScreen extends PixelScreen {
 
     /** What a released overlay button does. Only reached once its press has been seen. */
     private void activateOverlay(int target) {
-        if (target == SKIP) {
+        if (target == KEEP_PLAYING) {
+            asking = false;
+            return;
+        }
+        // Nothing is recorded: a run is filed only when it ends, so walking away
+        // leaves the ledger and the trophies exactly as closing the window would.
+        if (target == SKIP || target == ABANDON) {
             game.showTitle();
             return;
         }
@@ -342,6 +393,14 @@ public final class GameScreen extends PixelScreen {
         } else if (calloutUp) {
             drawTutorialOverlay();
         }
+        if (asking) {
+            int sunk = press.sunk();
+            chrome.confirmation(batch, "ABANDON THIS RUN?",
+                    "IT WILL NOT BE RECORDED IN THE LEDGER,",
+                    "AND IT CANNOT EARN ANY TROPHIES.",
+                    "KEEP PLAYING", "ABANDON RUN",
+                    sunk == KEEP_PLAYING ? 0 : sunk == ABANDON ? 1 : PressGesture.NONE);
+        }
     }
 
     /**
@@ -371,7 +430,7 @@ public final class GameScreen extends PixelScreen {
 
     /** The card under the pointer, so only it animates. */
     private Card hoveredCard() {
-        if (state.status() != Status.IN_PROGRESS || endSummary != null) {
+        if (state.status() != Status.IN_PROGRESS || endSummary != null || asking) {
             return null;
         }
         Vector2 point = viewport.unproject(

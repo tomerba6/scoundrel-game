@@ -25,17 +25,12 @@ public final class RecordsScreen extends PixelScreen {
 
     /** The quiet erase control, as a hit-test id alongside {@link ScreenArt#BACK}. */
     private static final int ERASE = -3;
-    /** While the confirmation is up, its two buttons are the only targets. */
+    /**
+     * While the confirmation is up, its two buttons are the only targets — and
+     * they are its own indexes, as {@link ScreenArt#dialogButtonAt} numbers them.
+     */
     private static final int KEEP = 0;
     private static final int WIPE = 1;
-
-    private static final int DIALOG_W = 640;
-    private static final int DIALOG_H = 244;
-    private static final int DIALOG_X = (int) (Theme.WORLD_WIDTH - DIALOG_W) / 2;
-    private static final int DIALOG_Y = 238;
-    private static final int DIALOG_BUTTON_W = 244;
-    private static final int DIALOG_BUTTON_Y = 396;
-    private static final int DIALOG_BUTTON_GAP = 24;
 
     private final List<LedgerRow> rows;
     private final List<LedgerTotals.Stat> totals;
@@ -93,10 +88,8 @@ public final class RecordsScreen extends PixelScreen {
     protected int hit(int screenX, int screenY) {
         Vector2 point = unproject(screenX, screenY);
         if (confirming) {
-            if (dialogButtonContains(0, point.x, point.y)) {
-                return KEEP;
-            }
-            return dialogButtonContains(1, point.x, point.y) ? WIPE : PressGesture.NONE;
+            int button = ScreenArt.dialogButtonAt(point.x, point.y);
+            return button < 0 ? PressGesture.NONE : button;
         }
         if (ScreenArt.backContains(point.x, point.y)) {
             return ScreenArt.BACK;
@@ -261,53 +254,16 @@ public final class RecordsScreen extends PixelScreen {
                 && worldY >= bottom && worldY < bottom + ScreenArt.ERASE_H;
     }
 
-    private static int dialogButtonX(int index) {
-        int span = 2 * DIALOG_BUTTON_W + DIALOG_BUTTON_GAP;
-        int left = (int) (Theme.WORLD_WIDTH - span) / 2;
-        return left + index * (DIALOG_BUTTON_W + DIALOG_BUTTON_GAP);
-    }
-
-    private static boolean dialogButtonContains(int index, float worldX, float worldY) {
-        int x = dialogButtonX(index);
-        float bottom = CardArt.toWorldY(DIALOG_BUTTON_Y, ScreenArt.BUTTON_H);
-        return worldX >= x && worldX < x + DIALOG_BUTTON_W
-                && worldY >= bottom && worldY < bottom + ScreenArt.BUTTON_H;
-    }
-
     /**
      * A destructive erase is never one press. The dialog names exactly what
-     * will be lost, and "keep it" is the prominent choice — the gold plate is
-     * the one you are meant to reach for, which is the opposite of how the rest
-     * of the game uses it.
-     *
-     * <p>Not in the mock, which has no dialog, so it is built from the same five
-     * parts as everything else rather than invented.
+     * will be lost, and "keep it" is the prominent choice.
      */
     private void drawConfirmation() {
-        // The ledger goes under the modal dim first — the dialog asks about the
-        // very thing behind it, so the table has to stop competing with it.
-        chrome.dim(batch);
-        chrome.frame(batch, DIALOG_X, DIALOG_Y, DIALOG_W, DIALOG_H);
-        chrome.face(batch, DIALOG_X + ScreenArt.THICK, DIALOG_Y + ScreenArt.THICK,
-                DIALOG_W - 2 * ScreenArt.THICK, DIALOG_H - 2 * ScreenArt.THICK,
-                ScreenArt.FACE_PANEL);
-
-        int centre = (int) (Theme.WORLD_WIDTH / 2);
-        chrome.centredOn(batch, theme.pixelBody, "ERASE ALL PROGRESS?", centre,
-                DIALOG_Y + 28, ScreenArt.OUTCOME_LOST, 1f);
-        chrome.centredOn(batch, theme.pixelLabel,
+        chrome.confirmation(batch, "ERASE ALL PROGRESS?",
                 "THIS CLEARS " + runs + " RECORDED " + plural(runs, "RUN", "RUNS")
                         + " AND " + trophies + " " + plural(trophies, "TROPHY", "TROPHIES") + ".",
-                centre, DIALOG_Y + 70, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
-        chrome.centredOn(batch, theme.pixelLabel,
                 "A BACKUP IS KEPT ON DISK. THE GAME WILL NOT RESTORE IT.",
-                centre, DIALOG_Y + 100, ScreenArt.BODY, ScreenArt.BODY_ALPHA);
-
-        int sunk = press.sunk();
-        chrome.plate(batch, dialogButtonX(0), DIALOG_BUTTON_Y, DIALOG_BUTTON_W,
-                ScreenArt.BUTTON_H, "KEEP IT", Chrome.Plate.GOLD, sunk == KEEP);
-        chrome.plate(batch, dialogButtonX(1), DIALOG_BUTTON_Y, DIALOG_BUTTON_W,
-                ScreenArt.BUTTON_H, "ERASE EVERYTHING", Chrome.Plate.DARK, sunk == WIPE);
+                "KEEP IT", "ERASE EVERYTHING", press.sunk());
     }
 
     private static String plural(int count, String one, String many) {

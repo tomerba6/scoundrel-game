@@ -213,6 +213,41 @@ final class Chrome {
         rule(batch, 0, ScreenArt.HEADER_H, (int) Theme.WORLD_WIDTH);
     }
 
+    /**
+     * A question over the modal dim: a heading in dried blood, two lines saying
+     * exactly what is lost, and two plates. The safe choice is the gold one —
+     * the opposite of how the rest of the game uses gold, and deliberate: the
+     * prominent choice is the one that loses nothing. {@code sunk} is the index
+     * of the plate held down, as {@link ScreenArt#dialogButtonAt} numbers them.
+     *
+     * <p>Whatever is behind goes under the dim first — the dialog asks about the
+     * very thing behind it, so that has to stop competing with it.
+     */
+    void confirmation(Batch batch, String heading, String first, String second,
+                      String keep, String proceed, int sunk) {
+        dim(batch);
+        int x = ScreenArt.dialogX();
+        int y = ScreenArt.DIALOG_Y;
+        frame(batch, x, y, ScreenArt.DIALOG_W, ScreenArt.DIALOG_H);
+        face(batch, x + ScreenArt.THICK, y + ScreenArt.THICK,
+                ScreenArt.DIALOG_W - 2 * ScreenArt.THICK, ScreenArt.DIALOG_H - 2 * ScreenArt.THICK,
+                ScreenArt.FACE_PANEL);
+
+        int centre = (int) (Theme.WORLD_WIDTH / 2);
+        centredOn(batch, theme.pixelBody, heading, centre, y + ScreenArt.DIALOG_HEADING_DY,
+                ScreenArt.OUTCOME_LOST, 1f);
+        centredOn(batch, theme.pixelLabel, first, centre, y + ScreenArt.DIALOG_LINE_DY,
+                ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+        centredOn(batch, theme.pixelLabel, second, centre,
+                y + ScreenArt.DIALOG_LINE_DY + ScreenArt.DIALOG_LINE_GAP,
+                ScreenArt.BODY, ScreenArt.BODY_ALPHA);
+
+        plate(batch, ScreenArt.dialogButtonX(0), ScreenArt.DIALOG_BUTTON_Y,
+                ScreenArt.DIALOG_BUTTON_W, ScreenArt.BUTTON_H, keep, Plate.GOLD, sunk == 0);
+        plate(batch, ScreenArt.dialogButtonX(1), ScreenArt.DIALOG_BUTTON_Y,
+                ScreenArt.DIALOG_BUTTON_W, ScreenArt.BUTTON_H, proceed, Plate.DARK, sunk == 1);
+    }
+
     // --- text --------------------------------------------------------------
 
     /** Text placed by its top, which is what a Batch draw takes. */

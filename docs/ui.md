@@ -46,9 +46,10 @@ visual tokens, the architecture, and every component on screen. It complements
      non-modal, and presses fell through to a dead board. Nothing goes through Scene2D now —
      the board hit-tests its own rectangles (`CardHitRegions`) — but the decision did not go
      away, it moved: **`PixelScreen.modal()`** is where a screen says that a click hitting none
-     of its targets is swallowed rather than passed through. The run-end panel and the erase
-     confirmation return true; the tutorial callout deliberately does not, because playing the
-     board is the whole point of it.
+     of its targets is swallowed rather than passed through. The run-end panel, the abandon-run
+     question (the board's own input processor makes the same call) and the erase confirmation
+     are modal; the tutorial callout deliberately is not, because playing the board is the whole
+     point of it.
   2. **Cards act on _press_, buttons on _release_.** Scene2D's `ClickListener` only fired when
      the release landed back on the same actor, so fast play — the mouse already travelling to
      the next card as the button came up — silently lost clicks. The distinction survives the
@@ -414,7 +415,22 @@ to 8.
   dialog before it backs out of the screen. Confirming wipes both logs as a
   *soft* delete: `clear()` moves each file to a `.bak` sibling rather than
   deleting, so a mistake is recoverable from disk (the game never auto-restores
-  it). The ledger then re-shows empty.
+  it). The ledger then re-shows empty. The dialog is shared: its geometry is
+  `ScreenArt.DIALOG_*` and `Chrome.confirmation` draws it, for this and the
+  abandon-run question below.
+- **Abandon-run question** — ESC on the board (and Android's Back, once there is
+  an Android build) never throws a live run away on one press. Mid-run it puts up
+  `ABANDON THIS RUN?`, which is the erase confirmation's dialog: the modal dim,
+  **Keep playing** as the gold plate and `ABANDON RUN` beside it, with a second
+  ESC as the safe answer. Abandoning goes to the title and records nothing — a
+  run is filed only when it ends — so there is no ledger row and no trophies,
+  exactly as closing the window leaves things. The run clock keeps running while
+  the question is up, as it does when the window is minimised. ESC backs out of
+  the innermost thing first (`BoardEscape`, tested headlessly): the question,
+  then a death still playing (skipped to the end panel, as a click does), then an
+  open chooser. It leaves without asking once the run is over (already filed) and
+  in the tutorial (recorded nowhere, and SKIP is already one press). The plates
+  are silent, like every button pressed during a run.
 - **TROPHIES (achievements screen)** — the whole catalog as a book of deeds, ten
   entries in two columns of five, filled **down then across** (getting that
   row-major would silently reorder the catalog and look entirely plausible).
