@@ -170,6 +170,8 @@ Client pixels, origin **top-left**, window 1280x720 — so these hold only after
 | Mode picker (pixel) | Standard / Relentless / Frail | 638,159 / 638,262 / 638,365 |
 | Mode picker (pixel) | `ESC · BACK` in the header band | 1174,45 |
 | Game board | Avoid button | 1198,46 |
+| Game board | ESC's abandon question: Keep playing / Abandon run | 506,419 / 774,419 |
+| The ledger | ERASE ALL PROGRESS plate (opens the same dialog: Keep it / Erase everything at 506,419 / 774,419 — never click the second) | 1123,665 |
 | Game board | card centres, y = 342 | see formula below |
 | End panel | New game / Main menu / Trophies / The ledger, one row | 444 / 573 / 698 / 825, at y = 533 with trophies unlocked, 476 without |
 
@@ -197,11 +199,11 @@ These all cost real time in this container.
   A volume plate or **M** writes `audio.settings`; remove it afterwards if it was
   not there before. **The user also plays in the same window**, so check file
   timestamps against your own drives before blaming automation for a change.
-- **Esc does nothing inside a run or the tutorial.** `GameScreen` installs its own
-  input processor with no `keyDown`, so a chain that sends `key:ESC` to get back to
-  the title stays on the board, and every click after it lands on the board instead.
-  The only ways out are the end panel (which records the run) and, in the tutorial,
-  SKIP TUTORIAL. To abandon a run without recording it, `-Kill` and relaunch.
+- **Esc in a run asks; it does not leave.** Mid-run, `key:ESC` puts up the abandon
+  question, and a chain that assumes it is back on the title clicks into that dialog
+  instead. Leave with `key:ESC,wait:500,click:774:419` (Abandon run), which records
+  nothing. Once the run is over, or in the tutorial, ESC goes straight to the title;
+  with the move chooser open, the first ESC only closes the chooser (`BoardEscape`).
 - **The window moves between launches.** Observed at screen 449,174 then 531,167
   then 320,144. The driver recomputes the client origin on every invocation -
   never hardcode screen coordinates.

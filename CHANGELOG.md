@@ -5,6 +5,16 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Leave a run with ESC.** Until now a run could only be left by finishing it or closing the
+  window. ESC during a run now asks **ABANDON THIS RUN?** Abandoning goes back to the title and
+  records nothing — no ledger entry and no trophies, the same as closing the window — while
+  **KEEP PLAYING**, or a second ESC, carries on. ESC also closes the weapon chooser, skips the
+  death straight to the end panel, leaves a finished run's panel for the title, and leaves the
+  tutorial.
+
 ## [2.1.0] - 2026-09-24
 
 The game gets sound. Every sound — effects, music, cues and the torch — is synthesized in Python,
