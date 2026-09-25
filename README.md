@@ -16,6 +16,12 @@ risk with the hand the shuffle deals you.
 
 ![The board](docs/images/board.png)
 
+## What's new in 2.2
+
+**Leave a run with ESC.** Until now a run ended only by finishing it or closing the window. ESC
+now asks **ABANDON THIS RUN?** first, and an abandoned run is recorded nowhere: no ledger entry
+and no trophies. KEEP PLAYING, or a second ESC, carries on.
+
 ## What's new in 2.1
 
 **Sound.** Every action has its sound, landing on its animation's beat; a slow, brooding score
@@ -334,6 +340,10 @@ Shipped in **2.1** — sound:
 - [x] Menu and run music, win and death cues, and a crackling torch on every screen
 - [x] MUSIC and SOUND levels on the title, M to mute, the levels saved between launches
 - [x] Every sound synthesized in Python and signed off by ear, kept as final
+
+Shipped in **2.2**:
+
+- [x] ESC leaves a run: asked first, recorded nowhere
 
 Not planned, and deliberately so: mid-game save/resume, a replay format, online scores. A run is
 a single sitting, which is the shape of the game.

@@ -5,7 +5,10 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0] - 2026-09-25
+
+A small release: a run can be left without finishing it. Nothing about the rules changes, and
+every saved run, trophy and audio setting carries over.
 
 ### Added
 - **Leave a run with ESC.** Until now a run could only be left by finishing it or closing the
@@ -14,6 +17,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **KEEP PLAYING**, or a second ESC, carries on. ESC also closes the weapon chooser, skips the
   death straight to the end panel, leaves a finished run's panel for the title, and leaves the
   tutorial.
+
+### Known limitations
+
+Carried forward from 2.1.0, all unchanged.
+
+- **Both builds are unsigned**, so the first launch shows a warning: on Windows choose
+  **More info → Run anyway**; on macOS right-click the app and choose **Open**.
+- **The macOS build has never been launched on a Mac** — sound included. It is cross-built on a
+  Windows runner from a downloaded macOS JDK, and the release pipeline proves only that it
+  packages, not that it runs.
+- **There is no mid-game save or resume** — a run is a single sitting, by design.
 
 ## [2.1.0] - 2026-09-24
 
@@ -217,7 +231,8 @@ First complete release: the full base game, playable start to finish.
 - Cards are drawn as typed tiles with rank and suit. Illustrated sprites are in progress.
 - There is no mid-game save or resume — a run is a single sitting.
 
-[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/tomerba6/scoundrel-game/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/tomerba6/scoundrel-game/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/tomerba6/scoundrel-game/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/tomerba6/scoundrel-game/compare/v1.0.0...v2.0.0
