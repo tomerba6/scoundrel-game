@@ -14,6 +14,12 @@ screen has navigated (and disposed its own batch) kills the JVM rather than thro
 the hooks (`advance`, `backdropLight`, `modal`, `escape`, `keyPressed`), never the frame.
 `SpriteLab` stays outside it deliberately.
 
+**`GameScreen` replaces the frame's input processor with its own `BoardInput`,** so nothing
+`FrameInput` routes reaches the board unless `BoardInput` routes it too — and it has its own
+modality (`endSummary != null || asking`), since `modal()` is only read by `FrameInput`. ESC
+was missed this way, and a run could not be left until `BoardInput.keyDown` was added. When
+`FrameInput` gains something, mirror it on the board. What ESC does there is `BoardEscape`.
+
 Motion (deal-in, avoid sweep, per-card effects, HP pulses) and the atmosphere ship as
 `BoardView` over `CardFlight` / `HpPulse` and the rest — `Choreographer` and `Motion` went with
 the pixel conversion, so a `docs/ui.md` entry naming them describes what was replaced.
