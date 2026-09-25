@@ -363,6 +363,59 @@ class ScreenArtTest {
     }
 
     /**
+     * The confirmation dialog, exactly where the ledger's erase dialog drew it
+     * before it was shared: the board's abandon-run question is the same dialog,
+     * so moving it must not move a pixel of the one that already shipped.
+     */
+    @Test
+    void theConfirmationSitsWhereTheLedgerDrewIt() {
+        assertEquals(640, ScreenArt.DIALOG_W);
+        assertEquals(244, ScreenArt.DIALOG_H);
+        assertEquals(320, ScreenArt.dialogX(), "centred on the stage");
+        assertEquals(238, ScreenArt.DIALOG_Y);
+        assertEquals(244, ScreenArt.DIALOG_BUTTON_W);
+        assertEquals(396, ScreenArt.DIALOG_BUTTON_Y);
+        assertEquals(384, ScreenArt.dialogButtonX(0));
+        assertEquals(652, ScreenArt.dialogButtonX(1));
+        assertEquals(ScreenArt.DIALOG_Y + 28, ScreenArt.DIALOG_Y + ScreenArt.DIALOG_HEADING_DY);
+        assertEquals(ScreenArt.DIALOG_Y + 70, ScreenArt.DIALOG_Y + ScreenArt.DIALOG_LINE_DY);
+        assertEquals(ScreenArt.DIALOG_Y + 100,
+                ScreenArt.DIALOG_Y + ScreenArt.DIALOG_LINE_DY + ScreenArt.DIALOG_LINE_GAP);
+    }
+
+    /** Both buttons and both lines of copy sit inside the panel, clear of each other. */
+    @Test
+    void theConfirmationsCopyAndButtonsFitItsPanel() {
+        int lastLineBottom = ScreenArt.DIALOG_Y + ScreenArt.DIALOG_LINE_DY
+                + ScreenArt.DIALOG_LINE_GAP + PixelType.LABEL;
+        assertTrue(lastLineBottom <= ScreenArt.DIALOG_BUTTON_Y,
+                "the dialog's copy runs into its buttons");
+        assertTrue(ScreenArt.DIALOG_BUTTON_Y + ScreenArt.BUTTON_H
+                <= ScreenArt.DIALOG_Y + ScreenArt.DIALOG_H, "the buttons hang out of the panel");
+        assertTrue(ScreenArt.dialogButtonX(0) >= ScreenArt.dialogX());
+        assertTrue(ScreenArt.dialogButtonX(0) + ScreenArt.DIALOG_BUTTON_W
+                < ScreenArt.dialogButtonX(1), "the two buttons overlap");
+        assertTrue(ScreenArt.dialogButtonX(1) + ScreenArt.DIALOG_BUTTON_W
+                <= ScreenArt.dialogX() + ScreenArt.DIALOG_W);
+    }
+
+    /** Hit where drawn, and the gap between the two buttons answers to neither. */
+    @Test
+    void theConfirmationIsHitWhereItIsDrawn() {
+        float middleY = CardArt.toWorldY(ScreenArt.DIALOG_BUTTON_Y, ScreenArt.BUTTON_H)
+                + ScreenArt.BUTTON_H / 2f;
+        for (int i = 0; i < 2; i++) {
+            float x = ScreenArt.dialogButtonX(i) + ScreenArt.DIALOG_BUTTON_W / 2f;
+            assertEquals(i, ScreenArt.dialogButtonAt(x, middleY));
+        }
+        float gap = ScreenArt.dialogButtonX(0) + ScreenArt.DIALOG_BUTTON_W + 1f;
+        assertEquals(-1, ScreenArt.dialogButtonAt(gap, middleY), "the gap between them");
+        float above = CardArt.toWorldY(ScreenArt.DIALOG_BUTTON_Y, 0) + 1f;
+        assertEquals(-1, ScreenArt.dialogButtonAt(ScreenArt.dialogButtonX(0) + 10f, above),
+                "the copy above them");
+    }
+
+    /**
      * The run-end panel has two heights: with the trophy band and without. A run
      * that unlocked nothing used to keep the taller one, leaving a hole between
      * the rule and the buttons. Whichever height it is, the panel stays centred

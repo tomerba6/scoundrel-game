@@ -310,6 +310,24 @@ final class ScreenArt {
     static final int PROMPT_LINE_GAP = 24;
     static final int PROMPT_BUTTON_DY = 132;
 
+    // --- the confirmation dialog -------------------------------------------
+
+    /**
+     * A question that must be answered before anything behind it: the ledger's
+     * erase and the board's abandon-run. Two lines of copy over two plates side
+     * by side, the safe one first. Not in the mock, which has no dialog — it is
+     * the five parts at the ledger's measurements, which were set first.
+     */
+    static final int DIALOG_W = 640;
+    static final int DIALOG_H = 244;
+    static final int DIALOG_Y = 238;
+    static final int DIALOG_HEADING_DY = 28;
+    static final int DIALOG_LINE_DY = 70;
+    static final int DIALOG_LINE_GAP = 30;
+    static final int DIALOG_BUTTON_W = 244;
+    static final int DIALOG_BUTTON_Y = 396;
+    static final int DIALOG_BUTTON_GAP = 24;
+
     // --- run end -----------------------------------------------------------
 
     /**
@@ -656,6 +674,31 @@ final class ScreenArt {
         for (int i = 0; i < 2; i++) {
             float bottom = CardArt.toWorldY(promptButtonY(i), BUTTON_H);
             if (worldY >= bottom && worldY < bottom + BUTTON_H) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    static int dialogX() {
+        return (int) (Theme.WORLD_WIDTH - DIALOG_W) / 2;
+    }
+
+    static int dialogButtonX(int index) {
+        int span = 2 * DIALOG_BUTTON_W + DIALOG_BUTTON_GAP;
+        int left = (int) (Theme.WORLD_WIDTH - span) / 2;
+        return left + index * (DIALOG_BUTTON_W + DIALOG_BUTTON_GAP);
+    }
+
+    /** Which of the dialog's two buttons a world point is on, or -1. */
+    static int dialogButtonAt(float worldX, float worldY) {
+        float bottom = CardArt.toWorldY(DIALOG_BUTTON_Y, BUTTON_H);
+        if (worldY < bottom || worldY >= bottom + BUTTON_H) {
+            return -1;
+        }
+        for (int i = 0; i < 2; i++) {
+            int x = dialogButtonX(i);
+            if (worldX >= x && worldX < x + DIALOG_BUTTON_W) {
                 return i;
             }
         }
