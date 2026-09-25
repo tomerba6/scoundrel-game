@@ -223,13 +223,15 @@ Full design notes, including the locked edge-case decisions and Mermaid diagrams
 
 ## Testing
 
-759 test methods — 788 runs, since one test is parameterised over every sound file — written
+761 test methods — 789 runs, since one of them is parameterised over the 29 sound-effect files — written
 test-first for all pure logic. `./gradlew core:check` runs them and enforces a JaCoCo gate of
 **90% line / 75% branch on every pure package** — the build fails below it.
 
 > Every figure in this section is a measurement, not a claim, and the branch moves fast enough that
 > they go stale. Re-derive rather than repeat: the method count is
-> `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`, and the ratios come from
+> `grep -rhoE "@(Test|ParameterizedTest)\b" core/src/test/java --include=*.java | wc -l` (a bare
+> `"@Test"` misses the parameterised method, and the count here ran one short from 2.1.0 to 2.2.0), and
+> the runs are the `tests` totals in `core/build/test-results/test/`. The ratios come from
 > `core/build/reports/jacoco/test/jacocoTestReport.xml`, which `./gradlew core:cleanTest core:test`
 > refreshes (a plain `core:test` on an unchanged tree is skipped, leaving the old report).
 >
@@ -255,9 +257,12 @@ test-first for all pure logic. `./gradlew core:check` runs them and enforces a J
 
 `screens` is deliberately **excluded** from the gate. It is GL-bound — it needs a window, a GPU and
 real pixels — so it is verified by driving the actual game and screenshotting it instead. Gating it
-would enforce a meaningless number and reward writing tests that assert nothing. The badge above
-therefore reports coverage of the *gated* packages, not the whole repository, which is the figure
-the build actually holds itself to.
+would enforce a meaningless number and reward writing tests that assert nothing. The root package
+is excluded too, for a narrower reason: gating is per package, and `ScoundrelGame` (GL-bound, 0 of
+102 lines) shares it with the pure `CrashLog`, `Progress` and `LaunchSwitch` (28 of 29 lines,
+96.6%), so the package reads 21.4%. The badge above therefore reports coverage of the six *gated*
+packages, not the whole repository, which is the figure the build actually holds itself to —
+`CoverageGateTest` fails if the badge's list of packages and the gate's ever disagree.
 
 That said, the number is not meaningless as a *progress* signal, because the pure helpers extracted
 out of the GL classes stay in the same package. `screens` splits cleanly in two:
@@ -285,7 +290,7 @@ the rules.
 ## Development
 
 ```sh
-./gradlew core:test        # 788 test runs, headless, ~2s of execution
+./gradlew core:test        # 789 test runs, headless, ~2s of execution
 ./gradlew core:check       # tests + the JaCoCo gate; HTML report at
                            #   core/build/reports/jacoco/test/html/
 ./gradlew lwjgl3:run       # play the current working tree

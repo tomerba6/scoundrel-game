@@ -108,7 +108,8 @@ per step — and its 80-colour ramps supersede the *Ashen* palette. Read it befo
   progress; the `run-scoundrel` skill quoted a test count a third of the real one). A figure in
   a doc is evidence of nothing today. If a claim is checkable by reading a file or running a
   command, check it **before** stating it — being wrong costs the user's trust in the rest.
-    - test count → `grep -rhoE "@Test" core/src/test/java --include=*.java | wc -l`
+    - test count → `grep -rhoE "@(Test|ParameterizedTest)\b" core/src/test/java --include=*.java | wc -l`
+      methods (a bare `"@Test"` misses the parameterised one); runs are the result XMLs' `tests` totals
     - coverage → `./gradlew core:cleanTest core:test` (a plain `core:test` can be skipped as
       UP-TO-DATE, leaving the *previous* report in place), then parse
       `core/build/reports/jacoco/test/jacocoTestReport.xml` per package. Read `screens` as two
