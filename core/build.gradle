@@ -115,6 +115,11 @@ test {
   if (shippedAudio.isDirectory()) {
     inputs.dir(shippedAudio).withPathSensitivity(PathSensitivity.RELATIVE)
   }
+  // And for CoverageGateTest's badge check, which reads the badge script's own
+  // copy of the gated list from outside this module: an edit to that list must
+  // re-run the check, not leave it UP-TO-DATE.
+  inputs.file(rootProject.file('.github/scripts/coverage_badge.py'))
+      .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 jacocoTestReport {

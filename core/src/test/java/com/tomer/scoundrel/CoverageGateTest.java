@@ -1,5 +1,6 @@
 package com.tomer.scoundrel;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -46,6 +47,12 @@ class CoverageGateTest {
     private static final Pattern GATED =
             Pattern.compile("'com\\.tomer\\.scoundrel\\.([a-z][a-z0-9]*)'");
 
+    /** The README badge's script, which keeps its own copy of the list. */
+    private static final Path BADGE_SCRIPT =
+            Path.of("..", ".github", "scripts", "coverage_badge.py");
+    private static final Pattern BADGE_SET = Pattern.compile("GATED\\s*=\\s*\\{([^}]*)\\}");
+    private static final Pattern QUOTED = Pattern.compile("\"([a-z][a-z0-9]*)\"");
+
     @Test
     void everyPurePackageIsGated() throws IOException {
         Set<String> gated = gatedPackages();
@@ -77,6 +84,32 @@ class CoverageGateTest {
         assertTrue(missing.isEmpty(),
                 "the gate names packages that no longer exist — a rename would otherwise leave "
                         + "the rule quietly matching nothing: " + missing);
+    }
+
+    /**
+     * The README's badge reports the gate, but its script keeps its own copy of
+     * the list, and nothing held the two together: {@code audio} joined the gate
+     * and never reached the badge, which went on reporting five packages as the
+     * six. The copy is checked against the original rather than remembered.
+     */
+    @Test
+    void theBadgeMeasuresExactlyWhatTheGateGates() throws IOException {
+        assertEquals(gatedPackages(), badgePackages(),
+                "GATED in .github/scripts/coverage_badge.py must name exactly the packages "
+                        + "the includes list in core/build.gradle gates");
+    }
+
+    /** The {@code GATED} set as the badge script declares it. */
+    private Set<String> badgePackages() throws IOException {
+        Matcher set = BADGE_SET.matcher(Files.readString(BADGE_SCRIPT));
+        assertTrue(set.find(), "could not find GATED = {...} in " + BADGE_SCRIPT
+                + " — the format changed and this test is no longer reading it");
+        Set<String> found = new TreeSet<>();
+        Matcher name = QUOTED.matcher(set.group(1));
+        while (name.find()) {
+            found.add(name.group(1));
+        }
+        return found;
     }
 
     /** The `includes` list as the build file actually declares it. */

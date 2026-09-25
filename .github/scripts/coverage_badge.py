@@ -1,12 +1,13 @@
 """Generate a coverage badge for the packages the build actually gates.
 
-Deliberately scoped. A whole-report number would average in `screens`, which is
-GL-bound, screenshot-verified and excluded from the JaCoCo gate on purpose -- it
-sits near 8%, and blending it in would report ~50% for an engine that is at 99%.
-That would misrepresent the project in both directions depending on how much UI
-code exists at the time, so the badge measures exactly what
-`jacocoTestCoverageVerification` enforces, and the label says "engine" to be
-clear it is not the whole repository.
+Deliberately scoped. A whole-report number would average in `screens` and the
+root package, which are GL-bound, screenshot-verified and excluded from the
+JaCoCo gate on purpose -- they sit far below the engine, and blending them in
+would report a figure well under half the engine's. That would misrepresent the
+project in both directions depending on how much UI code exists at the time, so
+the badge measures exactly what `jacocoTestCoverageVerification` enforces, and
+the label says "engine" to be clear it is not the whole repository. (No figures
+here on purpose: they went stale; the README's Testing section measures them.)
 
 Usage: coverage_badge.py <jacoco-xml> <out-svg>
 """
@@ -14,8 +15,9 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-# Must track the `includes` list in core/build.gradle.
-GATED = {"model", "rules", "runs", "achievements", "tutorial"}
+# Must match the `includes` list in core/build.gradle -- CoverageGateTest
+# fails when it does not (audio once joined the gate and never reached here).
+GATED = {"model", "rules", "runs", "achievements", "tutorial", "audio"}
 
 
 def engine_line_coverage(xml_path):
