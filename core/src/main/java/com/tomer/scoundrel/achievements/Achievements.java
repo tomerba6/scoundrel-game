@@ -58,6 +58,11 @@ public final class Achievements {
                             + "and eighty-eight.", true,
                     ctx -> ctx.run().outcome() == Status.LOST && ctx.run().score() <= ROCK_BOTTOM_SCORE));
 
+    /**
+     * The whole catalog, in the order the trophies screen lists it.
+     *
+     * @return an unmodifiable list of the shipped achievements
+     */
     public static List<Achievement> all() {
         return CATALOG;
     }

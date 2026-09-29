@@ -11,11 +11,21 @@ import java.util.Optional;
  * as a tab-separated {@code key=value} line led by the schema version, and
  * parsed just as tolerantly — an unreadable or future-version line yields empty
  * rather than throwing, so the latch can never take the game down.
+ *
+ * @param id       the {@link Achievement#id() achievement id}; non-blank, no whitespace
+ * @param earnedAt when it was first earned, as an instant (UTC in the file)
  */
 public record UnlockedAchievement(String id, Instant earnedAt) {
 
+    /** The schema version, written as {@code v}; a line with any other version is skipped. */
     static final int VERSION = 1;
 
+    /**
+     * Rejects an unlock that could not be written as one line.
+     *
+     * @throws IllegalArgumentException if {@code id} is null, blank or holds whitespace, or
+     *                                  {@code earnedAt} is null
+     */
     public UnlockedAchievement {
         if (id == null || !id.matches("\\S+")) {
             throw new IllegalArgumentException("id must be non-blank without whitespace, got '" + id + "'");
@@ -25,12 +35,22 @@ public record UnlockedAchievement(String id, Instant earnedAt) {
         }
     }
 
-    /** The single persisted line (no trailing newline). */
+    /**
+     * The single persisted line (no trailing newline).
+     *
+     * @return {@code v=1}, {@code id=} and {@code earned=}, tab-separated; {@link #parse}
+     *         reads it back to an equal record
+     */
     public String toLine() {
         return "v=" + VERSION + "\tid=" + id + "\tearned=" + earnedAt;
     }
 
-    /** Empty when the line is malformed or from an unknown schema version. */
+    /**
+     * Empty when the line is malformed or from an unknown schema version.
+     *
+     * @param line one line of the achievements file, with or without surrounding whitespace
+     * @return the unlock, or empty; never throws, whatever the input
+     */
     public static Optional<UnlockedAchievement> parse(String line) {
         try {
             Map<String, String> kv = new HashMap<>();

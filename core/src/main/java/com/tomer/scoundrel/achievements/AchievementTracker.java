@@ -27,10 +27,21 @@ public final class AchievementTracker {
     private int roomCardsResolved;
     private int roomMonstersDefeated;
 
+    /**
+     * A tracker for one game.
+     *
+     * @param cardsPerFullRoom how many resolutions make a whole turn, for Flawless Room;
+     *                         the ruleset's {@code cardsResolvedPerTurn} (3)
+     */
     public AchievementTracker(int cardsPerFullRoom) {
         this.cardsPerFullRoom = cardsPerFullRoom;
     }
 
+    /**
+     * Folds one move's events into the run's facts. Call it with every result, in order.
+     *
+     * @param result what {@link com.tomer.scoundrel.rules.ScoundrelEngine#apply} returned
+     */
     public void observe(MoveResult result) {
         finalHealth = result.state().health();
         boolean avoided = false;
@@ -79,11 +90,22 @@ public final class AchievementTracker {
         }
     }
 
+    /**
+     * Whether a win or a loss has been observed.
+     *
+     * @return true once {@link #toSummary} may be called
+     */
     public boolean isFinished() {
         return outcome != null;
     }
 
-    /** Only valid once the observed game has ended; {@code seconds} comes from the run timer. */
+    /**
+     * Only valid once the observed game has ended; {@code seconds} comes from the run timer.
+     *
+     * @param seconds the run's wall-clock length, as the run recorder measured it
+     * @return the facts the achievement rules test
+     * @throws IllegalStateException if no win or loss has been observed yet
+     */
     public RunSummary toSummary(long seconds) {
         if (!isFinished()) {
             throw new IllegalStateException("the run has not ended yet");
