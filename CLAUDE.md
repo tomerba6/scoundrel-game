@@ -16,6 +16,11 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
 - Tests + coverage gate: `./gradlew core:check`. JaCoCo enforces a minimum coverage on each
   **pure** package (`model`/`rules`/`runs`/`achievements`/`tutorial`/`audio`); the GL-bound
   `screens` layer is excluded (screenshot-verified). Report: `core/build/reports/jacoco/test/html/`.
+- Javadoc gate: `check` in both modules runs `javadoc` with `-Xdoclint:all -Xwerror` at package
+  visibility, so every non-private declaration (screens helpers included) needs a comment and its
+  `@param`/`@return`/`@throws`, and a broken `{@link}` fails too. CI runs `core:check lwjgl3:check`.
+  Tags carry what the signature can't — units (design px, y down vs world y up), ranges, nullability,
+  which clock — never a restated type. Existing prose is kept; tags go under it.
 - Drive/screenshot the real game (the only way to verify UI): the `run-scoundrel` skill.
 - Audio (`audio-source/README.md`): `python audio-source/render.py` renders every sound
   into `assets/audio/`, `check.py` measures them (non-zero on a failure), `audition.py` builds
@@ -116,7 +121,10 @@ per step — and its 80-colour ramps supersede the *Ashen* palette. Read it befo
       `core/build/reports/jacoco/test/jacocoTestReport.xml` per package. Read `screens` as two
       halves: the extracted pure helpers *stay in that package*, so its number climbs as the
       GL classes are hollowed out — the pure-vs-GL split is the reading, not the aggregate.
-    - purity boundary → `grep -rl 'com.badlogic.gdx' core/src/main/java/com/tomer/scoundrel/{model,rules,runs,achievements,tutorial,audio}` must be empty
+    - purity boundary → `grep -rl 'com.badlogic.gdx' core/src/main/java/com/tomer/scoundrel/{model,rules,runs,achievements,tutorial,audio}` must be empty.
+      It is a text match, and so is `CoverageGateTest`'s: a Javadoc `@see com.badlogic.gdx…` in a
+      pure package makes the test read it as GL-bound, so nothing would require it to stay gated.
+      Say "LibGDX" in prose instead.
     - what a class or screen does → open it; its `docs/ui.md` entry may describe what it replaced.
     - runtime behaviour (window size, viewport scale, input routing) → log it from inside the
       running game and read the log. Don't reason about what the platform "should" do, and

@@ -223,7 +223,7 @@ Full design notes, including the locked edge-case decisions and Mermaid diagrams
 
 ## Testing
 
-761 test methods — 789 runs, since one of them is parameterised over the 29 sound-effect files — written
+762 test methods — 790 runs, since one of them is parameterised over the 29 sound-effect files — written
 test-first for all pure logic. `./gradlew core:check` runs them and enforces a JaCoCo gate of
 **90% line / 75% branch on every pure package** — the build fails below it.
 
@@ -237,14 +237,14 @@ test-first for all pure logic. `./gradlew core:check` runs them and enforces a J
 >
 > **Every percentage here is LINE coverage**, because that is what the gate enforces
 > (`counter = 'LINE'`). Neither report states it: the XML holds raw counts
-> (`<counter type="LINE" missed="2545" covered="866"/>`) and the HTML draws percentage bars only
+> (`<counter type="LINE" missed="2548" covered="877"/>`) and the HTML draws percentage bars only
 > for instructions and branches, showing lines as a bare *missed / total*. So every line figure
 > here is that division, and you can check it off the HTML yourself — for `screens`,
-> `(3,411 − 2,545) / 3,411 = 25.4%`.
+> `(3,425 − 2,548) / 3,425 = 25.6%`.
 >
 > Which also means the HTML's leading `Cov.` column is **instructions**, not lines. Three
 > counters, three answers, and for `screens` today they are 29.1% instructions, 33.4% branches
-> and 25.4% lines.
+> and 25.6% lines.
 
 | Package | Line | Branch |
 |---|---|---|
@@ -259,8 +259,8 @@ test-first for all pure logic. `./gradlew core:check` runs them and enforces a J
 real pixels — so it is verified by driving the actual game and screenshotting it instead. Gating it
 would enforce a meaningless number and reward writing tests that assert nothing. The root package
 is excluded too, for a narrower reason: gating is per package, and `ScoundrelGame` (GL-bound, 0 of
-102 lines) shares it with the pure `CrashLog`, `Progress` and `LaunchSwitch` (28 of 29 lines,
-96.6%), so the package reads 21.4%. The badge above therefore reports coverage of the six *gated*
+103 lines) shares it with the pure `CrashLog`, `Progress` and `LaunchSwitch` (28 of 29 lines,
+96.6%), so the package reads 21.2%. The badge above therefore reports coverage of the six *gated*
 packages, not the whole repository, which is the figure the build actually holds itself to —
 `CoverageGateTest` fails if the badge's list of packages and the gate's ever disagree.
 
@@ -269,12 +269,12 @@ out of the GL classes stay in the same package. `screens` splits cleanly in two:
 
 | Inside `screens` | Classes | Source lines | Executable lines | Line coverage |
 |---|---|---|---|---|
-| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `Beats`, …) | 46 | 4,449 | 887 | 97.0% |
-| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, `SoundBank`, the screens themselves) | 21 | 5,849 | 2,524 | 0.2% |
+| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `Beats`, …) | 46 | 6,016 | 898 | 97.0% |
+| GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, `SoundBank`, the screens themselves) | 21 | 6,594 | 2,527 | 0.2% |
 
 Two line counts because they tell different stories and only one of them is JaCoCo's. **Executable
-lines** are what coverage is computed over, and they make the package read 25.4% overall. **Source
-lines** are what `wc -l` gives you, and by that measure the pure half is 43% of the package rather
+lines** are what coverage is computed over, and they make the package read 25.6% overall. **Source
+lines** are what `wc -l` gives you, and by that measure the pure half is 48% of the package rather
 than 26% — the helpers are comment-heavy by design, so they carry far fewer executable lines than
 their size suggests.
 
@@ -290,8 +290,8 @@ the rules.
 ## Development
 
 ```sh
-./gradlew core:test        # 789 test runs, headless, ~2s of execution
-./gradlew core:check       # tests + the JaCoCo gate; HTML report at
+./gradlew core:test        # 790 test runs, headless, ~2s of execution
+./gradlew core:check       # tests + the JaCoCo gate + Javadoc (doclint as errors); HTML report at
                            #   core/build/reports/jacoco/test/html/
 ./gradlew lwjgl3:run       # play the current working tree
 ./gradlew lwjgl3:packageWinX64   # build a self-contained archive
