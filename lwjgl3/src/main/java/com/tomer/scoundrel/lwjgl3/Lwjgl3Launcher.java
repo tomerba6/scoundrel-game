@@ -9,8 +9,27 @@ import com.tomer.scoundrel.ScoundrelGame;
 
 import java.nio.file.Path;
 
-/** Launches the desktop (LWJGL3) application. */
+/**
+ * Launches the desktop (LWJGL3) application: borderless-fullscreen at the
+ * monitor's resolution, vsynced, with crashes recorded to disk. A thin launcher
+ * by design — everything the game does lives in {@code core}.
+ *
+ * @see com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
+ * @see com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+ */
 public class Lwjgl3Launcher {
+
+    /** Never constructed: the launcher is only run, through {@link #main}. */
+    public Lwjgl3Launcher() {
+    }
+
+    /**
+     * The entry point. Restarts the JVM first where the platform needs it (macOS,
+     * and Linux on NVIDIA), then installs the crash log and opens the window.
+     *
+     * @param args ignored; switches come from system properties or the environment
+     *             (see {@link com.tomer.scoundrel.LaunchSwitch})
+     */
     public static void main(String[] args) {
         if (StartupHelper.startNewJvmIfRequired()) return; // This handles macOS support and helps on Windows.
         installCrashLog();
