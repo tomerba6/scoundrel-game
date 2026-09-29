@@ -24,11 +24,15 @@ public final class Theme implements Disposable {
 
     // The two the torch itself needs, both on the accent ramp. Every other
     // colour a screen draws is named in the art classes beside what it draws.
+    /** The torch's warm gold, which the glow and the embers are tinted with. Shared: never mutate it. */
     public static final Color TORCHLIGHT = Color.valueOf("d9a441");
+    /** The accent ramp's cream. Shared: never mutate it. */
     public static final Color BONE = Color.valueOf("e8ddc7");
 
     // Virtual resolution shared by every screen's PixelViewport.
+    /** The design width, in world units; every layout number is in this space. */
     public static final float WORLD_WIDTH = 1280;
+    /** The design height, in world units. */
     public static final float WORLD_HEIGHT = 720;
 
     /** Characters beyond the freetype defaults used by the UI copy. */
@@ -40,12 +44,17 @@ public final class Theme implements Disposable {
 
     /** Silkscreen — the only face left, now that every screen is converted. */
     public final BitmapFont pixelSmall;
+    /** Silkscreen at {@link PixelType#LABEL} size: section headings and badges. */
     public final BitmapFont pixelLabel;
+    /** Silkscreen at {@link PixelType#BODY} size: descriptions and body copy. */
     public final BitmapFont pixelBody;
+    /** Silkscreen at {@link PixelType#TITLE} size: screen names and headlines. */
     public final BitmapFont pixelTitle;
+    /** Silkscreen at {@link PixelType#DISPLAY} size: card values and the wordmark. */
     public final BitmapFont pixelDisplay;
     /** Silkscreen Bold, for headings and emphasised numerals. */
     public final BitmapFont pixelLabelBold;
+    /** Silkscreen Bold at {@link PixelType#DISPLAY} size. */
     public final BitmapFont pixelDisplayBold;
 
     private final Texture white;
@@ -64,6 +73,12 @@ public final class Theme implements Disposable {
     private final TextureRegion shadeRegion;
     private final Map<Character, Texture> suitTextures = new HashMap<>();
 
+    /**
+     * Rasterises the two Silkscreen faces at every size and builds the generated
+     * textures. On the GL thread only.
+     *
+     * @see FreeTypeFontGenerator
+     */
     public Theme() {
         FreeTypeFontGenerator silk =
                 new FreeTypeFontGenerator(Gdx.files.internal("fonts/Silkscreen-Regular.ttf"));
@@ -110,7 +125,11 @@ public final class Theme implements Disposable {
         suitTextures.put('C', suitTexture('C'));
     }
 
-    /** A single white pixel, for drawing tinted rectangles straight onto a Batch. */
+    /**
+     * A single white pixel, for drawing tinted rectangles straight onto a Batch.
+     *
+     * @return a 1×1 region, shared; stretch and tint it at draw time
+     */
     TextureRegion whiteRegion() {
         return whiteRegion;
     }
@@ -124,6 +143,11 @@ public final class Theme implements Disposable {
      * black and lands them off the eighty; the dither turns whole pixels off in
      * a fixed order and leaves the rest exactly as they were, so what shows
      * through is still palette-true and still legible.
+     *
+     * @param heavy  true for the modal 13-of-16 dim, false for the tutorial's lighter veil
+     * @param width  the area to cover, in pixels
+     * @param height the area to cover, in pixels
+     * @return the shared region, resized to repeat across the area
      */
     TextureRegion ditherRegion(boolean heavy, int width, int height) {
         TextureRegion region = heavy ? ditherRegion : veilRegion;
@@ -170,22 +194,38 @@ public final class Theme implements Disposable {
         return texture;
     }
 
-    /** Soft warm radial glow (white; tinted at draw). Package-private — only the Backdrop uses it. */
+    /**
+     * Soft warm radial glow (white; tinted at draw). Package-private — only the Backdrop uses it.
+     *
+     * @return a linear-filtered region: the smooth backdrop is the one place that is allowed
+     */
     TextureRegion glowRegion() {
         return glowRegion;
     }
 
-    /** Black edge-darkening vignette with its alpha baked in. */
+    /**
+     * Black edge-darkening vignette with its alpha baked in.
+     *
+     * @return a linear-filtered region, to be stretched over the whole world
+     */
     TextureRegion vignetteRegion() {
         return vignetteRegion;
     }
 
-    /** A soft round mote (white; tinted at draw) for the drifting embers. */
+    /**
+     * A soft round mote (white; tinted at draw) for the drifting embers.
+     *
+     * @return a linear-filtered region
+     */
     TextureRegion dotRegion() {
         return dotRegion;
     }
 
-    /** A symmetric top-and-bottom edge shade (black, alpha baked in) for card panels. */
+    /**
+     * A symmetric top-and-bottom edge shade (black, alpha baked in) for card panels.
+     *
+     * @return a one-pixel-wide, linear-filtered region, to be stretched across a panel
+     */
     TextureRegion shadeRegion() {
         return shadeRegion;
     }

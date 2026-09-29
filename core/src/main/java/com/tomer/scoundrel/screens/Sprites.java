@@ -40,6 +40,13 @@ public final class Sprites implements Disposable {
      */
     private final Pixmap page;
 
+    /**
+     * Loads the packed atlas, checks it is nearest-filtered, keeps its page in
+     * memory, and generates the rim and hurt pages from it.
+     *
+     * @throws GdxRuntimeException if the atlas is missing or not nearest-filtered
+     * @see TextureAtlas
+     */
     public Sprites() {
         atlas = new TextureAtlas(Gdx.files.internal("sprites/sprites.atlas"));
         assertNearestFiltering();
@@ -106,7 +113,13 @@ public final class Sprites implements Disposable {
         return texture;
     }
 
-    /** A named region's pixels in ARGB, for effects that transform a sprite. */
+    /**
+     * A named region's pixels in ARGB, for effects that transform a sprite.
+     *
+     * @param regionName the region's exact name in the atlas
+     * @return a new array, row-major from the top, alpha in the high byte
+     * @throws GdxRuntimeException if there is no region by that name
+     */
     public int[] pixelsOf(String regionName) {
         TextureAtlas.AtlasRegion region = atlas.findRegion(regionName);
         if (region == null) {
@@ -124,7 +137,14 @@ public final class Sprites implements Disposable {
         return out;
     }
 
-    /** Builds a texture from ARGB pixels, nearest-filtered like everything else. */
+    /**
+     * Builds a texture from ARGB pixels, nearest-filtered like everything else.
+     *
+     * @param argb   the pixels, row-major from the top, alpha in the high byte
+     * @param width  the image's width in pixels
+     * @param height the image's height in pixels
+     * @return a new texture, which the caller owns and must dispose
+     */
     public static Texture textureFrom(int[] argb, int width, int height) {
         Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
         pixmap.setBlending(Pixmap.Blending.None);
@@ -151,6 +171,9 @@ public final class Sprites implements Disposable {
     /**
      * The cream outline for a creature's base sprite, generated at load. Null
      * for anything that has none — weapons and potions are never struck.
+     *
+     * @param regionName a base region's name, as {@link CardSprites#regionName} gives it
+     * @return the outline, on the shared rim page, or null
      */
     public TextureRegion rim(String regionName) {
         return rims.get(regionName);
@@ -159,6 +182,9 @@ public final class Sprites implements Disposable {
     /**
      * The frame a creature holds while it is struck: brightened two steps up its
      * own ramp with the outline over it. Null for anything never struck.
+     *
+     * @param regionName a base region's name, as {@link CardSprites#regionName} gives it
+     * @return the struck frame, on the shared hurt page, or null
      */
     public TextureRegion hurt(String regionName) {
         return hurts.get(regionName);
@@ -183,7 +209,13 @@ public final class Sprites implements Disposable {
         }
     }
 
-    /** A single region by its exact name; fails loudly rather than drawing nothing. */
+    /**
+     * A single region by its exact name; fails loudly rather than drawing nothing.
+     *
+     * @param name the region's exact name in the atlas
+     * @return the region, owned by the atlas
+     * @throws GdxRuntimeException if there is no region by that name
+     */
     public TextureRegion region(String name) {
         TextureRegion region = atlas.findRegion(name);
         if (region == null) {
@@ -195,6 +227,11 @@ public final class Sprites implements Disposable {
     /**
      * The frames of an animation cycle, in index order — pass the stem without
      * the trailing index, e.g. {@code "creature_02_cellar_rat_clubs_idle"}.
+     *
+     * @param stem the frames' shared name, without the index
+     * @return a new array of the frames, index 1 first; five for every creature
+     * @throws GdxRuntimeException if no frames have that name
+     * @see TextureAtlas#findRegions(String)
      */
     public Array<TextureRegion> frames(String stem) {
         Array<TextureAtlas.AtlasRegion> found = atlas.findRegions(stem);

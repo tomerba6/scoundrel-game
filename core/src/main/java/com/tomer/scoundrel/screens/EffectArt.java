@@ -33,6 +33,7 @@ final class EffectArt implements Disposable {
     private static final int GLASS_SHADE = 0x507641;
     private static final int BOTTLE_EDGE = 0x35291f;
     private static final int CORK = 0x9a8b70;
+    /** The bottle's texture is this many pixels square. */
     static final int BOTTLE_SIZE = 48;
 
     /**
@@ -65,6 +66,12 @@ final class EffectArt implements Disposable {
     private final TextureRegion bottle;
     private final TextureRegion spent;
 
+    /**
+     * Builds every effect texture, {@code Nearest}-filtered, at the card's size.
+     *
+     * @param cardWidth  a card's width in pixels, which the cleave and the bar span
+     * @param cardHeight a card's height in pixels
+     */
     EffectArt(int cardWidth, int cardHeight) {
         upperTexture = triangle(cardWidth, cardHeight, true);
         lowerTexture = triangle(cardWidth, cardHeight, false);
@@ -97,6 +104,11 @@ final class EffectArt implements Disposable {
      * The screen-death pattern at a given level, as a 4×4 tile set to repeat.
      * Drawn once across the whole stage with the region sized in tiles, so the
      * pattern lands on the pixel grid however big the stage is.
+     *
+     * @param level       how many of the sixteen cells are dark; clamped to the levels built
+     * @param stageWidth  the area to cover, in pixels
+     * @param stageHeight the area to cover, in pixels
+     * @return the shared region for that level, resized to repeat across the stage
      */
     TextureRegion ditherAt(int level, int stageWidth, int stageHeight) {
         TextureRegion region = dither[Math.max(0, Math.min(dither.length - 1, level))];
@@ -123,29 +135,56 @@ final class EffectArt implements Disposable {
         return texture;
     }
 
-    /** The half above-left of the cut, or the half below-right of it. */
+    /**
+     * The half above-left of the cut, or the half below-right of it.
+     *
+     * @return the upper half of a cleaved card, card-sized
+     */
     TextureRegion upper() {
         return upper;
     }
 
+    /**
+     * The half below-right of the cut.
+     *
+     * @return the lower half of a cleaved card, card-sized
+     */
     TextureRegion lower() {
         return lower;
     }
 
+    /**
+     * The bone bar that cuts the card, already lying along the diagonal.
+     *
+     * @return a card-sized region, clear but for the bar
+     */
     TextureRegion bar() {
         return bar;
     }
 
+    /**
+     * The eight-point burst a bare-handed blow throws.
+     *
+     * @return a {@link Barehanded#STAR_BOX}-pixel square region
+     */
     TextureRegion star() {
         return star;
     }
 
-    /** The bottle a potion card collapses into. */
+    /**
+     * The bottle a potion card collapses into.
+     *
+     * @return a {@link #BOTTLE_SIZE}-pixel square region
+     */
     TextureRegion bottle() {
         return bottle;
     }
 
-    /** The same bottle with the colour drained out, for a potion that is wasted. */
+    /**
+     * The same bottle with the colour drained out, for a potion that is wasted.
+     *
+     * @return a {@link #BOTTLE_SIZE}-pixel square region
+     */
     TextureRegion spentBottle() {
         return spent;
     }

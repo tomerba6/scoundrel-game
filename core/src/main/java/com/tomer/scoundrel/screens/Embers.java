@@ -9,12 +9,14 @@ import java.util.Random;
  * The dungeon's drifting motes as a pure simulation: embers spawn near the
  * floor, rise slowly while swaying, fade in and out over their life, and are
  * culled at the end of it. No LibGDX — the {@link Backdrop} owns one, ticks it
- * in {@code act}, and draws a soft dot per particle; the simulation is tested
+ * in {@code advance}, and draws a soft dot per particle; the simulation is tested
  * headlessly. Deterministic given its seed. Coordinates are in world units.
  */
 final class Embers {
 
+    /** The most embers alive at once; spawning pauses at this many. */
     static final int MAX = 40;
+    /** An ember's alpha at the height of its life, before the backdrop's light. */
     static final float PEAK_ALPHA = 0.55f;
 
     private static final float SPAWN_RATE = 5f;   // per second
@@ -24,9 +26,13 @@ final class Embers {
 
     /** A single mote; fields are read by the Backdrop for drawing. */
     static final class Ember {
+        /** Centre x, in world units; sways about where it spawned. */
         float x;
+        /** Centre y, in world units, from the floor; rises over its life. */
         float y;
+        /** How strongly to draw it now, 0 to {@link #PEAK_ALPHA}. */
         float alpha;
+        /** Its diameter, in world units, 6 to 14. */
         float size;
         private float baseX;
         private float vy;
@@ -35,16 +41,30 @@ final class Embers {
         private float swayAmp;
         private float swayFreq;
         private float swayPhase;
+
+        /** Created only by the simulation's own spawn. */
+        Ember() {
+        }
     }
 
     private final List<Ember> live = new ArrayList<>();
     private final Random rng;
     private float spawnAccumulator;
 
+    /**
+     * An empty simulation; embers start spawning on the first update.
+     *
+     * @param seed the generator's seed; the same seed drifts the same embers
+     */
     Embers(long seed) {
         this.rng = new Random(seed);
     }
 
+    /**
+     * Spawns, moves, fades and culls.
+     *
+     * @param dt seconds since the last update
+     */
     void update(float dt) {
         if (live.size() < MAX) {
             spawnAccumulator += dt * SPAWN_RATE;
@@ -66,11 +86,22 @@ final class Embers {
         }
     }
 
+    /**
+     * The embers alive now, for drawing.
+     *
+     * @return the live list itself; read it, don't change it
+     */
     List<Ember> particles() {
         return live;
     }
 
-    /** Ramp up over the first fraction of life, hold, ramp down over the last; in [0, 1]. */
+    /**
+     * Ramp up over the first fraction of life, hold, ramp down over the last; in [0, 1].
+     *
+     * @param age  seconds since the ember spawned
+     * @param life seconds it lives in all
+     * @return the fade multiplier; 0 before birth and from the end of life on
+     */
     static float fade(float age, float life) {
         if (age <= 0f || age >= life) {
             return 0f;

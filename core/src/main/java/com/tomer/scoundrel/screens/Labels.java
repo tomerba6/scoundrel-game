@@ -19,6 +19,9 @@ final class Labels {
      * The playing-card rank shown in a card's header. The footer carries the
      * ordered value instead, so a Queen reads Q above 12 — the one place the
      * game says out loud what a face card is worth.
+     *
+     * @param value the card's value, 2–14
+     * @return {@code J}, {@code Q}, {@code K} or {@code A} for 11–14, else the number
      */
     static String rank(int value) {
         return switch (value) {
@@ -30,7 +33,12 @@ final class Labels {
         };
     }
 
-    /** The type stamped in the card's header, opposite its rank. */
+    /**
+     * The type stamped in the card's header, opposite its rank.
+     *
+     * @param type the card's type
+     * @return the type's name, upper-cased
+     */
     static String cardType(CardType type) {
         return switch (type) {
             case MONSTER -> "MONSTER";
@@ -39,7 +47,12 @@ final class Labels {
         };
     }
 
-    /** Chooser button text for a move. */
+    /**
+     * Chooser button text for a move.
+     *
+     * @param move a legal move
+     * @return a verb or two in sentence case, e.g. {@code Use weapon}
+     */
     static String move(Move move) {
         return switch (move) {
             case Move.FightWithWeapon ignored -> "Use weapon";
@@ -50,7 +63,12 @@ final class Labels {
         };
     }
 
-    /** The trophy-rail plate: {@code slays anything} fresh, {@code slays < N}, or {@code spent}. */
+    /**
+     * The trophy-rail plate: {@code slays anything} fresh, {@code slays < N}, or {@code spent}.
+     *
+     * @param weapon the equipped weapon
+     * @return {@code spent} once the threshold is 2, since nothing is below a 2
+     */
     static String weaponThreshold(EquippedWeapon weapon) {
         if (weapon.threshold().isEmpty()) {
             return "slays anything";
@@ -64,6 +82,12 @@ final class Labels {
      * the death score especially, which charges you for monsters still in the
      * face-down dungeon that the player never saw. The penalty needs no extra
      * state: {@code StandardScoring} makes it exactly {@code health - score}.
+     *
+     * @param score     the final score
+     * @param health    the health the run ended on
+     * @param healthCap the ruleset's cap, for the potion-bonus win
+     * @param won       whether the dungeon was cleared
+     * @return the breakdown, in lower case
      */
     static String scoreBreakdown(int score, int health, int healthCap, boolean won) {
         if (!won) {
@@ -83,6 +107,10 @@ final class Labels {
      * produced it, then the losing rule as a parting recap. Covers both of
      * {@code StandardScoring}'s win branches — the health you kept, or the cap
      * plus the potion you finished on when the score runs over the cap.
+     *
+     * @param score     the tutorial's winning score
+     * @param healthCap the ruleset's cap
+     * @return two sentences: the winning rule, then the losing one
      */
     static String tutorialScore(int score, int healthCap) {
         String win = score > healthCap
@@ -97,6 +125,9 @@ final class Labels {
     /**
      * The line under the title's volume plates. Always there, because nothing
      * else says M exists; muted, it says why everything has gone quiet.
+     *
+     * @param muted whether everything is muted now
+     * @return the hint, upper-cased
      */
     static String muteHint(boolean muted) {
         return muted ? "MUTED · M TO UNMUTE" : "M TO MUTE ALL";

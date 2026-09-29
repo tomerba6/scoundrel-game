@@ -67,10 +67,13 @@ final class DeathCinematic {
     /** A 4×4 ordered pattern has sixteen thresholds to cross. */
     static final int DITHER_LEVELS = 16;
 
+    /** When the dark starts to take the board and the torch starts to gutter, in seconds. */
     static final float DITHER_START = (FLARE_FRAMES + SHAKE_FRAMES + SETTLE_FRAMES) * FRAME;
+    /** When the dark has the whole board and the torch is out, in seconds. */
     static final float DITHER_END = DITHER_START + GUTTER_FRAMES * FRAME;
     /** When the last lit thing on the board goes out. */
     private static final float TICKER_OUT = DITHER_END + TICKER_HOLD_FRAMES * FRAME;
+    /** When YOU DIED begins to grow in, in seconds; the death cue plays here too. */
     static final float TITLE_START = TICKER_OUT + BLACK_FRAMES * FRAME;
     /** ~5500ms, quantised onto the effect grid. Skippable throughout. */
     static final float TOTAL = TITLE_START + (growthFrames() + HOLD_FRAMES) * FRAME;
@@ -101,13 +104,23 @@ final class DeathCinematic {
         return Frames.at(elapsed, Frames.EFFECT_FPS);
     }
 
-    /** The red flare over the killer, before anything else happens. */
+    /**
+     * The red flare over the killer, before anything else happens.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return true for the flare's opening frames
+     */
     static boolean flaring(float elapsed) {
         int frame = frameOf(elapsed);
         return frame >= 0 && frame < FLARE_FRAMES;
     }
 
-    /** How far through the flare, so it can fade as it spreads. */
+    /**
+     * How far through the flare, so it can fade as it spreads.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return 1 on the first frame, stepping down; 0 outside the flare
+     */
     static float flareStrength(float elapsed) {
         if (!flaring(elapsed)) {
             return 0f;
@@ -115,6 +128,12 @@ final class DeathCinematic {
         return 1f - frameOf(elapsed) / (float) FLARE_FRAMES;
     }
 
+    /**
+     * The board's sideways shake, after the flare.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return the offset in whole design pixels: -8, 8, -4 over three frames, else 0
+     */
     static int shakeX(float elapsed) {
         int frame = frameOf(elapsed) - FLARE_FRAMES;
         if (frame < 0 || frame >= SHAKE.length) {
@@ -126,6 +145,9 @@ final class DeathCinematic {
     /**
      * The torchlight: full while the board is still standing, guttering out
      * across the dither, and gone by the time the title arrives.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return 1 before the dither, a guttering 1-to-0 through it, 0 after
      */
     static float torchLight(float elapsed) {
         int frame = frameOf(elapsed) - frameOf(DITHER_START);
@@ -141,6 +163,9 @@ final class DeathCinematic {
     /**
      * How many of the pattern's sixteen thresholds have gone dark. Climbs to
      * full and stays there — the screen never lightens again.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return 0 to {@link #DITHER_LEVELS}
      */
     static int ditherLevel(float elapsed) {
         int frame = frameOf(elapsed) - frameOf(DITHER_START);
@@ -156,11 +181,20 @@ final class DeathCinematic {
      * dither rather than under it, so the dark takes the whole board and leaves
      * the one gauge that says how far you got — then takes that too, a beat
      * before the title, so the two do not read as one movement.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return true from the start until a beat after the dither completes
      */
     static boolean tickerShowing(float elapsed) {
         return elapsed >= 0f && elapsed < TICKER_OUT;
     }
 
+    /**
+     * Whether YOU DIED is on screen.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return true from {@link #TITLE_START} until the cinematic ends
+     */
     static boolean titleShowing(float elapsed) {
         return elapsed >= TITLE_START && elapsed < TOTAL;
     }
@@ -174,6 +208,9 @@ final class DeathCinematic {
      * depending where each glyph falls. That is also why it is drawn from a
      * small face — the whole multiples are the only sizes available, and a small
      * face has ten of them inside the same final size where a large one had four.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return 0 before the title, then a whole multiple that grows and holds at its largest
      */
     static int titleZoom(float elapsed) {
         if (elapsed < TITLE_START) {
@@ -184,6 +221,12 @@ final class DeathCinematic {
         return TITLE_ZOOM[Math.min(TITLE_ZOOM.length - 1, step)];
     }
 
+    /**
+     * Whether the cinematic is over and the end panel may come up.
+     *
+     * @param elapsed seconds on the death's clock
+     * @return true from {@link #TOTAL} on
+     */
     static boolean finished(float elapsed) {
         return elapsed >= TOTAL;
     }
