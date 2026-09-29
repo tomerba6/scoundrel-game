@@ -5,6 +5,32 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Nothing a player sees has changed yet: the game is built from the same code as 2.2.0, with
+documentation added and one unused constant removed. Everything below is for developers.
+
+### Added
+- **Javadoc across both modules.** Every non-private class, constructor and method carries a doc
+  comment with its `@param`, `@return` and `@throws` tags, which give what the signature cannot —
+  units, ranges, nullability, which clock a time is on. Each of the nine packages has a
+  `package-info.java` describing its role and its boundaries.
+- **The build enforces it.** `check` runs `javadoc` with doclint as errors in both modules, so an
+  undocumented declaration or a broken `{@link}` fails the build. CI and the release workflow now
+  run `lwjgl3:check` alongside `core:check`.
+- **`ScoundrelGame` carries `@author` and `@version`,** and `VersionTagTest` fails the build if
+  `@version` and `projectVersion` disagree, so a release now bumps both.
+
+### Fixed
+- **The README's coverage badge measured five of the six gated packages.** `audio` never reached
+  the badge script's own copy of the list. `CoverageGateTest` now holds that copy to the gate.
+- **Three stale doc comments.** `TorchFlicker` linked to a class that no longer exists, `Embers`
+  named a Scene2D method it no longer has, and `CalloutPlacement` had a block of `@param` tags
+  documenting nothing.
+
+### Removed
+- `ScreenArt.FACE_WELL`, a colour constant no screen drew from. The colour itself is still in use.
+
 ## [2.2.0] - 2026-09-25
 
 A small release: a run can be left without finishing it. Nothing about the rules changes, and
