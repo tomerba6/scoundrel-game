@@ -19,28 +19,50 @@ public final class AudioControls {
     private AudioSettings settings;
     private boolean minimised;
 
+    /**
+     * Loads the saved levels now, falling back to the defaults if they can't be read.
+     *
+     * @param store     where the levels are read from and saved to
+     * @param onFailure told of any read or save that failed, for the log; must not throw
+     */
     public AudioControls(AudioSettingsStore store, Consumer<RuntimeException> onFailure) {
         this.store = store;
         this.onFailure = onFailure;
         this.settings = read();
     }
 
-    /** The levels now. */
+    /**
+     * The levels now.
+     *
+     * @return the current settings, including the mute
+     */
     public AudioSettings settings() {
         return settings;
     }
 
-    /** The MUSIC plate: up a step, round to off, un-muting. Saved at once. */
+    /**
+     * The MUSIC plate: up a step, round to off, un-muting. Saved at once.
+     *
+     * @return the settings after the change
+     */
     public AudioSettings cycleMusic() {
         return change(settings.cycleMusic());
     }
 
-    /** The SOUND plate, likewise. */
+    /**
+     * The SOUND plate, likewise.
+     *
+     * @return the settings after the change
+     */
     public AudioSettings cycleSound() {
         return change(settings.cycleSound());
     }
 
-    /** M: silence everything, or bring it back at the levels it had. Saved at once. */
+    /**
+     * M: silence everything, or bring it back at the levels it had. Saved at once.
+     *
+     * @return the settings after the change; {@link AudioSettings#muted()} says which way it went
+     */
     public AudioSettings toggleMute() {
         return change(settings.toggleMute());
     }
@@ -50,17 +72,27 @@ public final class AudioControls {
      * stops either: the audio keeps time with the picture, which goes on rendering,
      * so a cue due meanwhile plays out unheard rather than minutes late. Not a
      * setting, so nothing is saved.
+     *
+     * @param minimised true when the window has gone down, false when it is back
      */
     public void windowMinimised(boolean minimised) {
         this.minimised = minimised;
     }
 
-    /** The music's gain as it should sound now: the level, or silence while minimised. */
+    /**
+     * The music's gain as it should sound now: the level, or silence while minimised.
+     *
+     * @return a linear amplitude from 0 (silent) to 1 (as mastered)
+     */
     public float musicGain() {
         return minimised ? 0f : settings.musicGain();
     }
 
-    /** The sound effects' gain as they should sound now, likewise. */
+    /**
+     * The sound effects' gain as they should sound now, likewise.
+     *
+     * @return a linear amplitude from 0 (silent) to 1 (as mastered)
+     */
     public float soundGain() {
         return minimised ? 0f : settings.soundGain();
     }

@@ -22,11 +22,23 @@ final class VariantPicker {
     private final Random random;
     private final Map<String, Integer> last = new HashMap<>();
 
+    /**
+     * A picker with no history yet.
+     *
+     * @param random where the choices come from; seed it to pin the sequence in a test
+     */
     VariantPicker(Random random) {
         this.random = random;
     }
 
-    /** A version of {@code stem}, counted from 1, that is not the one it played last. */
+    /**
+     * A version of {@code stem}, counted from 1, that is not the one it played last.
+     *
+     * @param stem     the sound and weight the versions belong to, e.g. {@code blade_light}
+     * @param versions how many versions the stem has, 1 or more
+     * @return a version from 1 to {@code versions}; always 1 when there is only one
+     * @throws IllegalArgumentException if {@code versions} is less than 1
+     */
     int pick(String stem, int versions) {
         if (versions < 1) {
             throw new IllegalArgumentException(stem + " needs at least one version, got " + versions);

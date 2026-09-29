@@ -59,21 +59,38 @@ public enum Sound {
         this.scale = scale;
     }
 
-    /** How many versions of each weight were rendered. */
+    /**
+     * How many versions of each weight were rendered.
+     *
+     * @return 1 or more; the file names count from 1
+     */
     public int versions() {
         return versions;
     }
 
-    /** The weights rendered for this sound; empty when it is not weighted. */
+    /**
+     * The weights rendered for this sound; empty when it is not weighted.
+     *
+     * @return the weights, lightest first
+     */
     public List<Weight> weights() {
         return scale == null ? List.of() : scale.weights();
     }
 
+    /**
+     * The scale a weighted sound is split along.
+     *
+     * @return the scale, or null for an unweighted sound
+     */
     Scale scale() {
         return scale;
     }
 
-    /** Whether each play is nudged in pitch and volume: only sounds heard often. */
+    /**
+     * Whether each play is nudged in pitch and volume: only sounds heard often.
+     *
+     * @return true exactly when the sound has more than one version
+     */
     public boolean varies() {
         return versions > 1;
     }
@@ -82,6 +99,8 @@ public enum Sound {
      * Whether pending copies of this sound become one when an animation is
      * skipped. Only the flip: a skipped deal lands four cards at once, and four
      * flips on the same instant are one louder noise, not four cards.
+     *
+     * @return true for {@link #FLIP} only
      */
     public boolean collapsesOnSkip() {
         return this == FLIP;
@@ -93,6 +112,8 @@ public enum Sound {
      * riffle. One chime, because a second on top of the first is only louder.
      * Two of everything else: fast play lands a second kill while the first
      * still rings, and cutting it off mid-ring would click.
+     *
+     * @return the polyphony limit: 4, 1 or 2
      */
     public int voices() {
         return switch (this) {
@@ -102,7 +123,12 @@ public enum Sound {
         };
     }
 
-    /** The file stem of an unweighted sound: {@code click}. */
+    /**
+     * The file stem of an unweighted sound: {@code click}.
+     *
+     * @return the sound's name in lower case; the version number is appended to it
+     * @throws IllegalArgumentException if this sound is weighted
+     */
     public String stem() {
         if (scale != null) {
             throw new IllegalArgumentException(this + " is weighted; name a weight");
@@ -110,7 +136,14 @@ public enum Sound {
         return fileName();
     }
 
-    /** The file stem of a weighted sound: {@code blade_light}. */
+    /**
+     * The file stem of a weighted sound: {@code blade_light}.
+     *
+     * @param weight one of {@link #weights()}
+     * @return the sound's name and the weight's, in lower case, joined by an underscore
+     * @throws IllegalArgumentException if this sound has no files at that weight, or none
+     *                                  at all because it is unweighted
+     */
     public String stem(Weight weight) {
         if (!weights().contains(weight)) {
             throw new IllegalArgumentException(this + " has no " + weight + " files");
@@ -118,7 +151,11 @@ public enum Sound {
         return fileName() + "_" + weight.fileName();
     }
 
-    /** Every file this sound was rendered to, without the extension. */
+    /**
+     * Every file this sound was rendered to, without the extension.
+     *
+     * @return one name per weight and version, e.g. {@code thud_light_1}
+     */
     List<String> files() {
         List<String> stems = new ArrayList<>();
         if (scale == null) {
@@ -137,7 +174,11 @@ public enum Sound {
         return files;
     }
 
-    /** Every sound-effect file the game expects to find, without the extension. */
+    /**
+     * Every sound-effect file the game expects to find, without the extension.
+     *
+     * @return an unmodifiable list, grouped by sound in declaration order
+     */
     public static List<String> allFiles() {
         List<String> files = new ArrayList<>();
         for (Sound sound : values()) {

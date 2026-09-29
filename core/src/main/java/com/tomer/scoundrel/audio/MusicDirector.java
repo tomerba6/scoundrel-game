@@ -37,21 +37,46 @@ import java.util.List;
  */
 public final class MusicDirector {
 
-    public enum Track { MENU, RUN }
+    /** The two looping streams; at most one is heard at a time, except while crossfading. */
+    public enum Track {
+        /** Title, mode select, ledger, trophies, and the sprite lab. */
+        MENU,
+        /** A run or the tutorial, from the deal through the end panel. */
+        RUN
+    }
 
     /** The one-shots: the two end-of-run cues, and the trophy chime. */
-    public enum Cue { WIN, DEATH, CHIME }
+    public enum Cue {
+        /** The run was won; plays once the winning blow has landed and the music faded. */
+        WIN,
+        /** The run was lost; plays as YOU DIED grows in. */
+        DEATH,
+        /** Trophies were unlocked; plays after the end cue has finished. */
+        CHIME
+    }
 
     /** Something to start. Volumes are not commands; they are read every frame from {@link #gain}. */
     public sealed interface Command {
     }
 
-    /** Start a track from its beginning. */
+    /**
+     * Start a track from its beginning.
+     *
+     * @param track the track to rewind and play
+     */
     public record Restart(Track track) implements Command {
     }
 
-    /** Play a one-shot. */
+    /**
+     * Play a one-shot.
+     *
+     * @param cue the cue to play once
+     */
     public record Play(Cue cue) implements Command {
+    }
+
+    /** Creates a director in silence; the first screen shown starts the music. */
+    public MusicDirector() {
     }
 
     /** Menu to run and back. A starting value, tuned by ear in listening round 3. */
@@ -117,6 +142,10 @@ public final class MusicDirector {
      * The death cinematic began. Times are seconds from now: the music fades
      * between {@code fadeStart} and {@code fadeEnd}, and the cue plays at
      * {@code cueAt}.
+     *
+     * @param fadeStart seconds from now until the run music starts to fade, 0 or more
+     * @param fadeEnd   seconds from now until it is silent; equal to {@code fadeStart} for a cut
+     * @param cueAt     seconds from now until the death cue plays
      */
     public void dying(float fadeStart, float fadeEnd, float cueAt) {
         beginRunEnd();
@@ -157,7 +186,11 @@ public final class MusicDirector {
         chimeIfReady();
     }
 
-    /** A one-shot finished playing. Only this run's own end cue counts. */
+    /**
+     * A one-shot finished playing. Only this run's own end cue counts.
+     *
+     * @param cue the cue whose stream just ended; a stale one from an earlier end is ignored
+     */
     public void cueEnded(Cue cue) {
         if (endCue != null && cue == endCue) {
             cueFinished = true;
@@ -168,6 +201,10 @@ public final class MusicDirector {
     /**
      * Moves time on and returns what to start. {@code boardIdle} is whether the
      * board has finished animating, which only a win waits for.
+     *
+     * @param delta     seconds since the last tick, 0 or more
+     * @param boardIdle whether the board has finished animating; true on any non-run screen
+     * @return what to start this frame, in order; usually empty
      */
     public List<Command> tick(float delta, boolean boardIdle) {
         for (Track track : Track.values()) {
@@ -200,6 +237,9 @@ public final class MusicDirector {
      * How loud a track should play right now, 0..1, before the player's volume.
      * On an equal-power curve, so a crossfade does not dip in the middle: two
      * unrelated tracks at half amplitude each sound quieter than either alone.
+     *
+     * @param track the track to ask about
+     * @return its gain, 0 (silent) to 1 (full), to multiply by the player's music gain
      */
     public float gain(Track track) {
         return (float) Math.sin(level(track) * Math.PI / 2);

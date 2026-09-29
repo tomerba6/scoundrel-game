@@ -37,11 +37,24 @@ enum Scale {
      */
     static final float NUDGE = 0.04f;
 
+    /** The lowest value on the scale; anything below plays as this. */
     final int min;
+    /** The top of the light band, inclusive. */
     final int lightMax;
+    /** The top of the medium band, inclusive; equal to {@code lightMax} when there is none. */
     final int mediumMax;
+    /** The highest value on the scale; anything above plays as this. */
     final int max;
 
+    /**
+     * A scale of three bands, {@code min..lightMax}, {@code lightMax+1..mediumMax} and
+     * {@code mediumMax+1..max}.
+     *
+     * @param min       the lowest value
+     * @param lightMax  the top of the light band
+     * @param mediumMax the top of the medium band; {@code lightMax} for no medium band
+     * @param max       the highest value
+     */
     Scale(int min, int lightMax, int mediumMax, int max) {
         this.min = min;
         this.lightMax = lightMax;
@@ -49,13 +62,23 @@ enum Scale {
         this.max = max;
     }
 
-    /** The weights a value on this scale can land in: every one, unless the medium band is empty. */
+    /**
+     * The weights a value on this scale can land in: every one, unless the medium band is empty.
+     *
+     * @return the weights, lightest first; each needs its own rendered files
+     */
     List<Weight> weights() {
         return mediumMax > lightMax
                 ? List.of(Weight.LIGHT, Weight.MEDIUM, Weight.HEAVY)
                 : List.of(Weight.LIGHT, Weight.HEAVY);
     }
 
+    /**
+     * Which band a value falls in, after clamping it to the scale.
+     *
+     * @param value a card value or a damage figure, any int
+     * @return the weight whose file plays for it
+     */
     Weight weightOf(int value) {
         int v = clamp(value);
         if (v <= lightMax) {
@@ -64,7 +87,12 @@ enum Scale {
         return v <= mediumMax ? Weight.MEDIUM : Weight.HEAVY;
     }
 
-    /** The playback pitch for a value: 1 in the middle of its weight, higher below, lower above. */
+    /**
+     * The playback pitch for a value: 1 in the middle of its weight, higher below, lower above.
+     *
+     * @param value a card value or a damage figure, any int; clamped to the scale
+     * @return a pitch multiplier within {@code 1 ± NUDGE}
+     */
     float pitchOf(int value) {
         int v = clamp(value);
         return switch (weightOf(v)) {
@@ -74,7 +102,14 @@ enum Scale {
         };
     }
 
-    /** Linear across the band, so neighbours are evenly spaced whatever its width. */
+    /**
+     * Linear across the band, so neighbours are evenly spaced whatever its width.
+     *
+     * @param value a value inside the band
+     * @param lo    the band's lowest value, pitched {@code 1 + NUDGE}
+     * @param hi    the band's highest value, pitched {@code 1 - NUDGE}
+     * @return the pitch multiplier; exactly 1 for a one-value band
+     */
     static float pitchWithin(int value, int lo, int hi) {
         if (hi <= lo) {
             return 1f;
