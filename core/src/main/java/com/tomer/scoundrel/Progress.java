@@ -25,6 +25,12 @@ public final class Progress {
      * tutorial-seen marker (so a full reset makes the player new again). Each
      * {@code clear()} is a recoverable soft-delete — the file is moved aside to a
      * {@code .bak} sibling — so an accidental reset stays recoverable from disk.
+     *
+     * @param runLog       the run history to clear
+     * @param achievements the unlocked latch to clear
+     * @param tutorial     the tutorial-seen marker to clear
+     * @throws java.io.UncheckedIOException if a file cannot be moved; the stores are cleared
+     *                                      in the order given, so earlier ones stay cleared
      */
     public static void eraseAll(RunLog runLog, AchievementStore achievements, TutorialFlag tutorial) {
         runLog.clear();

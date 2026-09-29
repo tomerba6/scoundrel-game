@@ -20,11 +20,21 @@ public final class CrashLog {
 
     private final Path file;
 
+    /**
+     * A log backed by one file, which need not exist yet.
+     *
+     * @param file where crashes are appended; the launcher uses {@code ~/.scoundrel/crash.log}
+     */
     public CrashLog(Path file) {
         this.file = file;
     }
 
-    /** Appends one timestamped crash entry. Never throws — a failed write is given up on quietly. */
+    /**
+     * Appends one timestamped crash entry. Never throws — a failed write is given up on quietly.
+     *
+     * @param throwable the crash, with its cause chain
+     * @param when      the moment to stamp the entry with
+     */
     public void record(Throwable throwable, Instant when) {
         try {
             if (file.getParent() != null) {
@@ -37,7 +47,14 @@ public final class CrashLog {
         }
     }
 
-    /** A readable entry: a timestamped header and the full stack trace, cause chain included. */
+    /**
+     * A readable entry: a timestamped header and the full stack trace, cause chain included.
+     *
+     * @param throwable the crash
+     * @param when      the moment for the header, printed as an ISO-8601 instant
+     * @return the entry, ending in a line separator so entries stack cleanly
+     * @see Throwable#printStackTrace(java.io.PrintWriter)
+     */
     public static String format(Throwable throwable, Instant when) {
         StringWriter stack = new StringWriter();
         throwable.printStackTrace(new PrintWriter(stack));
@@ -49,6 +66,10 @@ public final class CrashLog {
      * An uncaught-exception handler that records the crash then passes it on to
      * {@code chainTo} (the previous default handler), so recording is added
      * without swallowing the crash. The launcher installs the returned handler.
+     *
+     * @param chainTo the handler to pass the crash on to, or null to print its stack trace
+     * @return a handler that records the crash, stamped with the current time, then chains
+     * @see Thread#setDefaultUncaughtExceptionHandler(Thread.UncaughtExceptionHandler)
      */
     public Thread.UncaughtExceptionHandler asHandler(Thread.UncaughtExceptionHandler chainTo) {
         return (thread, throwable) -> {
