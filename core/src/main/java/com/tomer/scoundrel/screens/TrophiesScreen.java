@@ -31,6 +31,14 @@ public final class TrophiesScreen extends PixelScreen {
     private final List<List<String>> descriptions;
     private final int earned;
 
+    /**
+     * The trophies screen, read once from the store on entry. A store that cannot be
+     * read is logged and shown as nothing earned.
+     *
+     * @param game  the navigator, for the way back
+     * @param theme the shared fonts and textures
+     * @param store where the unlocked achievements are read from
+     */
     public TrophiesScreen(ScoundrelGame game, Theme theme, AchievementStore store) {
         super(game, theme);
 

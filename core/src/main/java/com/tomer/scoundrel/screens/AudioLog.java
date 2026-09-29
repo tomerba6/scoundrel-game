@@ -26,6 +26,13 @@ final class AudioLog {
     private final Consumer<String> sink;
     private final long start;
 
+    /**
+     * A log whose clock starts now.
+     *
+     * @param enabled whether anything is written at all
+     * @param nanos   the clock, in nanoseconds, like {@link System#nanoTime()}
+     * @param sink    where each finished line goes
+     */
     AudioLog(boolean enabled, LongSupplier nanos, Consumer<String> sink) {
         this.enabled = enabled;
         this.nanos = nanos;
@@ -33,15 +40,29 @@ final class AudioLog {
         this.start = nanos.getAsLong();
     }
 
-    /** The log as this process was launched: on if {@link LaunchSwitch#AUDIO_LOG} is, to standard out. */
+    /**
+     * The log as this process was launched: on if {@link LaunchSwitch#AUDIO_LOG} is, to standard out.
+     *
+     * @return a log on the system clock, writing to {@link System#out}
+     */
     static AudioLog fromLaunch() {
         return new AudioLog(LaunchSwitch.AUDIO_LOG.isOn(), System::nanoTime, System.out::println);
     }
 
+    /**
+     * Whether the log is on, so a caller can skip building a line nobody will read.
+     *
+     * @return true if lines are written
+     */
     boolean enabled() {
         return enabled;
     }
 
+    /**
+     * Writes one line, {@code audio <seconds> <event>}, when the log is on.
+     *
+     * @param event what happened, e.g. the sound's file name
+     */
     void log(String event) {
         if (enabled) {
             double seconds = (nanos.getAsLong() - start) / 1e9;

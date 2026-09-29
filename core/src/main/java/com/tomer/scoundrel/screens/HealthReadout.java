@@ -23,8 +23,16 @@ package com.tomer.scoundrel.screens;
  */
 record HealthReadout(int fill, int number, int offsetX, boolean healing, boolean bleeding) {
 
-    /** Where the bar is coming from and going to, in widths and in numbers. */
+    /**
+     * Where the bar is coming from and going to, in widths and in numbers.
+     *
+     * @param fromWidth  the fill before the move, in pixels
+     * @param toWidth    the fill after it, in pixels
+     * @param fromHealth the number before the move
+     * @param toHealth   the number after it; may be negative on a death
+     */
     record Change(int fromWidth, int toWidth, int fromHealth, int toHealth) {
+        /** No change in flight: the phase is {@link Phase#REST} and this is never read. */
         static final Change NONE = new Change(0, 0, 0, 0);
     }
 
@@ -34,10 +42,22 @@ record HealthReadout(int fill, int number, int offsetX, boolean healing, boolean
         REST,
         /** A drink is resolved but the bottle has not poured. The bar waits. */
         HELD,
+        /** The bottle has poured: the fill grows green toward the new health. */
         HEALING,
+        /** A hit landed: the fill drains, dried blood, and the bar jolts sideways. */
         BLEEDING
     }
 
+    /**
+     * What the bar shows this frame.
+     *
+     * @param phase     what the bar is doing
+     * @param health    the state's health, read only at rest
+     * @param maxHealth the ruleset's cap, which a full bar stands for
+     * @param change    the move in flight; ignored at rest
+     * @param elapsed   seconds on the change's pulse clock
+     * @return the fill, the number and the jolt to draw
+     */
     static HealthReadout of(Phase phase, int health, int maxHealth,
                             Change change, float elapsed) {
         return switch (phase) {

@@ -17,13 +17,24 @@ import java.util.Locale;
  *
  * <p>The date a trophy was won is kept, which the reference render drops. It is
  * real information the row has the width for.
+ *
+ * @param title       the trophy's name, upper-cased, or {@code ???} while hidden
+ * @param description what earns it, upper-cased, or a placeholder while hidden
+ * @param status      {@code EARNED <date>} or {@code LOCKED}
+ * @param earned      whether the seal is filled
  */
 record TrophyEntry(String title, String description, String status, boolean earned) {
 
     private static final DateTimeFormatter DAY =
             DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH).withZone(ZoneId.systemDefault());
 
-    /** {@code earnedAt} is null for a trophy that has not been won. */
+    /**
+     * {@code earnedAt} is null for a trophy that has not been won.
+     *
+     * @param achievement the catalog entry
+     * @param earnedAt    when it was first earned, or null
+     * @return the row, concealed if the trophy is hidden and not yet earned
+     */
     static TrophyEntry of(Achievement achievement, Instant earnedAt) {
         boolean earned = earnedAt != null;
         boolean concealed = achievement.hidden() && !earned;
@@ -35,15 +46,29 @@ record TrophyEntry(String title, String description, String status, boolean earn
                 earned);
     }
 
+    /**
+     * The row's background.
+     *
+     * @return {@code 0xRRGGBB}, earned or locked
+     */
     int rowColour() {
         return earned ? ScreenArt.ROW_EARNED : ScreenArt.ROW_LOCKED;
     }
 
+    /**
+     * The seal's fill: the one thing that says earned or locked.
+     *
+     * @return {@code 0xRRGGBB}, filled when earned, an empty well when locked
+     */
     int sealColour() {
         return earned ? ScreenArt.SEAL_EARNED : ScreenArt.SEAL_LOCKED;
     }
 
-    /** Earned rows are cream; locked ones sit back without being unreadable. */
+    /**
+     * Earned rows are cream; locked ones sit back without being unreadable.
+     *
+     * @return {@code 0xRRGGBB} for the row's text
+     */
     int textColour() {
         return earned ? ScreenArt.BODY : ScreenArt.TROPHY_LOCKED_TEXT;
     }

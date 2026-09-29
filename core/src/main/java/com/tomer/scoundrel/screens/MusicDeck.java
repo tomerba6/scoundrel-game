@@ -50,6 +50,14 @@ public final class MusicDeck implements Disposable {
     private float minimisedFor = -1f;
     private boolean reported;
 
+    /**
+     * Loads every stream, silent, and wires the cues' ends back to the director.
+     * A stream that fails to load is logged and left out.
+     *
+     * @param sounds   the sound bank, for the chime and the sound log
+     * @param director the director whose decisions this carries out
+     * @see com.badlogic.gdx.Audio#newMusic(com.badlogic.gdx.files.FileHandle)
+     */
     public MusicDeck(SoundBank sounds, MusicDirector director) {
         this.sounds = sounds;
         this.director = director;
@@ -81,7 +89,12 @@ public final class MusicDeck implements Disposable {
         sounds.log("loaded " + loaded.size() + " of " + StreamFile.values().length + " streams");
     }
 
-    /** The player's levels, 0..1 each: {@code AudioSettings.musicGain()} and {@code soundGain()}. */
+    /**
+     * The player's levels, 0..1 each: {@code AudioSettings.musicGain()} and {@code soundGain()}.
+     *
+     * @param music the music gain, applied to the tracks and the cues
+     * @param sound the sound-effects gain, applied to the torch
+     */
     public void setGains(float music, float sound) {
         this.musicGain = music;
         this.soundGain = sound;
@@ -92,6 +105,8 @@ public final class MusicDeck implements Disposable {
      * For the sound log: the window went down or came back. The silencing itself is
      * the gains ({@code AudioControls.windowMinimised}); here the streams simply run
      * on at them, keeping time with the picture, which LibGDX keeps rendering.
+     *
+     * @param minimised true when the window went down, false when it came back
      */
     public void windowMinimised(boolean minimised) {
         sounds.log(minimised ? "window minimised (or closing): silent, keeping time" : "window restored");
@@ -103,6 +118,7 @@ public final class MusicDeck implements Disposable {
      * One frame: moves the director on, carries out what it asks for, and sets every
      * stream's volume.
      *
+     * @param delta      seconds since the last frame
      * @param boardIdle  whether the board has stopped animating — a win waits for it
      * @param torchLight how brightly the torch is drawn, 0..1 — the death gutters it
      */

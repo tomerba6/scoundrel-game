@@ -19,6 +19,8 @@ final class SpentMask {
     }
 
     /**
+     * Drains a potion sprite to the bone ramp.
+     *
      * @param argb source pixels, row-major, alpha in the high byte
      * @return a new array the same size; transparent pixels stay transparent
      */

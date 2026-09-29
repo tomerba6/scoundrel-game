@@ -21,7 +21,17 @@ final class PipMask {
     /** The mock's SVG viewBox, which every coordinate below is in. */
     private static final float BOX = 64f;
 
-    enum Suit { CLUBS, DIAMONDS, HEARTS, SPADES }
+    /** The four suits a pip can show; monsters are clubs or spades, weapons diamonds, potions hearts. */
+    enum Suit {
+        /** Three discs and a stem. */
+        CLUBS,
+        /** A rhombus, stepped at exactly 45°. */
+        DIAMONDS,
+        /** Two discs over a triangle. */
+        HEARTS,
+        /** A triangle over two discs, and a stem. */
+        SPADES
+    }
 
     private interface Shape {
         boolean holds(float x, float y);
@@ -93,7 +103,12 @@ final class PipMask {
         };
     }
 
-    /** True where the pip is inked, row-major, {@link #SIZE} square. */
+    /**
+     * True where the pip is inked, row-major, {@link #SIZE} square.
+     *
+     * @param suit the suit to rasterise
+     * @return a new array of {@code SIZE * SIZE} cells, top row first
+     */
     static boolean[] generate(Suit suit) {
         Shape[] shapes = shapesFor(suit);
         boolean[] mask = new boolean[SIZE * SIZE];

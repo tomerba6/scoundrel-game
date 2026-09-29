@@ -14,7 +14,12 @@ final class FeedText {
     private FeedText() {
     }
 
-    /** Events the player should read; null for ones the board already shows. */
+    /**
+     * Events the player should read; null for ones the board already shows.
+     *
+     * @param event one event from a move's result
+     * @return the feed line, in sentence case, or null for a deal, a win or a loss
+     */
     static String line(GameEvent event) {
         return switch (event) {
             case GameEvent.MonsterDefeated m -> {
@@ -40,12 +45,22 @@ final class FeedText {
         };
     }
 
-    /** M during a run: nothing on the board changes, so the feed says what it did. */
+    /**
+     * M during a run: nothing on the board changes, so the feed says what it did.
+     *
+     * @param muted whether the press just muted (true) or unmuted
+     * @return {@code Sound off} or {@code Sound on}
+     */
     static String mute(boolean muted) {
         return muted ? "Sound off" : "Sound on";
     }
 
-    /** "the Queen of clubs", "the 7 of hearts" — the fonts have no suit glyphs. */
+    /**
+     * "the Queen of clubs", "the 7 of hearts" — the fonts have no suit glyphs.
+     *
+     * @param card any card; one whose id has no suit letter falls back to type and value
+     * @return the card's name as the feed prints it, starting in lower case
+     */
     static String cardName(Card card) {
         String id = card.id();
         char suitChar = id.charAt(id.length() - 1);

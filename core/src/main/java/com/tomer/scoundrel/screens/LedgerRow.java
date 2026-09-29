@@ -18,6 +18,18 @@ import java.util.Locale;
  * that coloured itself wrong, or an outcome that read "cleared" for a death,
  * would be almost invisible in a render and obvious in a test. The screen is
  * left with nothing but the placing.
+ *
+ * @param numeral       the rank as a Roman numeral, {@code I} to {@code X}
+ * @param score         the score as printed
+ * @param scoreColour   {@code 0xRRGGBB}: {@link ScreenArt#SCORE_NEGATIVE} below zero,
+ *                      {@link ScreenArt#SCORE_POSITIVE} from zero up
+ * @param outcome       {@code CLEARED} or {@code DEFEATED}
+ * @param outcomeColour {@code 0xRRGGBB} for the outcome word
+ * @param mode          the mode's title, upper-cased, or the raw id if it is unknown
+ * @param date          the day it ended, e.g. {@code SEP 29}, in the local zone
+ * @param time          the run's length, as {@link ClockText} prints it
+ * @param slain         monsters defeated, as printed
+ * @param stripe        {@code 0xRRGGBB} of the row's background, alternating
  */
 record LedgerRow(String numeral, String score, int scoreColour, String outcome,
                  int outcomeColour, String mode, String date, String time,
@@ -34,6 +46,14 @@ record LedgerRow(String numeral, String score, int scoreColour, String outcome,
     private static final DateTimeFormatter DAY =
             DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH).withZone(ZoneId.systemDefault());
 
+    /**
+     * The row for one run.
+     *
+     * @param index the run's place in the table, from 0 (the best) to 9
+     * @param run   the run
+     * @return everything the table draws for it
+     * @throws ArrayIndexOutOfBoundsException if {@code index} is past the tenth row
+     */
     static LedgerRow of(int index, RunRecord run) {
         boolean won = run.outcome() == Status.WON;
         return new LedgerRow(

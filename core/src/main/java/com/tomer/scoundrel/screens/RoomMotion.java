@@ -16,6 +16,7 @@ package com.tomer.scoundrel.screens;
  */
 final class RoomMotion {
 
+    /** What a room card is doing this frame. */
     enum Phase {
         /** Sitting in its slot; nothing is happening to it. */
         RESTING,
@@ -31,10 +32,13 @@ final class RoomMotion {
     }
 
     /**
+     * Which phase a room card is in, from what the board knows about it.
+     *
      * @param wasOnBoard     whether the card was already face-up before this move
      * @param effectRunning  whether something is still happening to the resolved card
      * @param closing        whether the survivors are re-centring
      * @param dealing        whether the dungeon still has cards to send up
+     * @return the card's phase: an old card rests or slides, a new one hides, then deals
      */
     static Phase of(boolean wasOnBoard, boolean effectRunning, boolean closing, boolean dealing) {
         if (wasOnBoard) {

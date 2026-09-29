@@ -19,6 +19,11 @@ final class CardFrame {
     private final TextureRegion pixel;
     private final Color tint = new Color();
 
+    /**
+     * A frame drawer on the theme's single white pixel.
+     *
+     * @param theme where the white pixel comes from
+     */
     CardFrame(Theme theme) {
         this.pixel = theme.whiteRegion();
     }
@@ -26,6 +31,11 @@ final class CardFrame {
     /**
      * Draws one card with its top-left at the design-space point
      * {@code (slotX, slotY)} — y measured downward, as the art is specified.
+     *
+     * @param batch the board's batch, already begun; its colour is restored after each fill
+     * @param type  the card's type, which picks the palette
+     * @param slotX the card's left edge, in design pixels
+     * @param slotY the card's top edge, in design pixels measured downward
      */
     void draw(Batch batch, CardType type, int slotX, int slotY) {
         draw(batch, type, slotX, slotY, CardArt.CARD_W, CardArt.CARD_H);
@@ -36,6 +46,13 @@ final class CardFrame {
      * scaled by the same ratio and rounded, so a shrinking card keeps its
      * proportions and stays on whole pixels at each hop — it is only ever drawn
      * at a handful of discrete sizes, never tweened between them.
+     *
+     * @param batch  the board's batch, already begun
+     * @param type   the card's type, which picks the palette
+     * @param slotX  the card's left edge, in design pixels
+     * @param slotY  the card's top edge, in design pixels measured downward
+     * @param width  the card's width at this size, in design pixels
+     * @param height the card's height at this size, in design pixels
      */
     void draw(Batch batch, CardType type, int slotX, int slotY, int width, int height) {
         CardArt.Palette palette = CardArt.paletteFor(type);

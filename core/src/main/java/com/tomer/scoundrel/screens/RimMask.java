@@ -20,6 +20,8 @@ final class RimMask {
     }
 
     /**
+     * Builds the outline of a sprite frame.
+     *
      * @param argb   source pixels, row-major, alpha in the high byte
      * @param width  source width in pixels
      * @param height source height in pixels

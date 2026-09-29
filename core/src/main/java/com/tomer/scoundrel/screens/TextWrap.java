@@ -21,8 +21,13 @@ final class TextWrap {
     }
 
     /**
+     * Wraps {@code text} at its spaces, filling each line greedily.
+     *
+     * @param text     the words to wrap, separated by single spaces
      * @param maxWidth how wide a line may be, in the same units {@code measure} returns
      * @param maxLines how many lines the row has room for; the last one takes any overflow
+     * @param measure  a line's width, usually the font's measured width in pixels
+     * @return between 1 and {@code maxLines} lines, every word kept
      */
     static List<String> wrap(String text, int maxWidth, int maxLines, ToIntFunction<String> measure) {
         String[] words = text.split(" ");

@@ -20,6 +20,12 @@ import com.badlogic.gdx.utils.viewport.Viewport;
  */
 final class PixelViewport extends Viewport {
 
+    /**
+     * A viewport onto a fixed design space, with its own orthographic camera.
+     *
+     * @param worldWidth  the design width, 1280 on every screen
+     * @param worldHeight the design height, 720 on every screen
+     */
     PixelViewport(float worldWidth, float worldHeight) {
         setWorldSize(worldWidth, worldHeight);
         setCamera(new OrthographicCamera());

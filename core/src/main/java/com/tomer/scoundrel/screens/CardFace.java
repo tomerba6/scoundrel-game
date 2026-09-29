@@ -23,12 +23,25 @@ final class CardFace {
     private final GlyphLayout layout = new GlyphLayout();
     private final Color tint = new Color();
 
+    /**
+     * A printer sharing the screen's fonts and pip regions.
+     *
+     * @param theme where the Silkscreen fonts come from
+     * @param pips  the suit pips, one per suit
+     */
     CardFace(Theme theme, Pips pips) {
         this.theme = theme;
         this.pips = pips;
     }
 
-    /** The card's printing, at a card whose top-left is the design-space slot. */
+    /**
+     * The card's printing, at a card whose top-left is the design-space slot.
+     *
+     * @param batch the board's batch, already begun; font and batch colours are left white
+     * @param card  the card to print
+     * @param slotX the card's left edge, in 1280×720 design pixels
+     * @param slotY the card's top edge, in design pixels measured down from the top
+     */
     void draw(Batch batch, Card card, int slotX, int slotY) {
         CardArt.Palette palette = CardArt.paletteFor(card.type());
         drawHeader(batch, card, slotX, slotY, palette);

@@ -34,6 +34,7 @@ final class SpriteBob {
      */
     private static final int[] STEP = {0, -2, -2, 0, 0, 2, 2, 0};
 
+    /** How many steps one breath has: eight. */
     static final int STEPS = STEP.length;
     /** One whole breath: eight steps at the idle rate, a little over a second. */
     static final float PERIOD = STEPS / (float) Frames.IDLE_FPS;
@@ -47,6 +48,9 @@ final class SpriteBob {
      *
      * <p>Tolerates a negative time rather than throwing — a clock that has not
      * started, or one that has been rewound, should still draw something.
+     *
+     * @param elapsed seconds of board time, any value
+     * @return the vertical offset: -2, 0 or 2 design pixels
      */
     static int offsetAt(float elapsed) {
         int step = Frames.at(elapsed, Frames.IDLE_FPS) % STEPS;

@@ -41,6 +41,15 @@ public final class RecordsScreen extends PixelScreen {
     /** The destructive confirmation, over the ledger. */
     private boolean confirming;
 
+    /**
+     * The ledger, read once on entry. A store that cannot be read is logged and
+     * shown as empty rather than taking the screen down.
+     *
+     * @param game         the navigator, for the way back and the erase
+     * @param theme        the shared fonts and textures
+     * @param runLog       where the runs are read from
+     * @param achievements where the trophy count, named in the erase dialog, is read from
+     */
     public RecordsScreen(ScoundrelGame game, Theme theme, RunLog runLog,
                          AchievementStore achievements) {
         super(game, theme);

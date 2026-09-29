@@ -22,7 +22,12 @@ import java.util.OptionalLong;
  */
 final class LedgerTotals {
 
-    /** A row of the panel: a dim label on the left, a bright value on the right. */
+    /**
+     * A row of the panel: a dim label on the left, a bright value on the right.
+     *
+     * @param label what the figure is, upper-cased, e.g. {@code MONSTERS SLAIN}
+     * @param value the figure as it is printed, or an em dash when there is none
+     */
     record Stat(String label, String value) {
     }
 
@@ -32,6 +37,12 @@ final class LedgerTotals {
     private LedgerTotals() {
     }
 
+    /**
+     * The eight figures for a history.
+     *
+     * @param records every recorded run, all modes together
+     * @return eight rows, best score first and total time last
+     */
     static List<Stat> of(List<RunRecord> records) {
         RunTotals totals = RunTotals.of(records);
         return List.of(

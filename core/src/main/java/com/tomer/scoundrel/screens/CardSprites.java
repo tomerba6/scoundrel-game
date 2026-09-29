@@ -38,7 +38,13 @@ final class CardSprites {
     private CardSprites() {
     }
 
-    /** The base region for a card — frame 1 of its idle cycle, pixel-identical. */
+    /**
+     * The base region for a card — frame 1 of its idle cycle, pixel-identical.
+     *
+     * @param card a card of the standard deck's values
+     * @return the atlas region name, e.g. {@code creature_12_<name>_spades} or
+     *         {@code weapon_07_<name>}; the value is zero-padded to two digits
+     */
     static String regionName(Card card) {
         int value = card.value();
         return switch (card.type()) {
@@ -52,6 +58,9 @@ final class CardSprites {
      * What to call this card on screen — {@code BROADAXE}, {@code DEEP OGRE}.
      * Read back out of the region name, so the name the rail shows and the
      * sprite beside it can never disagree.
+     *
+     * @param card a card of the standard deck's values
+     * @return the card's name, upper-cased, words separated by spaces, without a suit
      */
     static String displayName(Card card) {
         String region = regionName(card);
@@ -66,6 +75,9 @@ final class CardSprites {
     /**
      * The stem to pass to {@code atlas.findRegions}, which returns the five idle
      * frames in index order.
+     *
+     * @param card a card of the standard deck's values
+     * @return the region name with {@code _idle} appended
      */
     static String idleStem(Card card) {
         return regionName(card) + "_idle";

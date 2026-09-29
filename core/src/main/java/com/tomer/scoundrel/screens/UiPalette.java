@@ -74,14 +74,30 @@ final class UiPalette {
     private UiPalette() {
     }
 
+    /**
+     * Whether a colour is one of the drawn-in-code colours.
+     *
+     * @param rgb the colour as {@code 0xRRGGBB}, no alpha
+     * @return true if it is in this tier
+     */
     static boolean contains(int rgb) {
         return COLOURS.contains(rgb);
     }
 
+    /**
+     * Every colour in this tier, for the palette test to check against the ramps.
+     *
+     * @return an unmodifiable set of {@code 0xRRGGBB} values
+     */
     static Set<Integer> all() {
         return COLOURS;
     }
 
+    /**
+     * How many colours this tier holds.
+     *
+     * @return the number of distinct colours in {@link #all()}
+     */
     static int size() {
         return COLOURS.size();
     }

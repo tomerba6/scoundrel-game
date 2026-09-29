@@ -12,11 +12,13 @@ package com.tomer.scoundrel.screens;
  */
 final class BoardEscape {
 
+    /** What one press of ESC does. */
     enum Action {
         /** Put the abandon-run question up. */
         ASK,
         /** Take the question down: ESC is the safe answer, as KEEP PLAYING is. */
         CLOSE_DIALOG,
+        /** Close the move chooser, leaving its card unresolved. */
         CLOSE_CHOOSER,
         /** Skip the death to the end panel, as a click through it does. */
         SETTLE,
@@ -27,6 +29,16 @@ final class BoardEscape {
     private BoardEscape() {
     }
 
+    /**
+     * What ESC does now, innermost first.
+     *
+     * @param asking       whether the abandon-run question is up
+     * @param deathPlaying whether the death cinematic is still playing
+     * @param runOver      whether the game is won or lost
+     * @param chooserOpen  whether the move chooser is open on a card
+     * @param tutorial     whether this board is the tutorial
+     * @return the action for the first of those that holds, or {@link Action#ASK} mid-run
+     */
     static Action of(boolean asking, boolean deathPlaying, boolean runOver,
                      boolean chooserOpen, boolean tutorial) {
         if (asking) {
