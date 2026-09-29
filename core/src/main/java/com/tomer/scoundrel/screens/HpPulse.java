@@ -46,6 +46,11 @@ final class HpPulse {
      * Sideways displacement of the whole bar, alternating each frame so it
      * reads as a hit rather than a lean. It runs for as long as the bar is
      * draining, so a big hit shakes throughout instead of settling early.
+     *
+     * @param fromWidth the fill before the hit, in pixels
+     * @param toWidth   the fill after it, in pixels; below zero on a killing blow
+     * @param elapsed   seconds on the hit's clock
+     * @return -4 or 4 design pixels, alternating, while shaking; else 0
      */
     static int barOffset(int fromWidth, int toWidth, float elapsed) {
         int frame = frameOf(elapsed);
@@ -67,6 +72,11 @@ final class HpPulse {
      * holds for the whole drain, so a big hit does not read as settled while
      * the bar is still bleeding; the three-frame floor covers a hit that takes
      * nothing off.
+     *
+     * @param fromWidth the fill before the hit, in pixels
+     * @param toWidth   the fill after it, in pixels
+     * @param elapsed   seconds on the hit's clock
+     * @return true for the first three frames and for as long as the bar drains
      */
     static boolean numberBloodied(int fromWidth, int toWidth, float elapsed) {
         int frame = frameOf(elapsed);
@@ -76,7 +86,14 @@ final class HpPulse {
         return frame < BLOOD_FRAMES || bleeding(fromWidth, toWidth, elapsed);
     }
 
-    /** And green for as long as a drink is still filling the bar. */
+    /**
+     * And green for as long as a drink is still filling the bar.
+     *
+     * @param fromWidth the fill before the drink, in pixels
+     * @param toWidth   the fill after it, in pixels
+     * @param elapsed   seconds on the heal's clock
+     * @return true while the fill is still growing toward {@code toWidth}
+     */
     static boolean numberHealed(int fromWidth, int toWidth, float elapsed) {
         return toWidth > fromWidth && healWidth(fromWidth, toWidth, elapsed) < toWidth;
     }
@@ -86,6 +103,11 @@ final class HpPulse {
      * frame and stops exactly on {@code toWidth}, so a partial last segment
      * lands on the right number rather than undershooting. Never negative — a
      * killing blow empties the bar and stops there.
+     *
+     * @param fromWidth the fill before the hit, in pixels
+     * @param toWidth   the fill after it, in pixels; below zero on a killing blow
+     * @param elapsed   seconds on the hit's clock
+     * @return the fill this frame, in pixels, from {@code fromWidth} down to {@code toWidth} (or 0)
      */
     static int damageWidth(int fromWidth, int toWidth, float elapsed) {
         if (toWidth >= fromWidth) {
@@ -95,12 +117,26 @@ final class HpPulse {
         return Math.max(Math.max(toWidth, 0), drained);
     }
 
-    /** Whether the bar is still losing ground, and so painted in blood. */
+    /**
+     * Whether the bar is still losing ground, and so painted in blood.
+     *
+     * @param fromWidth the fill before the hit, in pixels
+     * @param toWidth   the fill after it, in pixels
+     * @param elapsed   seconds on the hit's clock
+     * @return true until the drain reaches {@code toWidth}
+     */
     static boolean bleeding(int fromWidth, int toWidth, float elapsed) {
         return toWidth < fromWidth && damageWidth(fromWidth, toWidth, elapsed) > toWidth;
     }
 
-    /** Over only when both the jolt and the drain have finished. */
+    /**
+     * Over only when both the jolt and the drain have finished.
+     *
+     * @param fromWidth the fill before the hit, in pixels
+     * @param toWidth   the fill after it, in pixels
+     * @param elapsed   seconds on the hit's clock
+     * @return true once the pulse has nothing left to show
+     */
     static boolean damageFinished(int fromWidth, int toWidth, float elapsed) {
         return elapsed >= JOLT_TOTAL && !bleeding(fromWidth, toWidth, elapsed);
     }
@@ -110,6 +146,11 @@ final class HpPulse {
      * a frame from {@code fromWidth} and stops exactly on {@code toWidth}, so a
      * partial last step still lands on the right number rather than
      * overshooting and snapping back.
+     *
+     * @param fromWidth the fill before the drink, in pixels
+     * @param toWidth   the fill after it, in pixels
+     * @param elapsed   seconds on the heal's clock
+     * @return the fill this frame, in pixels, from {@code fromWidth} up to {@code toWidth}
      */
     static int healWidth(int fromWidth, int toWidth, float elapsed) {
         if (toWidth <= fromWidth) {
@@ -119,6 +160,14 @@ final class HpPulse {
         return Math.min(toWidth, grown);
     }
 
+    /**
+     * Whether the fill has reached its new width.
+     *
+     * @param fromWidth the fill before the drink, in pixels
+     * @param toWidth   the fill after it, in pixels
+     * @param elapsed   seconds on the heal's clock
+     * @return true once {@link #healWidth} has reached {@code toWidth}
+     */
     static boolean healFinished(int fromWidth, int toWidth, float elapsed) {
         return healWidth(fromWidth, toWidth, elapsed) >= toWidth;
     }

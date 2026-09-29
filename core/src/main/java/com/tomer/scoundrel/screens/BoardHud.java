@@ -26,6 +26,11 @@ final class BoardHud {
     private final GlyphLayout layout = new GlyphLayout();
     private final Color tint = new Color();
 
+    /**
+     * A HUD drawing on the theme's white pixel and fonts.
+     *
+     * @param theme the shared fonts and textures
+     */
     BoardHud(Theme theme) {
         this.theme = theme;
         this.pixel = theme.whiteRegion();
@@ -34,6 +39,9 @@ final class BoardHud {
     }
 
     /**
+     * The health bar at rest, filled to match {@code health}.
+     *
+     * @param batch     the board's batch, already begun
      * @param health    current health, which may be zero or negative
      * @param maxHealth the ruleset's cap, which the bar is scaled against
      * @param healing   paints the fill in the heal colour for the pulse
@@ -44,6 +52,13 @@ final class BoardHud {
     }
 
     /**
+     * The health bar mid-change: the fill, the jolt and the number's colour are
+     * the caller's, from {@link HealthReadout}.
+     *
+     * @param batch     the board's batch, already begun
+     * @param health    the number to print, unclamped
+     * @param maxHealth the ruleset's cap, printed after the number
+     * @param healing   paints the fill in the heal colour for the pulse
      * @param bleeding  paints the fill in dried blood while it drains
      * @param offsetX   the jolt a hit gives the whole bar
      * @param fillWidth how much is filled, so a change can step a segment at a time
@@ -111,6 +126,10 @@ final class BoardHud {
      * One tick per card still face-down; the rest of the dungeon sits dim. The
      * strip is placed so the lit block stays centred, so it walks right as the
      * dungeon drains rather than the gold shrinking away from the middle.
+     *
+     * @param batch    the board's batch, already begun
+     * @param depth    cards still face-down, which are the lit ticks
+     * @param deckSize every card the dungeon started with, one tick each
      */
     void drawTicker(Batch batch, int depth, int deckSize) {
         int left = HudArt.tickerX(depth);
@@ -121,13 +140,23 @@ final class BoardHud {
         }
     }
 
-    /** The gold plate, bevelled light on top and dark below like every button. */
+    /**
+     * The gold plate, bevelled light on top and dark below like every button.
+     *
+     * @param batch   the board's batch, already begun
+     * @param enabled whether avoiding is legal now; a spent plate when not
+     */
     void drawAvoid(Batch batch, boolean enabled) {
         drawPlate(batch, HudArt.AVOID_X, HudArt.AVOID_Y,
                 HudArt.AVOID_W, HudArt.AVOID_H, "AVOID", enabled);
     }
 
-    /** How wide a label sets, so a plate can be sized around one. */
+    /**
+     * How wide a label sets, so a plate can be sized around one.
+     *
+     * @param text the label
+     * @return its width in the label face, in whole pixels
+     */
     int labelWidth(String text) {
         layout.setText(theme.pixelLabel, text);
         return Math.round(layout.width);
@@ -137,6 +166,14 @@ final class BoardHud {
      * The board's one button — and the game's. Avoid is one of these, so is
      * every choice in the move chooser, and so is every button on every menu:
      * {@link Chrome#plate} draws all of them, so they cannot drift apart.
+     *
+     * @param batch   the board's batch, already begun
+     * @param x       the plate's left edge, in design pixels
+     * @param y       the plate's top edge, in design pixels measured downward
+     * @param w       the plate's width
+     * @param h       the plate's height
+     * @param text    the label, centred on the plate
+     * @param enabled gold when true, spent when false
      */
     void drawPlate(Batch batch, int x, int y, int w, int h, String text, boolean enabled) {
         chrome.plate(batch, x, y, w, h, text,
@@ -148,6 +185,10 @@ final class BoardHud {
      * centre line the lit ticks keep. Anchored to the board rather than to the
      * strip, which moves — a caption that slid about under a gauge would read as
      * the caption being loose.
+     *
+     * @param batch the board's batch, already begun
+     * @param depth cards still face-down
+     * @param time  the run's clock as {@link ClockText} prints it, or null to leave it off
      */
     void drawDepthLine(Batch batch, int depth, String time) {
         BitmapFont small = theme.pixelLabel;
@@ -165,6 +206,13 @@ final class BoardHud {
      * monsters stacked on it, and how much bite it has left. Barehanded is the
      * same well standing empty — the slot is always there, so equipping does
      * not shift the whole strip sideways.
+     *
+     * @param batch     the board's batch, already begun
+     * @param icon      the weapon's sprite, drawn at ×1, or null when barehanded
+     * @param name      the weapon's name and value, or {@code BAREHANDED}
+     * @param slain     the monsters on the weapon, oldest first, or null when barehanded
+     * @param threshold the bite plate's text, from {@link Labels#weaponThreshold}; null when
+     *                  barehanded
      */
     void drawRail(Batch batch, TextureRegion icon, String name,
                   List<Card> slain, String threshold) {
@@ -223,6 +271,10 @@ final class BoardHud {
      * The potion marker opposite the rail: one draught a room, and whether it
      * has been drunk. The icon is never dimmed — an alpha over a dark board
      * makes colours that are on no ramp — so the label carries the state.
+     *
+     * @param batch the board's batch, already begun
+     * @param icon  a potion sprite, or null to leave the box empty
+     * @param used  whether this turn's potion has already healed
      */
     void drawPotionMarker(Batch batch, TextureRegion icon, boolean used) {
         int x = BoardArt.MARKER_X;
@@ -244,6 +296,11 @@ final class BoardHud {
     /**
      * One line of the event feed, right-aligned down the margin. The alpha is
      * the caller's — it comes off a stepped fade, not a smooth one.
+     *
+     * @param batch the board's batch, already begun
+     * @param text  the line
+     * @param index its place in the feed, from 0 (the oldest)
+     * @param alpha how strongly to draw it, from {@link Feed#alphaAt}
      */
     void drawFeedLine(Batch batch, String text, int index, float alpha) {
         BitmapFont line = theme.pixelLabel;
