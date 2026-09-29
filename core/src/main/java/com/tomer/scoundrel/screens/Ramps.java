@@ -14,6 +14,7 @@ import java.util.Map;
  */
 final class Ramps {
 
+    /** How many steps each ramp has, darkest first. */
     static final int STEPS = 8;
 
     private static final String[] TABLE = {
@@ -58,11 +59,21 @@ final class Ramps {
     private Ramps() {
     }
 
-    /** Every colour in the system, for checks that nothing strays outside it. */
+    /**
+     * Every colour in the system, for checks that nothing strays outside it.
+     *
+     * @param rgb the colour as {@code 0xRRGGBB}, no alpha
+     * @return true if it is one of the eighty
+     */
     static boolean contains(int rgb) {
         return LOOKUP.containsKey(rgb);
     }
 
+    /**
+     * How many distinct colours the ramps hold.
+     *
+     * @return the number of colours: eighty, unless the table is edited
+     */
     static int size() {
         return LOOKUP.size();
     }
@@ -77,6 +88,10 @@ final class Ramps {
      * ramp colour first. Leaving them alone instead would be the safer-looking
      * choice and the wrong one: 92% of the Ace would not change, so being
      * struck would barely show on it.
+     *
+     * @param rgb   the colour as {@code 0xRRGGBB}, on a ramp or not
+     * @param steps how many steps lighter, 0 or more
+     * @return a colour on the ramps, as {@code 0xRRGGBB}
      */
     static int lighten(int rgb, int steps) {
         int[] found = LOOKUP.get(rgb);
@@ -94,6 +109,9 @@ final class Ramps {
      * colour that is nowhere in the art; moving sideways to bone at the same
      * step keeps the pixel inside the eighty and preserves how light or dark it
      * was, so a drained sprite still has all of its shading.
+     *
+     * @param rgb the colour as {@code 0xRRGGBB}, on a ramp or not
+     * @return the bone ramp's colour at the same step, as {@code 0xRRGGBB}
      */
     static int drain(int rgb) {
         int[] found = LOOKUP.get(rgb);

@@ -18,16 +18,29 @@ public final class TutorialFlag {
 
     private final Path file;
 
+    /**
+     * A flag backed by one marker file, which need not exist yet.
+     *
+     * @param file the marker; the game uses {@code ~/.scoundrel/tutorial.seen}
+     */
     public TutorialFlag(Path file) {
         this.file = file;
     }
 
-    /** True once the tutorial has been seen (or skipped) — i.e. the marker exists. */
+    /**
+     * True once the tutorial has been seen (or skipped) — i.e. the marker exists.
+     *
+     * @return whether the marker file exists; false on first launch and after a reset
+     */
     public boolean isSeen() {
         return Files.exists(file);
     }
 
-    /** Record that the player has seen the tutorial; idempotent. */
+    /**
+     * Record that the player has seen the tutorial; idempotent.
+     *
+     * @throws UncheckedIOException if the directory or the marker cannot be written
+     */
     public void markSeen() {
         try {
             if (file.getParent() != null) {
@@ -44,6 +57,8 @@ public final class TutorialFlag {
      * .bak} sibling (overwriting any earlier backup), so the next launch offers
      * it again while the old marker stays recoverable from disk. A no-op when it
      * was never seen.
+     *
+     * @throws UncheckedIOException if the marker cannot be moved
      */
     public void clear() {
         try {

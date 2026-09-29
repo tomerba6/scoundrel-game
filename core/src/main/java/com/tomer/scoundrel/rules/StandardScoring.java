@@ -14,6 +14,10 @@ import com.tomer.scoundrel.model.Status;
  */
 public final class StandardScoring implements ScoringStrategy {
 
+    /** Creates the strategy; it holds no state. */
+    public StandardScoring() {
+    }
+
     @Override
     public int score(GameState state, Ruleset rules) {
         if (state.status() == Status.LOST) {

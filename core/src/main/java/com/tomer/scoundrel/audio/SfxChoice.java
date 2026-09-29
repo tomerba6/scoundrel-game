@@ -38,6 +38,11 @@ public final class SfxChoice {
     private final Random random;
     private final VariantPicker picker;
 
+    /**
+     * A chooser whose versions and jitter all come from one seeded generator.
+     *
+     * @param seed any value; the same seed makes the same sequence of choices
+     */
     public SfxChoice(long seed) {
         this.random = new Random(seed);
         this.picker = new VariantPicker(random);
@@ -48,8 +53,10 @@ public final class SfxChoice {
      * all belong to the same moment — a weapon kill's blade and thud land
      * together — so the board plays them on one beat.
      *
+     * @param events      one move's events, as {@link com.tomer.scoundrel.rules.MoveResult} lists them
      * @param weaponValue the value of the weapon equipped when the move was
      *                    made; only read for a monster killed with it
+     * @return the sounds, in event order; empty for a move that makes none
      */
     public List<Sfx> forEvents(List<GameEvent> events, int weaponValue) {
         List<Sfx> sounds = new ArrayList<>();
@@ -96,6 +103,10 @@ public final class SfxChoice {
      * One card landing in the room: the {@code card}-th of its deal to land, counted
      * from 0. Later cards step down the riffle; past its end they keep its last step,
      * for a ruleset that deals a bigger room.
+     *
+     * @param card the card's place in its deal, from 0
+     * @return the flip, pitched and quietened for that place
+     * @throws IllegalArgumentException if {@code card} is negative
      */
     public Sfx flip(int card) {
         if (card < 0) {
@@ -107,12 +118,20 @@ public final class SfxChoice {
                 flip.volume() * RIFFLE_GAIN[step]);
     }
 
-    /** A menu button going down. */
+    /**
+     * A menu button going down.
+     *
+     * @return the click, identical every time
+     */
     public Sfx click() {
         return plain(Sound.CLICK);
     }
 
-    /** Trophies unlocked. */
+    /**
+     * Trophies unlocked.
+     *
+     * @return the chime, identical every time
+     */
     public Sfx chime() {
         return plain(Sound.CHIME);
     }

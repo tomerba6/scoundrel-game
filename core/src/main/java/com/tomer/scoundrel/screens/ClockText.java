@@ -11,6 +11,12 @@ final class ClockText {
     private ClockText() {
     }
 
+    /**
+     * A duration as the player reads it.
+     *
+     * @param seconds whole seconds, 0 or more
+     * @return {@code M:SS} under an hour (e.g. {@code 7:05}), {@code Hh Mm} from an hour up
+     */
     static String format(long seconds) {
         long hours = seconds / 3600;
         long minutes = (seconds % 3600) / 60;

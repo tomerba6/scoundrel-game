@@ -24,10 +24,23 @@ public final class AchievementStore {
 
     private final Path file;
 
+    /**
+     * A store backed by one file, which need not exist yet.
+     *
+     * @param file where the latch lives; the game uses {@code ~/.scoundrel/achievements.log}
+     */
     public AchievementStore(Path file) {
         this.file = file;
     }
 
+    /**
+     * Latches one achievement as a new line at the end, creating the file and its
+     * directory on the first unlock. Appending an id that is already there is harmless:
+     * reading keeps the earliest.
+     *
+     * @param unlocked the achievement and when it was earned
+     * @throws UncheckedIOException if the directory or the line cannot be written
+     */
     public void append(UnlockedAchievement unlocked) {
         try {
             if (file.getParent() != null) {
@@ -45,6 +58,8 @@ public final class AchievementStore {
      * (overwriting any earlier backup), so an accidental reset stays
      * recoverable from disk; the game never restores it automatically. A no-op
      * when nothing has been unlocked yet.
+     *
+     * @throws UncheckedIOException if the file cannot be moved
      */
     public void clear() {
         try {
@@ -57,7 +72,12 @@ public final class AchievementStore {
         }
     }
 
-    /** Every earned achievement, deduped by id (earliest earn kept); empty when none exist. */
+    /**
+     * Every earned achievement, deduped by id (earliest earn kept); empty when none exist.
+     *
+     * @return an unmodifiable list in first-earned order; unparseable lines are skipped
+     * @throws UncheckedIOException if the file exists but cannot be read
+     */
     public List<UnlockedAchievement> readAll() {
         if (!Files.exists(file)) {
             return List.of();
@@ -76,7 +96,12 @@ public final class AchievementStore {
         }
     }
 
-    /** The set of earned achievement ids — what {@link AchievementService} filters against. */
+    /**
+     * The set of earned achievement ids — what {@link AchievementService} filters against.
+     *
+     * @return an unmodifiable set, read from the file on every call
+     * @throws UncheckedIOException if the file exists but cannot be read
+     */
     public Set<String> unlockedIds() {
         return readAll().stream().map(UnlockedAchievement::id)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());

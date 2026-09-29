@@ -15,17 +15,34 @@ import java.util.List;
  */
 final class CornerTicks {
 
+    /** How long each arm of a corner is, in design pixels. */
     static final int LENGTH = 24;
+    /** How thick each arm is, in design pixels; also the gap outside the card. */
     static final int THICK = 4;
 
-    /** One mark, in design space with y measured downward. */
+    /**
+     * One mark, in design space with y measured downward.
+     *
+     * @param x the mark's left edge
+     * @param y the mark's top edge
+     * @param w its width: {@link #LENGTH} for a horizontal arm, {@link #THICK} for a vertical one
+     * @param h its height, the other way round
+     */
     record Tick(int x, int y, int w, int h) {
     }
 
     private CornerTicks() {
     }
 
-    /** The eight ticks around a rect, clockwise from the top left. */
+    /**
+     * The eight ticks around a rect, clockwise from the top left.
+     *
+     * @param x the card's left edge, in design pixels
+     * @param y the card's top edge, in design pixels measured downward
+     * @param w the card's width
+     * @param h the card's height
+     * @return eight ticks, two per corner, just outside the rect
+     */
     static List<Tick> around(int x, int y, int w, int h) {
         int left = x - THICK;
         int top = y - THICK;

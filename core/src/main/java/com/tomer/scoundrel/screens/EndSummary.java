@@ -11,11 +11,24 @@ import java.util.List;
  * variant is the same panel with the gold accents swapped to dried blood — so
  * everything that differs between a win and a death is decided here and the
  * screen draws whichever it is handed.
+ *
+ * @param eyebrow        the small line over the headline
+ * @param headline       the verdict: {@code CLEARED}, {@code YOU DIED} or {@code TUTORIAL DONE}
+ * @param accent         {@code 0xRRGGBB} of the panel's accents: gold, or dried blood for a death
+ * @param headlineColour {@code 0xRRGGBB} of the headline
+ * @param cells          the three figures, left to right
+ * @param newBest        whether to show the new-best badge
  */
 record EndSummary(String eyebrow, String headline, int accent, int headlineColour,
                   List<Cell> cells, boolean newBest) {
 
-    /** One of the three figures in the shared frame. */
+    /**
+     * One of the three figures in the shared frame.
+     *
+     * @param label  what the figure is, upper-cased
+     * @param value  the figure as printed
+     * @param colour {@code 0xRRGGBB} of the value
+     */
     record Cell(String label, String value, int colour) {
     }
 
@@ -31,6 +44,10 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
      * This is the one panel that still reports health, and deliberately —
      * teaching that equality is the point here, where on a real run it was
      * only the same number twice.
+     *
+     * @param score  the tutorial's final score
+     * @param health the health it ended on, which equals the score
+     * @return the tutorial's panel: never a new best
      */
     static EndSummary tutorial(int score, int health) {
         return new EndSummary("THAT IS THE WHOLE GAME", "TUTORIAL DONE",
@@ -43,11 +60,16 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
     }
 
     /**
+     * The panel for a finished run: score, then what the clear cost or what was
+     * still waiting, then the time.
+     *
+     * @param status        {@link Status#WON} or {@link Status#LOST}
      * @param score         the run's final score, which for a death is negative
      * @param seconds       how long the run took
      * @param newBest       whether it beat the best for its mode
      * @param monstersLeft  monsters still face-down, which is what a death is charged for
      * @param damageTaken   health lost across the whole run, which is what a clear cost
+     * @return the panel, in the outcome's colours
      */
     static EndSummary of(Status status, int score, long seconds, boolean newBest,
                          int monstersLeft, int damageTaken) {

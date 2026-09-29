@@ -24,6 +24,7 @@ final class Pips implements Disposable {
     private final Texture[] textures = new Texture[PipMask.Suit.values().length];
     private final TextureRegion[] regions = new TextureRegion[textures.length];
 
+    /** Builds one white, {@code Nearest}-filtered texture per suit, to be tinted when drawn. */
     Pips() {
         for (PipMask.Suit suit : PipMask.Suit.values()) {
             build(suit);
@@ -50,6 +51,9 @@ final class Pips implements Disposable {
      * The pip for a card: monsters carry their real suit, read from the id the
      * same way the sprite is; weapons are diamonds and potions hearts, which is
      * what they are in the deck.
+     *
+     * @param card the card being printed
+     * @return its suit's {@link #SIZE}-pixel pip, white, owned by this object
      */
     TextureRegion forCard(Card card) {
         if (card.type() == CardType.MONSTER) {

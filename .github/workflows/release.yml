@@ -30,7 +30,7 @@ jobs:
       # Never publish a build that cannot pass its own tests.
       - name: Check
         shell: bash
-        run: ./gradlew core:check
+        run: ./gradlew core:check lwjgl3:check
 
       - name: Build distributables
         shell: bash

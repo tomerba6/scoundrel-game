@@ -33,19 +33,38 @@ public final class PendingCues {
     private final List<Entry> pending = new ArrayList<>();
     private long scheduled;
 
-    /** Holds a sound until the clock reaches {@code at}. */
+    /** Creates an empty queue; the board keeps two, one for the effects and one for the deal. */
+    public PendingCues() {
+    }
+
+    /**
+     * Holds a sound until the clock reaches {@code at}.
+     *
+     * @param sfx the sound, already chosen
+     * @param at  its beat, in seconds on the caller's clock; 0 plays on the next {@link #due}
+     */
     public void schedule(Sfx sfx, float at) {
         pending.add(new Entry(sfx, at, scheduled++));
     }
 
-    /** Holds several sounds for the same beat, in order — a blade, then its thud. */
+    /**
+     * Holds several sounds for the same beat, in order — a blade, then its thud.
+     *
+     * @param sounds the sounds, in the order they should play
+     * @param at     their shared beat, in seconds on the caller's clock
+     */
     public void scheduleAll(List<Sfx> sounds, float at) {
         for (Sfx sfx : sounds) {
             schedule(sfx, at);
         }
     }
 
-    /** The sounds whose beat has come by {@code elapsed}, in play order. Each is handed over once. */
+    /**
+     * The sounds whose beat has come by {@code elapsed}, in play order. Each is handed over once.
+     *
+     * @param elapsed the caller's clock now, in seconds
+     * @return the sounds due, earliest beat first; empty if none
+     */
     public List<Sfx> due(float elapsed) {
         List<Entry> ready = new ArrayList<>();
         for (Entry entry : pending) {
@@ -62,6 +81,8 @@ public final class PendingCues {
      * what a skip plays. A sound that {@link Sound#collapsesOnSkip() collapses}
      * is kept only once: a skipped deal lands every card on the same instant,
      * and four flips on one instant are one louder noise, not four cards.
+     *
+     * @return every pending sound, earliest beat first, collapsing sounds kept once
      */
     public List<Sfx> flush() {
         List<Entry> all = new ArrayList<>(pending);
@@ -79,6 +100,11 @@ public final class PendingCues {
         return sounds;
     }
 
+    /**
+     * Whether any sound is still waiting for its beat.
+     *
+     * @return true when nothing is pending
+     */
     public boolean isEmpty() {
         return pending.isEmpty();
     }

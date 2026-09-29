@@ -112,13 +112,30 @@ public final class GameScreen extends PixelScreen {
     /** Withheld until the cinematic ends, so the score does not pre-empt it. */
     private boolean endPending;
 
-    /** A normal run in the given mode, recorded to the run log. */
+    /**
+     * A normal run in the given mode, recorded to the run log.
+     *
+     * @param game         the navigator, for the sounds, the music and the way out
+     * @param theme        the shared fonts and textures
+     * @param sprites      the shared sprite atlas
+     * @param runLog       where the finished run is appended
+     * @param achievements where newly earned trophies are latched, if the mode tracks them
+     * @param mode         the difficulty, whose ruleset the run is played on
+     */
     public GameScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog,
                       AchievementStore achievements, GameMode mode) {
         this(game, theme, sprites, runLog, achievements, mode, null);
     }
 
-    /** The guided tutorial: a scripted deck with narration, never recorded. */
+    /**
+     * The guided tutorial: a scripted deck with narration, never recorded.
+     *
+     * @param game     the navigator, for the sounds, the music and the way out
+     * @param theme    the shared fonts and textures
+     * @param sprites  the shared sprite atlas
+     * @param mode     the ruleset to play the script on (Standard)
+     * @param tutorial the guide that narrates the script and gates the moves
+     */
     public GameScreen(ScoundrelGame game, Theme theme, Sprites sprites,
                       GameMode mode, TutorialGuide tutorial) {
         this(game, theme, sprites, null, null, mode, tutorial);
@@ -1117,12 +1134,20 @@ public final class GameScreen extends PixelScreen {
         }
     }
 
-    /** Whether the board has finished animating — the win's music waits for it. */
+    /**
+     * Whether the board has finished animating — the win's music waits for it.
+     *
+     * @return true when no effect is running and the room is neither dealing nor closing up
+     */
     public boolean boardIdle() {
         return !board.isPlaying();
     }
 
-    /** M was pressed: nothing on the board changes, so the feed says what it did. */
+    /**
+     * M was pressed: nothing on the board changes, so the feed says what it did.
+     *
+     * @param muted whether the press muted (true) or unmuted
+     */
     public void announceMute(boolean muted) {
         feed.push(FeedText.mute(muted));
     }

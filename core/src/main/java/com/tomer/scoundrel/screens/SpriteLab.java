@@ -72,6 +72,13 @@ public final class SpriteLab extends ScreenAdapter {
     private float deathElapsed = -1f;
     private int killerSlotX = -1;
 
+    /**
+     * The developer sprite inspector, opened with F9 from any screen.
+     *
+     * @param game    the navigator, for the sound bank and the way back
+     * @param theme   the shared fonts and textures
+     * @param sprites the shared sprite atlas
+     */
     public SpriteLab(ScoundrelGame game, Theme theme, Sprites sprites) {
         this.game = game;
         this.theme = theme;
@@ -241,6 +248,8 @@ public final class SpriteLab extends ScreenAdapter {
      * The torch's light as the lab's death leaves it — the same curve the game's
      * death draws — so the torch's crackle gutters out here too, where it can be
      * heard without dying for real.
+     *
+     * @return the torch's light, 1 normally, falling toward 0 through a lab death
      */
     public float torchLight() {
         return deathElapsed >= 0f ? DeathCinematic.torchLight(deathElapsed) : 1f;

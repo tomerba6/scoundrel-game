@@ -40,6 +40,12 @@ public final class ModeSelectScreen extends PixelScreen {
     private int restingY = -1;
     private boolean pointerMoved;
 
+    /**
+     * The mode picker, listing {@code GameModes.all()} in menu order.
+     *
+     * @param game  the navigator, which starts the chosen run
+     * @param theme the shared fonts and textures
+     */
     public ModeSelectScreen(ScoundrelGame game, Theme theme) {
         super(game, theme);
     }

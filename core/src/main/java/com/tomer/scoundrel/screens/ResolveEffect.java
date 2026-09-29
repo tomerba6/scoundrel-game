@@ -13,8 +13,23 @@ import java.util.List;
  * events only carry the amounts, exposed here for the HP feedback.
  */
 enum ResolveEffect {
-    AVOID, STRIKE, EQUIP, POTION, SLICE;
+    /** The room sweeps back into the dungeon. */
+    AVOID,
+    /** A bare-handed fight: the two blows. */
+    STRIKE,
+    /** A weapon flies to the rail. */
+    EQUIP,
+    /** A potion pours, or spills if it was wasted. */
+    POTION,
+    /** A weapon kill: the slash. */
+    SLICE;
 
+    /**
+     * The effect a move drives.
+     *
+     * @param move the move just applied
+     * @return its effect; every move has exactly one
+     */
     static ResolveEffect of(Move move) {
         return switch (move) {
             case Move.AvoidRoom ignored -> AVOID;
@@ -25,7 +40,12 @@ enum ResolveEffect {
         };
     }
 
-    /** Total damage taken this resolve — drives the HP-bar shudder. */
+    /**
+     * Total damage taken this resolve — drives the HP-bar shudder.
+     *
+     * @param events the move's events
+     * @return the sum of every monster fight's damage, 0 or more
+     */
     static int damageTaken(List<GameEvent> events) {
         return events.stream()
                 .filter(e -> e instanceof GameEvent.MonsterDefeated)
@@ -33,7 +53,12 @@ enum ResolveEffect {
                 .sum();
     }
 
-    /** Total healed this resolve — drives the green flash and the HP hold. */
+    /**
+     * Total healed this resolve — drives the green flash and the HP hold.
+     *
+     * @param events the move's events
+     * @return the health actually restored, after the cap; 0 for a wasted potion
+     */
     static int healed(List<GameEvent> events) {
         return events.stream()
                 .filter(e -> e instanceof GameEvent.PotionUsed)

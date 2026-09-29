@@ -27,6 +27,12 @@ final class PixelScale {
     /**
      * The largest clean scale that still fits {@code world} inside {@code screen}.
      * Whatever is left over becomes letterbox bars.
+     *
+     * @param screenWidth  the window's width, in screen pixels
+     * @param screenHeight the window's height, in screen pixels
+     * @param worldWidth   the design width, 1280
+     * @param worldHeight  the design height, 720
+     * @return a multiple of 0.5, at least 0.5; e.g. 1.5 at 1920×1080, 1.0 at 1600×900
      */
     static float forScreen(int screenWidth, int screenHeight, float worldWidth, float worldHeight) {
         return snap(Math.min(screenWidth / worldWidth, screenHeight / worldHeight));
@@ -36,6 +42,9 @@ final class PixelScale {
      * Rounds a fit scale down to the nearest half-step, never below one step.
      * Down rather than to-nearest, because rounding up would scale the world
      * past the window edge and crop the board.
+     *
+     * @param fitScale the plain fit-to-window scale
+     * @return the largest multiple of 0.5 not above it, and never below 0.5
      */
     static float snap(float fitScale) {
         float snapped = (float) Math.floor(fitScale / STEP) * STEP;

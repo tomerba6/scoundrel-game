@@ -34,6 +34,16 @@ import java.nio.file.Path;
  * {@link com.badlogic.gdx.ApplicationListener} shared by all platforms, and
  * the app's navigator: screens ask it to switch, it owns the shared Theme,
  * RunLog and AchievementStore and disposes whichever screen is being left.
+ *
+ * <p>It also owns what must outlive a screen change: the sprites, the sound
+ * bank, the music (which crossfades where the picture cuts), the player's
+ * volume, and the keys that work everywhere — F11 or Alt+Enter for fullscreen,
+ * M to mute, F9 for the sprite lab.
+ *
+ * @author Tomer Ben Ari
+ * @version 2.2.0
+ * @see com.badlogic.gdx.Game
+ * @see com.badlogic.gdx.Screen
  */
 public class ScoundrelGame extends Game {
 
@@ -56,6 +66,15 @@ public class ScoundrelGame extends Game {
     // and appears to do nothing.
     private boolean fullscreen = true;
 
+    /** Created by the launcher. Nothing is loaded until {@link #create()}, when GL exists. */
+    public ScoundrelGame() {
+    }
+
+    /**
+     * Loads the shared theme, sprites and sounds, opens the stores under
+     * {@code ~/.scoundrel/}, applies the saved volume and shows the title — which
+     * offers the tutorial if it has never been seen.
+     */
     @Override
     public void create() {
         theme = new Theme();
@@ -74,6 +93,10 @@ public class ScoundrelGame extends Game {
         switchTo(new TitleScreen(this, theme, sprites, runLog, !tutorialFlag.isSeen()));
     }
 
+    /**
+     * One frame: the global keys first, then the current screen, then the music,
+     * which follows whatever the frame asked of it.
+     */
     @Override
     public void render() {
         // F11 or Alt+Enter toggles between borderless-fullscreen and windowed. Polled
@@ -121,6 +144,7 @@ public class ScoundrelGame extends Game {
         musicDeck.windowMinimised(true);
     }
 
+    /** The window is back: the audio is heard again at the player's levels. */
     @Override
     public void resume() {
         super.resume();
@@ -141,7 +165,11 @@ public class ScoundrelGame extends Game {
         fullscreen = !fullscreen;
     }
 
-    /** The player's volume as it stands, for the title's plates to show. */
+    /**
+     * The player's volume as it stands, for the title's plates to show.
+     *
+     * @return the current levels and mute
+     */
     public AudioSettings audioSettings() {
         return audio.settings();
     }
@@ -177,7 +205,11 @@ public class ScoundrelGame extends Game {
         musicDeck.setGains(audio.musicGain(), audio.soundGain());
     }
 
-    /** The sound effects, shared by every screen like the theme and the sprites. */
+    /**
+     * The sound effects, shared by every screen like the theme and the sprites.
+     *
+     * @return the one sound bank, owned and disposed here
+     */
     public SoundBank sounds() {
         return sounds;
     }
@@ -186,11 +218,14 @@ public class ScoundrelGame extends Game {
      * The music's director, for the moments only a screen sees: a death, a win,
      * trophies, a new run started in place. Which track plays is decided here, on
      * every screen switch.
+     *
+     * @return the one director, which outlives every screen
      */
     public MusicDirector music() {
         return music;
     }
 
+    /** Back to the title screen, without the first-launch tutorial prompt. */
     public void showTitle() {
         switchTo(new TitleScreen(this, theme, sprites, runLog));
     }
@@ -205,6 +240,11 @@ public class ScoundrelGame extends Game {
         switchTo(new ModeSelectScreen(this, theme));
     }
 
+    /**
+     * Starts a new run, freshly shuffled, and switches to the run music.
+     *
+     * @param mode the difficulty chosen on the mode picker; recorded with the run
+     */
     public void showGame(GameMode mode) {
         switchTo(new GameScreen(this, theme, sprites, runLog, achievements, mode));
     }
@@ -220,10 +260,12 @@ public class ScoundrelGame extends Game {
                 new TutorialGuide(TutorialScript.steps())));
     }
 
+    /** The ledger: the best runs across every mode, the lifetime figures, and the progress reset. */
     public void showRecords() {
         switchTo(new RecordsScreen(this, theme, runLog, achievements));
     }
 
+    /** The trophies screen: every achievement, earned or not. */
     public void showTrophies() {
         switchTo(new TrophiesScreen(this, theme, achievements));
     }
@@ -257,6 +299,7 @@ public class ScoundrelGame extends Game {
         }
     }
 
+    /** The app is closing: disposes the last screen and every shared resource. */
     @Override
     public void dispose() {
         super.dispose(); // hides the current screen

@@ -13,6 +13,10 @@ import java.util.List;
  */
 public final class MonsterEffect implements CardEffect {
 
+    /** Creates the effect. It holds no state, so one instance serves every monster. */
+    public MonsterEffect() {
+    }
+
     @Override
     public List<Move> legalMoves(Card card, GameState state) {
         List<Move> moves = new ArrayList<>();

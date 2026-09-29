@@ -47,8 +47,12 @@ jobs:
       # core:check drags in :core:packAtlas through processResources, so this is
       # also a clean-checkout proof that the texture atlas packs -- it is
       # generated and gitignored, so nothing else would ever check it.
+      #
+      # Both modules' check tasks also run javadoc with doclint as errors, so a
+      # non-private declaration without its Javadoc tags fails here. The screens
+      # are covered by that even though their behaviour is not.
       - name: Check
-        run: ./gradlew core:check lwjgl3:compileJava
+        run: ./gradlew core:check lwjgl3:check
 
       # Regenerate the README badge from the report this run just produced. Only
       # on main, and only committed when the number actually moved, so PR runs

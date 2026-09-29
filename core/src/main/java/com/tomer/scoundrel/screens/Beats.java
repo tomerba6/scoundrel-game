@@ -22,7 +22,11 @@ final class Beats {
     private Beats() {
     }
 
-    /** A bare-handed fight: on the first blow. Its file holds both, a frame apart. */
+    /**
+     * A bare-handed fight: on the first blow. Its file holds both, a frame apart.
+     *
+     * @return seconds on the fight's clock
+     */
     static float strike() {
         return Barehanded.HIT_FRAMES[0] * Barehanded.FRAME;
     }
@@ -31,27 +35,45 @@ final class Beats {
      * A weapon kill: as the slash bar starts across the card (167 ms). The card
      * jumps up whole a frame earlier ({@link WeaponKill#cardCut}); if the blade
      * reads late in play, that is the other candidate.
+     *
+     * @return seconds on the kill's clock
      */
     static float slice() {
         return WeaponKill.SLASH_START;
     }
 
-    /** An equip: as the weapon's card reaches the rail. */
+    /**
+     * An equip: as the weapon's card reaches the rail.
+     *
+     * @return seconds on the equip flight's clock: the flight's whole length
+     */
     static float equip() {
         return CardFlight.EQUIP.total();
     }
 
-    /** An avoid: as the room sets off, all four cards together. */
+    /**
+     * An avoid: as the room sets off, all four cards together.
+     *
+     * @return 0, the sweep's first instant
+     */
     static float sweep() {
         return 0f;
     }
 
-    /** A drink: as the bottle pours — the same moment the bar starts to fill. */
+    /**
+     * A drink: as the bottle pours — the same moment the bar starts to fill.
+     *
+     * @return seconds on the drink's clock
+     */
     static float drink() {
         return PotionDrink.POUR_START;
     }
 
-    /** A wasted potion: as it spills. */
+    /**
+     * A wasted potion: as it spills.
+     *
+     * @return seconds on the spill's clock
+     */
     static float spill() {
         return PotionSpill.SPILL_START;
     }
@@ -60,6 +82,9 @@ final class Beats {
      * A card of a deal: as the card in room slot {@code slot} lands. Cards set off
      * a frame apart in slot order, so a carried-over card's slot is skipped rather
      * than counted — it slides, and makes no sound.
+     *
+     * @param slot the room slot the card lands in, from 0
+     * @return seconds on the deal's clock
      */
     static float dealLanding(int slot) {
         return slot * DEAL.staggerTime() + DEAL.total();

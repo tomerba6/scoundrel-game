@@ -14,6 +14,14 @@ public final class AchievementService {
     private AchievementService() {
     }
 
+    /**
+     * The achievements this run unlocks for the first time.
+     *
+     * @param catalog         the achievements to consider, usually {@link Achievements#all()}
+     * @param context         the just-finished run and the history including it
+     * @param alreadyUnlocked ids already latched; these are skipped without running their rules
+     * @return the newly earned achievements, in catalog order; empty if none
+     */
     public static List<Achievement> newlyEarned(List<Achievement> catalog,
                                                 AchievementContext context,
                                                 Set<String> alreadyUnlocked) {

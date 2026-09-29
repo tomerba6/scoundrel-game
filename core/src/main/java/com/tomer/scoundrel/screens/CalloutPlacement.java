@@ -13,18 +13,20 @@ final class CalloutPlacement {
 
     /** Clearance from the stage edge, and from the panel's own edge for the notch. */
     static final int MARGIN = 12;
+    /** The notch's width, in design pixels. */
     static final int NOTCH_W = 20;
+    /** The notch's height, in design pixels. */
     static final int NOTCH_H = 14;
 
-    /**
-     * @param below    which way the notch points: down at the card when the callout
-     *                 is above it, up at it when below
-     * @param notchX   the notch's left edge, or -1 when there is no notch
-     */
     /**
      * The NEXT button's rectangle inside a callout. A record rather than the
      * {@code int[4]} it used to be — four numbers in an array is four chances to
      * read w where y was meant.
+     *
+     * @param x the plate's left edge, in design pixels
+     * @param y the plate's top edge, in design pixels measured downward
+     * @param w the plate's width
+     * @param h the plate's height
      */
     record Plate(int x, int y, int w, int h) {
     }
@@ -33,7 +35,11 @@ final class CalloutPlacement {
      * Where NEXT goes in a callout: right-aligned one pad in from the edge, and
      * <b>below</b> the last line of narration rather than over it.
      *
+     * @param calloutX   the callout's left edge, in design pixels
+     * @param calloutY   the callout's top edge, in design pixels measured downward
+     * @param calloutH   the callout's height
      * @param labelWidth the measured label, without its padding
+     * @return the plate's rectangle
      */
     static Plate nextPlate(int calloutX, int calloutY, int calloutH, int labelWidth) {
         int w = labelWidth + 2 * ScreenArt.END_BUTTON_PAD_X;
@@ -43,7 +49,21 @@ final class CalloutPlacement {
                 w, ScreenArt.SKIP_H);
     }
 
+    /**
+     * Where a callout sits, and its notch.
+     *
+     * @param x        the callout's left edge, in design pixels
+     * @param y        the callout's top edge, in design pixels measured downward
+     * @param below    which way the notch points: down at the card when the callout
+     *                 is above it, up at it when below
+     * @param notchX   the notch's left edge, or -1 when there is no notch
+     */
     record Placement(int x, int y, boolean below, int notchX) {
+        /**
+         * Whether to draw a notch at all.
+         *
+         * @return false for an explanation beat, which points at nothing
+         */
         boolean hasNotch() {
             return notchX >= 0;
         }
@@ -61,6 +81,15 @@ final class CalloutPlacement {
      * row is where a <em>targeted</em> callout goes, but an explanation beat runs
      * to five lines and that pushes it into the HUD; the space under the room is
      * empty and deep enough for the tallest of them.
+     *
+     * @param rowY     the room row's top edge, in design pixels measured downward
+     * @param rowH     the room row's height
+     * @param calloutW the callout's width
+     * @param calloutH the callout's height
+     * @param gap      the space to leave under the row
+     * @param worldW   the stage's width, 1280
+     * @param worldH   the stage's height, 720
+     * @return a notchless placement, kept {@link #MARGIN} inside the stage
      */
     static Placement belowRow(int rowY, int rowH, int calloutW, int calloutH,
                               int gap, int worldW, int worldH) {
@@ -68,6 +97,21 @@ final class CalloutPlacement {
         return new Placement((worldW - calloutW) / 2, Math.max(MARGIN, y), false, -1);
     }
 
+    /**
+     * Above the target if there is room, below it if not, centred on it but kept
+     * {@link #MARGIN} inside the stage — with the notch over the target and never
+     * off the panel's edge.
+     *
+     * @param targetX  the target's left edge, in design pixels
+     * @param targetY  the target's top edge, in design pixels measured downward
+     * @param targetW  the target's width
+     * @param targetH  the target's height
+     * @param calloutW the callout's width
+     * @param calloutH the callout's height
+     * @param gap      the space to leave between callout and target
+     * @param worldW   the stage's width, 1280
+     * @return the placement, notch included
+     */
     static Placement place(int targetX, int targetY, int targetW, int targetH,
                            int calloutW, int calloutH, int gap, int worldW) {
         int above = targetY - gap - calloutH;

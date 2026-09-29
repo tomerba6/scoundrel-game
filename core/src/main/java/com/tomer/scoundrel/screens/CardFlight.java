@@ -28,9 +28,13 @@ final class CardFlight {
      * it from there; a second copy is how it came to be 32px wrong.
      */
     static final int TICKER_CX = 640;
+    /** The depth ticker's centre y, in design pixels measured downward. */
     static final int TICKER_CY = 60;
 
     /**
+     * One kind of flight: where it lands, how its hops are timed, and how the card
+     * shrinks or grows along the way.
+     *
      * @param toX         where the card lands
      * @param toY         where the card lands
      * @param hopTime     how long each hop holds
@@ -39,19 +43,40 @@ final class CardFlight {
      */
     record Flight(int toX, int toY, float hopTime, float staggerTime, int[] scales) {
 
+        /**
+         * How many hops the flight takes.
+         *
+         * @return the length of {@code scales}
+         */
         int hops() {
             return scales.length;
         }
 
+        /**
+         * How long one card's flight lasts.
+         *
+         * @return seconds, from setting off to landing
+         */
         float total() {
             return hops() * hopTime;
         }
 
-        /** How long until the last of {@code cards} has landed. */
+        /**
+         * How long until the last of {@code cards} has landed.
+         *
+         * @param cards how many cards fly, in stagger order
+         * @return seconds, from the first setting off to the last landing
+         */
         float totalFor(int cards) {
             return total() + Math.max(0, cards - 1) * staggerTime;
         }
 
+        /**
+         * Whether one card's flight is over.
+         *
+         * @param elapsed seconds on that card's own clock
+         * @return true from {@link #total()} on
+         */
         boolean finished(float elapsed) {
             return elapsed >= total();
         }
@@ -87,6 +112,10 @@ final class CardFlight {
      * nothing — but dealt with no stagger at all the room lands as one event
      * rather than as four cards. So it is a whole frame between cards: the
      * smallest gap this grid can express, and enough to see each one land.
+     *
+     * @param toX the slot's x the card lands on, in design pixels
+     * @param toY the slot's y the card lands on, in design pixels
+     * @return a three-hop flight, staggered a frame a card, growing to full size
      */
     static Flight dealTo(int toX, int toY) {
         return new Flight(toX, toY, FRAME, FRAME, new int[] {28, 64, 100});
@@ -101,6 +130,10 @@ final class CardFlight {
      * four separate events and read better one after another. The survivors
      * shifting along are one row re-centring itself, and cascading them made a
      * resolved card look as though it had set off a second deal.
+     *
+     * @param toX the new slot's x, in design pixels
+     * @param toY the new slot's y, in design pixels
+     * @return a three-hop, unstaggered flight at full size throughout
      */
     static Flight slideTo(int toX, int toY) {
         return new Flight(toX, toY, FRAME, 0f, new int[] {100, 100, 100});
@@ -113,12 +146,24 @@ final class CardFlight {
      * A card's own clock. On a staggered flight each card sets off after the one
      * before it and sits where it was until then; on an unstaggered one every
      * card shares the same clock and they move together.
+     *
+     * @param flight  the flight
+     * @param index   the card's place in the stagger, from 0
+     * @param elapsed seconds on the flight's shared clock
+     * @return seconds on this card's clock; negative until it sets off
      */
     static float localTime(Flight flight, int index, float elapsed) {
         return elapsed - index * flight.staggerTime();
     }
 
-    /** Whether this card has set off yet. */
+    /**
+     * Whether this card has set off yet.
+     *
+     * @param flight  the flight
+     * @param index   the card's place in the stagger, from 0
+     * @param elapsed seconds on the flight's shared clock
+     * @return true once its own clock has started
+     */
     static boolean started(Flight flight, int index, float elapsed) {
         return localTime(flight, index, elapsed) >= 0f;
     }
@@ -128,6 +173,11 @@ final class CardFlight {
      * still on its way up out of the dungeon — the engine gave the card up when
      * the move was applied, but until it lands it is still between the ticks and
      * the table, and its tick has to stay lit.
+     *
+     * @param flight  the flight
+     * @param index   the card's place in the stagger, from 0
+     * @param elapsed seconds on the flight's shared clock
+     * @return true once its own flight is over
      */
     static boolean landed(Flight flight, int index, float elapsed) {
         return localTime(flight, index, elapsed) >= flight.total();
@@ -139,15 +189,37 @@ final class CardFlight {
         return Math.max(0, Math.min(flight.hops() - 1, hop));
     }
 
+    /**
+     * Where the card is across, held on its current hop.
+     *
+     * @param flight  the flight
+     * @param fromX   where it set off from, in design pixels
+     * @param elapsed seconds on the card's own clock
+     * @return its x this frame, in whole design pixels
+     */
     static int x(Flight flight, int fromX, float elapsed) {
         return lerp(fromX, flight.toX(), hopOf(flight, elapsed), flight.hops());
     }
 
+    /**
+     * Where the card is down, held on its current hop.
+     *
+     * @param flight  the flight
+     * @param fromY   where it set off from, in design pixels
+     * @param elapsed seconds on the card's own clock
+     * @return its y this frame, in whole design pixels
+     */
     static int y(Flight flight, int fromY, float elapsed) {
         return lerp(fromY, flight.toY(), hopOf(flight, elapsed), flight.hops());
     }
 
-    /** The card's size right now, as a percentage of its board size. */
+    /**
+     * The card's size right now, as a percentage of its board size.
+     *
+     * @param flight  the flight
+     * @param elapsed seconds on the card's own clock
+     * @return the current hop's entry in {@code scales}
+     */
     static int scale(Flight flight, float elapsed) {
         return flight.scales()[hopOf(flight, elapsed)];
     }

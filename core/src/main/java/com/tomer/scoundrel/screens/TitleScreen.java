@@ -63,11 +63,27 @@ public final class TitleScreen extends PixelScreen {
     private record Entry(String label, Runnable action) {
     }
 
+    /**
+     * The title, without the first-run prompt: the way back from any other screen.
+     *
+     * @param game    the navigator the menu rows call
+     * @param theme   the shared fonts and textures
+     * @param sprites the atlas The Debt's portrait is drawn from
+     * @param runLog  where the cleared count and best score under the wordmark are read
+     */
     public TitleScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog) {
         this(game, theme, sprites, runLog, false);
     }
 
-    /** {@code offerTutorial} pops the one-time first-run prompt over the menu. */
+    /**
+     * {@code offerTutorial} pops the one-time first-run prompt over the menu.
+     *
+     * @param game          the navigator the menu rows call
+     * @param theme         the shared fonts and textures
+     * @param sprites       the atlas The Debt's portrait is drawn from
+     * @param runLog        where the cleared count and best score under the wordmark are read
+     * @param offerTutorial true on the very first launch, to offer the tutorial
+     */
     public TitleScreen(ScoundrelGame game, Theme theme, Sprites sprites, RunLog runLog,
                        boolean offerTutorial) {
         super(game, theme);

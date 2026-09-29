@@ -44,6 +44,10 @@ final class Frames {
      *
      * <p>Tolerates a negative time rather than throwing — a clock that has not
      * started, or one that has been rewound, should still draw something.
+     *
+     * @param elapsed seconds on the effect's clock, any value
+     * @param fps     the frame rate: {@link #EFFECT_FPS} or {@link #IDLE_FPS}
+     * @return the frame index, from 0; negative for a negative time
      */
     static int at(float elapsed, int fps) {
         return (int) Math.floor((double) elapsed * fps + EPSILON);
@@ -52,6 +56,10 @@ final class Frames {
     /**
      * As {@link #at}, for a hold expressed as a period rather than a rate —
      * a card flight holds each hop for a time it carries with it.
+     *
+     * @param elapsed seconds on the effect's clock, any value
+     * @param period  seconds each frame holds, above zero
+     * @return the frame index, from 0; negative for a negative time
      */
     static int atPeriod(float elapsed, float period) {
         return (int) Math.floor((double) elapsed / period + EPSILON);
@@ -61,6 +69,10 @@ final class Frames {
      * The start time of the frame {@code elapsed} falls in: the same flooring,
      * for the effects whose timelines are written in seconds rather than frame
      * counts. Snapping an already-snapped time returns it unchanged.
+     *
+     * @param elapsed seconds on the effect's clock, any value
+     * @param fps     the frame rate
+     * @return the frame's start, in seconds: a whole multiple of {@code 1 / fps}
      */
     static float snap(float elapsed, int fps) {
         return at(elapsed, fps) / (float) fps;

@@ -26,6 +26,7 @@ final class Barehanded {
 
     /** The blows land on frames 0 and 1 — as fast as this grid can strike twice. */
     private static final int HIT_LENGTH = 2;
+    /** The frame each blow lands on, in order. Shared: never write to it. */
     static final int[] HIT_FRAMES = {0, 1};
 
     /** The star box before scaling, and its three discrete sizes. */
@@ -41,6 +42,12 @@ final class Barehanded {
     private Barehanded() {
     }
 
+    /**
+     * Floors a time onto the effect grid, so every segment holds on a frame.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return the start of the frame it falls in, in seconds
+     */
     static float quantise(float elapsed) {
         return Frames.snap(elapsed, Frames.EFFECT_FPS);
     }
@@ -49,12 +56,22 @@ final class Barehanded {
         return (int) (quantise(elapsed) / FRAME);
     }
 
-    /** The creature is lit for the whole exchange, not just on impact. */
+    /**
+     * The creature is lit for the whole exchange, not just on impact.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return true from the first blow until the effect ends
+     */
     static boolean hurtShowing(float elapsed) {
         return elapsed >= 0f && elapsed < TOTAL;
     }
 
-    /** True on the frame each blow lands, for the impact star. */
+    /**
+     * True on the frame each blow lands, for the impact star.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return whether a blow lands on this frame
+     */
     static boolean hitLanding(float elapsed) {
         int frame = frameOf(elapsed);
         for (int start : HIT_FRAMES) {
@@ -65,15 +82,32 @@ final class Barehanded {
         return false;
     }
 
-    /** Whether the board is washed gold right now. */
+    /**
+     * Whether the board is washed gold right now.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return true while {@link #flashAlpha} is above zero
+     */
     static boolean flashShowing(float elapsed) {
         return flashAlpha(elapsed) > 0f;
     }
 
+    /**
+     * The card's sideways shake.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return the offset in whole design pixels: -8, 8, -4, then 0
+     */
     static int shakeX(float elapsed) {
         return shake(SHAKE_X, elapsed);
     }
 
+    /**
+     * The card's vertical shake, y measured downward.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return the offset in whole design pixels: 4, -4, 4, then 0
+     */
     static int shakeY(float elapsed) {
         return shake(SHAKE_Y, elapsed);
     }
@@ -86,27 +120,53 @@ final class Barehanded {
     /**
      * The star's box for blow {@code hit} right now, or 0 when it is not up.
      * Three discrete sizes — never a tween — rounded to whole pixels.
+     *
+     * @param hit     which blow, from 0 to {@code hits() - 1}
+     * @param elapsed seconds on the fight's clock
+     * @return the star's box in design pixels: 40, 96 or 152, or 0
      */
     static int starSize(int hit, float elapsed) {
         int step = starStep(hit, elapsed);
         return step < 0 ? 0 : Math.round(STAR_BOX * STAR_SCALE[step]);
     }
 
-    /** Full on the frame the blow lands, gone by the third. */
+    /**
+     * Full on the frame the blow lands, gone by the third.
+     *
+     * @param hit     which blow, from 0 to {@code hits() - 1}
+     * @param elapsed seconds on the fight's clock
+     * @return 1, then two thirds, then one third; 0 when the star is not up
+     */
     static float starAlpha(int hit, float elapsed) {
         int step = starStep(hit, elapsed);
         return step < 0 ? 0f : 1f - step / (float) STAR_SCALE.length;
     }
 
+    /**
+     * Where a blow's star sits sideways, from the struck card's centre.
+     *
+     * @param hit which blow, from 0 to {@code hits() - 1}
+     * @return the offset in design pixels
+     */
     static int starOffsetX(int hit) {
         return STAR_OFFSET[hit][0];
     }
 
+    /**
+     * Where a blow's star sits vertically, from the struck card's centre.
+     *
+     * @param hit which blow, from 0 to {@code hits() - 1}
+     * @return the offset in design pixels
+     */
     static int starOffsetY(int hit) {
         return STAR_OFFSET[hit][1];
     }
 
-    /** How many blows there are, so callers do not hardcode two. */
+    /**
+     * How many blows there are, so callers do not hardcode two.
+     *
+     * @return the number of blows
+     */
     static int hits() {
         return HIT_FRAMES.length;
     }
@@ -127,6 +187,9 @@ final class Barehanded {
      * to the first blow alone. The second lands inside it, so one wash covers
      * the whole exchange — which is the point. A second flash would read as a
      * strobe rather than as a hit.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return 0.8 on the first blow's frame, 0.4 on the next, else 0
      */
     static float flashAlpha(float elapsed) {
         int offset = frameOf(elapsed) - HIT_FRAMES[0];
@@ -136,6 +199,12 @@ final class Barehanded {
         return 0.8f * (1f - offset / (float) HIT_LENGTH);
     }
 
+    /**
+     * Whether the effect is over.
+     *
+     * @param elapsed seconds on the fight's clock
+     * @return true from {@link #TOTAL} on
+     */
     static boolean finished(float elapsed) {
         return elapsed >= TOTAL;
     }

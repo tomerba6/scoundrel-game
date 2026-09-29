@@ -22,10 +22,20 @@ final class Backdrop {
     private final Embers embers = new Embers(1337);
     private float elapsed;
 
+    /**
+     * A backdrop with its own embers, seeded the same every time.
+     *
+     * @param theme where the glow, vignette and ember textures come from
+     */
     Backdrop(Theme theme) {
         this.theme = theme;
     }
 
+    /**
+     * Moves the flicker and the embers on.
+     *
+     * @param delta seconds since the last frame
+     */
     void advance(float delta) {
         elapsed += delta;
         embers.update(delta);
@@ -35,6 +45,7 @@ final class Backdrop {
      * Draws straight onto a batch — the screens are drawn in immediate mode and
      * need their backdrop under them, not over them.
      *
+     * @param batch the screen's batch, already begun; its colour is left white
      * @param light how alive the fire is; 1 normally, near zero once it is snuffed
      *              by a death, which dims the glow and the embers but not the
      *              vignette, so the dark stays while the fire goes out

@@ -45,9 +45,14 @@ final class PressGesture {
     /** Seconds the plate has actually been drawn down. */
     private float sunkFor;
 
+    /** Creates a gesture with nothing held. */
+    PressGesture() {
+    }
+
     /**
      * The button went down over {@code target}.
      *
+     * @param target what the screen hit-tested the press to, or {@link #NONE}
      * @return whether it landed on something, so the caller can consume the event
      */
     boolean press(int target) {
@@ -65,6 +70,8 @@ final class PressGesture {
      * The pointer moved, and is now over {@code target}. Sliding off lifts the
      * plate; sliding back on puts it down again, rather than cancelling for
      * good — a wobble on the way to the click is not a change of mind.
+     *
+     * @param target what the pointer is over now, or {@link #NONE}
      */
     void moveOver(int target) {
         if (held != NONE) {
@@ -75,6 +82,7 @@ final class PressGesture {
     /**
      * The button came up over {@code target}.
      *
+     * @param target what the pointer is over at release, or {@link #NONE}
      * @return whether that armed an action, so the caller can consume the event
      */
     boolean release(int target) {
@@ -102,6 +110,9 @@ final class PressGesture {
      * only ever the time the plate has already been <em>drawn</em> — input is
      * polled before the frame is rendered, so counting first would credit the
      * press with a frame nobody saw.
+     *
+     * @param delta seconds since the last frame
+     * @return the target whose action fires now, or {@link #NONE}
      */
     int advance(float delta) {
         if (armed != NONE && sunkFor >= MIN_SINK) {
@@ -121,12 +132,19 @@ final class PressGesture {
      * cancelled, whether or not the pointer is still on it. A button that is down
      * cannot go down again: the one time a single press arrived twice (the session's
      * first click after leaving fullscreen) it played the menu click twice.
+     *
+     * @param target the target a new press would land on
+     * @return true if that target is held already; always false for {@link #NONE}
      */
     boolean alreadyDown(int target) {
         return target != NONE && held == target;
     }
 
-    /** Which target draws pressed this frame, or {@link #NONE}. */
+    /**
+     * Which target draws pressed this frame, or {@link #NONE}.
+     *
+     * @return the armed target if there is one, else the held one while the pointer is on it
+     */
     int sunk() {
         if (armed != NONE) {
             return armed;

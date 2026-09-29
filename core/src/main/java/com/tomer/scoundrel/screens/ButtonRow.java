@@ -16,7 +16,13 @@ import java.util.function.ToIntFunction;
  */
 final class ButtonRow {
 
-    /** Where one button goes. */
+    /**
+     * Where one button goes.
+     *
+     * @param label the text on the button
+     * @param x     the button's left edge, in design pixels
+     * @param width the button's width, padding included, in design pixels
+     */
     record Slot(String label, int x, int width) {
     }
 
@@ -24,12 +30,16 @@ final class ButtonRow {
     }
 
     /**
+     * Lays the labels out left to right, the whole row centred in its region.
+     *
+     * @param labels the buttons' text, in order
      * @param left   the left edge of the region to centre within — the panel's,
      *               not the stage's; the render centres the run-end row on 638
      *               rather than 640 because the panel is not quite centred itself
      * @param across the width of that region
      * @param gap    the space between neighbours
      * @param measure label to button width, padding included
+     * @return one slot per label, in order; empty for no labels
      */
     static List<Slot> lay(List<String> labels, int left, int across, int gap,
                           ToIntFunction<String> measure) {
@@ -63,8 +73,12 @@ final class ButtonRow {
      * <p>World y points up, so {@code bottom} is the low edge and the band runs
      * upward from it.
      *
+     * @param slots  the row, as {@link #lay} returned it
      * @param bottom the row's lower edge in world space
      * @param height how tall each button is
+     * @param pointX the point's x, in world space
+     * @param pointY the point's y, in world space, pointing up
+     * @return the index of the slot under the point, or {@link PressGesture#NONE}
      */
     static int indexAt(List<Slot> slots, float bottom, int height, float pointX, float pointY) {
         if (pointY < bottom || pointY >= bottom + height) {

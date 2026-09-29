@@ -120,6 +120,13 @@ test {
   // re-run the check, not leave it UP-TO-DATE.
   inputs.file(rootProject.file('.github/scripts/coverage_badge.py'))
       .withPathSensitivity(PathSensitivity.RELATIVE)
+  // And for VersionTagTest, which compares two lines of text: gradle.properties
+  // is outside this module, and bumping a @version on the same line leaves the
+  // compiled class byte-identical, so neither edit would otherwise re-run it.
+  inputs.file(rootProject.file('gradle.properties'))
+      .withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('src/main/java/com/tomer/scoundrel/ScoundrelGame.java')
+      .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 jacocoTestReport {

@@ -42,6 +42,12 @@ public final class SoundBank implements Disposable {
     private final AudioLog log = AudioLog.fromLaunch();
     private float gain = AudioSettings.DEFAULTS.soundGain();
 
+    /**
+     * Loads every sound-effect file {@link Sound#allFiles()} names. A file that
+     * fails to load is logged and left out, so that sound is silent.
+     *
+     * @see com.badlogic.gdx.Audio#newSound(com.badlogic.gdx.files.FileHandle)
+     */
     public SoundBank() {
         for (String name : Sound.allFiles()) {
             String path = Sfx.DIRECTORY + name + Sfx.EXTENSION;
@@ -55,7 +61,11 @@ public final class SoundBank implements Disposable {
                 + Gdx.audio.getClass().getSimpleName());
     }
 
-    /** What each moment sounds like. Shared, so versions do not repeat across screens. */
+    /**
+     * What each moment sounds like. Shared, so versions do not repeat across screens.
+     *
+     * @return the one chooser, seeded at launch
+     */
     public SfxChoice choice() {
         return choice;
     }
@@ -64,6 +74,8 @@ public final class SoundBank implements Disposable {
      * The sound-effect gain as it should sound now, 0..1: the player's level, or
      * silence while muted or minimised. Sounds already playing follow it, so a chime
      * that has just begun goes quiet with the window.
+     *
+     * @param gain the linear gain, 0 to 1
      */
     public void setGain(float gain) {
         this.gain = gain;
@@ -79,7 +91,12 @@ public final class SoundBank implements Disposable {
         }
     }
 
-    /** Plays a sound now. Past its voice limit, the oldest copy stops first. */
+    /**
+     * Plays a sound now. Past its voice limit, the oldest copy stops first.
+     * Nothing plays at zero gain or for a file that failed to load, but it is logged.
+     *
+     * @param sfx the chosen sound, with its pitch and volume
+     */
     public void play(Sfx sfx) {
         float volume = gain * sfx.volume();
         com.badlogic.gdx.audio.Sound sound = loaded.get(sfx.file());
@@ -104,19 +121,31 @@ public final class SoundBank implements Disposable {
         }
     }
 
-    /** Plays each, now, in order. */
+    /**
+     * Plays each, now, in order.
+     *
+     * @param sounds the sounds, e.g. everything a skip flushed
+     */
     public void playAll(Iterable<Sfx> sounds) {
         for (Sfx sfx : sounds) {
             play(sfx);
         }
     }
 
-    /** A line in the sound log, for the board's effects and skips and the music's milestones. */
+    /**
+     * A line in the sound log, for the board's effects and skips and the music's milestones.
+     *
+     * @param event what happened
+     */
     void log(String event) {
         log.log(event);
     }
 
-    /** Whether the sound log is on, so a caller can skip working out what it would say. */
+    /**
+     * Whether the sound log is on, so a caller can skip working out what it would say.
+     *
+     * @return true if log lines are written
+     */
     boolean logging() {
         return log.enabled();
     }

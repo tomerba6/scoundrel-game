@@ -36,6 +36,13 @@ final class PixelSurface implements Disposable {
     private final TextureRegion region;
     private final OrthographicCamera camera = new OrthographicCamera();
 
+    /**
+     * Allocates the frame buffer, {@code Nearest}-filtered.
+     *
+     * @param width  the surface's width in pixels: the design width, 1280
+     * @param height the surface's height in pixels: the design height, 720
+     * @see FrameBuffer
+     */
     PixelSurface(int width, int height) {
         buffer = new FrameBuffer(Pixmap.Format.RGBA8888, width, height, false);
         // Nearest, obviously: this texture is the pixel art, and the one scale
@@ -51,17 +58,27 @@ final class PixelSurface implements Disposable {
         camera.update();
     }
 
-    /** Everything drawn until {@link #end} lands on the surface's own grid. */
+    /**
+     * Everything drawn until {@link #end} lands on the surface's own grid.
+     *
+     * @param clearTo the colour the surface starts the frame as; must be opaque, as
+     *                {@link #draw} copies rather than blends
+     */
     void begin(Color clearTo) {
         buffer.begin();
         ScreenUtils.clear(clearTo);
     }
 
+    /** Unbinds the surface; drawing goes to the window again. */
     void end() {
         buffer.end();
     }
 
-    /** The projection to draw with while the surface is bound: 1:1, y-up. */
+    /**
+     * The projection to draw with while the surface is bound: 1:1, y-up.
+     *
+     * @return the surface camera's combined matrix
+     */
     com.badlogic.gdx.math.Matrix4 projection() {
         return camera.combined;
     }
@@ -81,6 +98,11 @@ final class PixelSurface implements Disposable {
      * <p>The surface is the whole frame and opaque by construction: it is
      * cleared to an opaque colour and covers the viewport. There is nothing
      * behind it to blend with, so it is copied rather than composited.
+     *
+     * @param batch  a batch on the viewport's projection, already begun; blending is
+     *               switched back on afterwards
+     * @param width  the width to draw at, in world units: the design width
+     * @param height the height to draw at, in world units: the design height
      */
     void draw(Batch batch, float width, float height) {
         batch.disableBlending();

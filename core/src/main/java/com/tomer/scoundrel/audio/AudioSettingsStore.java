@@ -24,15 +24,27 @@ import java.util.Map;
  */
 public final class AudioSettingsStore {
 
+    /** The schema version, written as {@code v}; a file with any other version is ignored. */
     static final int VERSION = 1;
 
     private final Path file;
 
+    /**
+     * A store backed by one file, which need not exist yet.
+     *
+     * @param file where the levels live; the game uses {@code ~/.scoundrel/audio.settings}
+     */
     public AudioSettingsStore(Path file) {
         this.file = file;
     }
 
-    /** The saved settings, or the defaults when there are none worth reading. */
+    /**
+     * The saved settings, or the defaults when there are none worth reading.
+     *
+     * @return the saved levels; {@link AudioSettings#DEFAULTS} for a missing file or another
+     *         version, and a default for any single key that is missing or bad
+     * @throws UncheckedIOException if the file exists but cannot be read
+     */
     public AudioSettings load() {
         if (!Files.exists(file)) {
             return AudioSettings.DEFAULTS;
@@ -44,7 +56,12 @@ public final class AudioSettingsStore {
         }
     }
 
-    /** Replaces whatever was saved before. */
+    /**
+     * Replaces whatever was saved before.
+     *
+     * @param settings the levels to keep
+     * @throws UncheckedIOException if the directory or the file cannot be written
+     */
     public void save(AudioSettings settings) {
         String line = "v=" + VERSION
                 + "\tmusic=" + settings.music()
@@ -60,6 +77,12 @@ public final class AudioSettingsStore {
         }
     }
 
+    /**
+     * Reads the file's text, tolerantly: see the class comment for what falls back to what.
+     *
+     * @param text the whole file; tokens may be split by any whitespace
+     * @return the settings it holds, never throwing on bad content
+     */
     static AudioSettings parse(String text) {
         Map<String, String> kv = new HashMap<>();
         for (String token : text.strip().split("\\s+")) {
