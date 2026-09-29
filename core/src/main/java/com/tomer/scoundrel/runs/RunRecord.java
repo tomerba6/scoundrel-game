@@ -14,6 +14,21 @@ import java.util.Optional;
  * counters default to 0, and a line it cannot understand yields empty rather
  * than throwing — so a corrupt or future-version line can never take the
  * game down; adding a field later is just a new key.
+ *
+ * @param seed             the shuffle seed, or null for a game dealt from an explicit order
+ * @param rulesetId        the {@link com.tomer.scoundrel.rules.GameMode#id() mode id} it was
+ *                         played in; non-blank, no whitespace
+ * @param outcome          {@link Status#WON} or {@link Status#LOST}, never in progress
+ * @param score            the final score; zero or negative for a loss
+ * @param endedAt          when the game ended, as an instant (UTC in the file)
+ * @param seconds          wall-clock seconds from the first deal to the end, 0 or more
+ * @param monstersDefeated monsters fought, barehanded or with a weapon
+ * @param damageTaken      total health lost to monsters
+ * @param healthHealed     total health restored, after the cap
+ * @param potionsDrunk     potions that healed (including those that healed 0 at the cap)
+ * @param potionsWasted    potions taken past the turn's allowance
+ * @param weaponsEquipped  weapons taken
+ * @param roomsAvoided     rooms scooped to the bottom of the dungeon
  */
 public record RunRecord(
         Long seed,
@@ -30,8 +45,16 @@ public record RunRecord(
         int weaponsEquipped,
         int roomsAvoided) {
 
+    /** The schema version, written as {@code v}; a line with any other version is skipped. */
     static final int VERSION = 1;
 
+    /**
+     * Rejects a record that could not have come from a finished game.
+     *
+     * @throws IllegalArgumentException if {@code outcome} is not WON or LOST, {@code rulesetId}
+     *                                  is null, blank or holds whitespace (it would break the
+     *                                  line format), or {@code endedAt} is null
+     */
     public RunRecord {
         if (outcome != Status.WON && outcome != Status.LOST) {
             throw new IllegalArgumentException("a recorded run must be WON or LOST, got " + outcome);
@@ -44,7 +67,12 @@ public record RunRecord(
         }
     }
 
-    /** The single persisted line (no trailing newline). */
+    /**
+     * The single persisted line (no trailing newline).
+     *
+     * @return {@code v=1} then one tab-separated {@code key=value} per field; {@code seed} is
+     *         left out when null. {@link #parse} reads it back to an equal record.
+     */
     public String toLine() {
         StringBuilder sb = new StringBuilder();
         sb.append("v=").append(VERSION);
@@ -66,7 +94,12 @@ public record RunRecord(
         return sb.toString();
     }
 
-    /** Empty when the line is malformed or from an unknown schema version. */
+    /**
+     * Empty when the line is malformed or from an unknown schema version.
+     *
+     * @param line one line of the run log, with or without surrounding whitespace
+     * @return the record, or empty; never throws, whatever the input
+     */
     public static Optional<RunRecord> parse(String line) {
         try {
             Map<String, String> kv = new HashMap<>();

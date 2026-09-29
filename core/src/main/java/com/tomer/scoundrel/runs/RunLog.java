@@ -21,10 +21,22 @@ public final class RunLog {
 
     private final Path file;
 
+    /**
+     * A log backed by one file, which need not exist yet.
+     *
+     * @param file where the history lives; the game uses {@code ~/.scoundrel/runs.log}
+     */
     public RunLog(Path file) {
         this.file = file;
     }
 
+    /**
+     * Adds one finished run as a new line at the end, creating the file and its
+     * directory on the first run.
+     *
+     * @param record the run to keep
+     * @throws UncheckedIOException if the directory or the line cannot be written
+     */
     public void append(RunRecord record) {
         try {
             if (file.getParent() != null) {
@@ -42,6 +54,8 @@ public final class RunLog {
      * (overwriting any earlier backup), so an accidental reset stays
      * recoverable from disk; the game never restores it automatically. A no-op
      * when nothing has been written yet.
+     *
+     * @throws UncheckedIOException if the file cannot be moved
      */
     public void clear() {
         try {
@@ -54,7 +68,12 @@ public final class RunLog {
         }
     }
 
-    /** All parseable runs in file order; empty when no history exists yet. */
+    /**
+     * All parseable runs in file order; empty when no history exists yet.
+     *
+     * @return an unmodifiable list, oldest first; blank and unparseable lines are skipped
+     * @throws UncheckedIOException if the file exists but cannot be read
+     */
     public List<RunRecord> readAll() {
         if (!Files.exists(file)) {
             return List.of();

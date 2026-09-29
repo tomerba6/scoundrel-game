@@ -31,7 +31,16 @@ public final class RunRecorder {
     private Status outcome;
     private int score;
 
-    /** Seed may be null for games started from an explicit dungeon order. */
+    /**
+     * Seed may be null for games started from an explicit dungeon order. The run's
+     * clock starts now, so create it as the game is dealt.
+     *
+     * @param seed      the seed the game was shuffled from, or null
+     * @param rulesetId the {@link com.tomer.scoundrel.rules.GameMode#id() mode id}, copied into
+     *                  the record; non-blank, no whitespace
+     * @param clock     where the start, end and elapsed time are read from; the game passes
+     *                  {@link Clock#systemUTC()}, tests a fixed or stepped clock
+     */
     public RunRecorder(Long seed, String rulesetId, Clock clock) {
         this.seed = seed;
         this.rulesetId = rulesetId;
@@ -39,6 +48,12 @@ public final class RunRecorder {
         this.startedAt = clock.instant();
     }
 
+    /**
+     * Adds one move's events to the running totals, and notes the outcome when the
+     * game ends. Call it with every result, in order.
+     *
+     * @param result what {@link com.tomer.scoundrel.rules.ScoundrelEngine#apply} returned
+     */
     public void observe(MoveResult result) {
         for (GameEvent event : result.events()) {
             switch (event) {
@@ -66,6 +81,11 @@ public final class RunRecorder {
         }
     }
 
+    /**
+     * Whether a win or a loss has been observed.
+     *
+     * @return true once {@link #toRecord} may be called
+     */
     public boolean isFinished() {
         return outcome != null;
     }
@@ -74,12 +94,19 @@ public final class RunRecorder {
      * Wall-clock seconds since the run began — drives the live HUD timer. Reads
      * the same injected clock as {@link #toRecord}, so it agrees with the
      * persisted {@link RunRecord#seconds()}.
+     *
+     * @return whole seconds elapsed, rounded down; still counting after the game ends
      */
     public long elapsedSeconds() {
         return Duration.between(startedAt, clock.instant()).getSeconds();
     }
 
-    /** Only valid once the observed game has ended. */
+    /**
+     * Only valid once the observed game has ended.
+     *
+     * @return the finished run, ended and timed at the moment of this call
+     * @throws IllegalStateException if no win or loss has been observed yet
+     */
     public RunRecord toRecord() {
         if (!isFinished()) {
             throw new IllegalStateException("the run has not ended yet");

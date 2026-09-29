@@ -8,6 +8,18 @@ import java.util.List;
  * Lifetime sums across finished runs — a pure view over the run log like
  * {@link HighScores}, no I/O. "Finished" is the whole universe by design:
  * abandoned games are never recorded.
+ *
+ * @param runs             finished runs, won or lost
+ * @param wins             runs won
+ * @param losses           runs lost; {@code wins + losses == runs}
+ * @param monstersDefeated monsters fought, all runs together
+ * @param damageTaken      health lost to monsters, all runs together
+ * @param healthHealed     health restored by potions, all runs together
+ * @param potionsDrunk     potions that healed, all runs together
+ * @param potionsWasted    potions taken past a turn's allowance, all runs together
+ * @param weaponsEquipped  weapons taken, all runs together
+ * @param roomsAvoided     rooms avoided, all runs together
+ * @param secondsPlayed    wall-clock seconds across all runs
  */
 public record RunTotals(
         int runs,
@@ -22,6 +34,12 @@ public record RunTotals(
         int roomsAvoided,
         long secondsPlayed) {
 
+    /**
+     * Sums a history.
+     *
+     * @param records the runs to total, in any order; every mode counts
+     * @return the totals, all zero for an empty history
+     */
     public static RunTotals of(List<RunRecord> records) {
         int wins = 0;
         int losses = 0;
@@ -52,7 +70,11 @@ public record RunTotals(
                 healed, drunk, wasted, equips, avoids, seconds);
     }
 
-    /** Fraction of runs cleared; 0 while no runs exist. */
+    /**
+     * Fraction of runs cleared; 0 while no runs exist.
+     *
+     * @return {@code wins / runs}, from 0.0 to 1.0
+     */
     public double winRate() {
         return runs == 0 ? 0 : (double) wins / runs;
     }
