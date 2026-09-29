@@ -101,6 +101,13 @@ final class BoardView {
     /** The deal's flips, on the deal's clock. */
     private final PendingCues dealCues = new PendingCues();
 
+    /**
+     * A board with an empty room, building its frame, face, pip and effect art.
+     *
+     * @param theme   the shared fonts and textures
+     * @param sprites the shared sprite atlas
+     * @param sounds  where each effect's sounds are played on their beats
+     */
     BoardView(Theme theme, Sprites sprites, SoundBank sounds) {
         this.theme = theme;
         this.sprites = sprites;
@@ -115,6 +122,8 @@ final class BoardView {
      * The cards on the board now. A card keeps the stagger it was dealt with
      * for as long as it is in the room, so carrying over to the next room does
      * not restart its cycle.
+     *
+     * @param room the room's cards, left to right; copied
      */
     void setRoom(List<Card> room) {
         this.room = List.copyOf(room);
@@ -123,6 +132,11 @@ final class BoardView {
         }
     }
 
+    /**
+     * The cards on the board now.
+     *
+     * @return the room, left to right, as last set
+     */
     List<Card> room() {
         return room;
     }
@@ -139,11 +153,22 @@ final class BoardView {
         }
     }
 
-    /** Where a card sat before the current move, or null if it was not out. */
+    /**
+     * Where a card sat before the current move, or null if it was not out.
+     *
+     * @param cardId the card's id
+     * @return its slot's left edge before the move, in design pixels, or null
+     */
     Integer previousSlotX(String cardId) {
         return previousX.get(cardId);
     }
 
+    /**
+     * Moves every clock on — idle, effect, deal and closing slide — and plays each
+     * sound whose beat has come.
+     *
+     * @param delta seconds since the last frame
+     */
     void update(float delta) {
         elapsed += delta;
         // The room closes on its own clock, alongside whatever is happening to
@@ -206,6 +231,8 @@ final class BoardView {
      *
      * <p>A card that was already on the board is sliding, not rising: it left
      * the dungeon rooms ago and must not be counted again.
+     *
+     * @return how many dealt cards have not landed yet; 0 when not dealing
      */
     int rising() {
         if (!dealing) {
@@ -228,6 +255,8 @@ final class BoardView {
      * have left the table but not arrived, so the ticker does not count them
      * either — which is what makes the strip grow as the room goes in and shrink
      * again as the next one comes out.
+     *
+     * @return how many swept cards are still in the air; 0 when nothing is swept
      */
     int sweeping() {
         int count = 0;
@@ -239,6 +268,11 @@ final class BoardView {
         return count;
     }
 
+    /**
+     * Whether anything is moving: an effect, a deal, or the room closing up.
+     *
+     * @return true until all three are over
+     */
     boolean isPlaying() {
         return kind != Kind.NONE || dealing || closing;
     }
@@ -250,6 +284,8 @@ final class BoardView {
      * still hopping down towards it, and a slain monster is stacked on it —
      * chip, and a dulled threshold plate — while the creature is still being
      * cleaved. Until what you can see agrees, the rail reports what was there.
+     *
+     * @return true during an equip or a weapon kill
      */
     boolean railAhead() {
         return kind == Kind.EQUIP || kind == Kind.SLICE;
@@ -277,6 +313,8 @@ final class BoardView {
     /**
      * A fresh run: nothing was on the board, so the whole opening room comes up
      * out of the dungeon rather than appearing already dealt.
+     *
+     * @param room the opening room, left to right
      */
     void dealFresh(List<Card> room) {
         playPending("fresh deal");
@@ -348,6 +386,9 @@ final class BoardView {
      * one comes back up out of the dungeon — including, at the shallow end, a
      * card that was just swept away. Handing the outgoing positions to their
      * own map is what says that: nothing carries over.
+     *
+     * @param avoided the room that was avoided, left to right
+     * @param sfx     the sweep's sounds, held for its beat
      */
     void playSweep(List<Card> avoided, List<Sfx> sfx) {
         start(Kind.SWEEP, null, 1f, sfx, Beats.sweep());
@@ -358,12 +399,25 @@ final class BoardView {
         playDeal();
     }
 
+    /**
+     * The weapon's card hops down to the rail, then the room refills.
+     *
+     * @param weapon the weapon card taken
+     * @param sfx    the equip's sounds, held until the card reaches the rail
+     */
     void playEquip(Card weapon, List<Sfx> sfx) {
         start(Kind.EQUIP, weapon, 1f, sfx, Beats.equip());
         playDeal();
     }
 
-    /** The potion collapses, flies to the bar, and pours — then the room refills. */
+    /**
+     * The potion collapses, flies to the bar, and pours — then the room refills.
+     *
+     * @param potion the potion card drunk
+     * @param onPour run once, when the bottle pours (or at once on a skip), to start the
+     *               bar filling
+     * @param sfx    the drink's sounds, held until the pour
+     */
     void playPotion(Card potion, Runnable onPour, List<Sfx> sfx) {
         start(Kind.POTION, potion, 1f, sfx, Beats.drink());
         this.onPour = onPour;
@@ -375,6 +429,9 @@ final class BoardView {
      * A wasted potion: the same card, the same bottle, but drained and tipped
      * out where it stood. It never reaches the bar, because nothing reaches
      * you — that is the whole message of the effect.
+     *
+     * @param potion the wasted potion card
+     * @param sfx    the spill's sounds, held until it tips out
      */
     void playSpill(Card potion, List<Sfx> sfx) {
         start(Kind.SPILL, potion, 1f, sfx, Beats.spill());
@@ -386,11 +443,23 @@ final class BoardView {
      * half speed and the dungeon sends nothing up after it — the room closes
      * over the gap, but you are not being dealt another card, because you are
      * not playing on.
+     *
+     * @param monster the monster fought barehanded
+     * @param fatal   whether this blow ended the run
+     * @param sfx     the fight's sounds, held for the first blow
      */
     void playStrike(Card monster, boolean fatal, List<Sfx> sfx) {
         start(Kind.STRIKE, monster, fatal, sfx, Beats.strike());
     }
 
+    /**
+     * A weapon kill: the flash, the lift, the slash and the parting halves. Like a
+     * strike, a fatal one runs at half speed and deals nothing after it.
+     *
+     * @param monster the monster slain with the weapon
+     * @param fatal   whether this blow ended the run
+     * @param sfx     the kill's sounds, held until the slash crosses
+     */
     void playSlice(Card monster, boolean fatal, List<Sfx> sfx) {
         start(Kind.SLICE, monster, fatal, sfx, Beats.slice());
     }
@@ -434,7 +503,13 @@ final class BoardView {
 
     // --- input -------------------------------------------------------------
 
-    /** The card under a point in world coordinates, or null. */
+    /**
+     * The card under a point in world coordinates, or null.
+     *
+     * @param worldX the point's x, in world space
+     * @param worldY the point's y, in world space (y up)
+     * @return the room card under it, at its resting slot, or null
+     */
     Card cardAt(float worldX, float worldY) {
         List<CardHitRegions.CardRect> rects = new ArrayList<>();
         for (int i = 0; i < room.size(); i++) {
@@ -445,10 +520,20 @@ final class BoardView {
         return CardHitRegions.cardAt(rects, worldX, worldY);
     }
 
+    /**
+     * Which card the pointer is over; only that one breathes.
+     *
+     * @param card the hovered card, or null for none
+     */
     void setHovered(Card card) {
         this.hovered = card;
     }
 
+    /**
+     * The card the pointer is over.
+     *
+     * @return the hovered card, or null
+     */
     Card hovered() {
         return hovered;
     }
@@ -457,11 +542,21 @@ final class BoardView {
      * Where the i-th card of the current room sits. A short room is centred on
      * the same middle a full one is, so the last card of a room does not sit
      * off to one side while the next deals in around it.
+     *
+     * @param index the card's place in the room, from 0
+     * @return its left edge, in design pixels
      */
     int slotX(int index) {
         return slotX(index, room.size());
     }
 
+    /**
+     * Where the i-th of {@code cards} sits, the row centred on the stage.
+     *
+     * @param index the card's place in the row, from 0
+     * @param cards how many cards the row has
+     * @return its left edge, in design pixels
+     */
     static int slotX(int index, int cards) {
         int span = cards * CardArt.CARD_W + Math.max(0, cards - 1) * gap();
         int left = Math.round((Theme.WORLD_WIDTH - span) / 2f);
@@ -474,6 +569,12 @@ final class BoardView {
 
     // --- drawing -----------------------------------------------------------
 
+    /**
+     * Draws the swept room, the room, the resolved card's effect and the strike's
+     * wash, in that order.
+     *
+     * @param batch the board's batch, already begun
+     */
     void draw(Batch batch) {
         for (Card card : outgoing) {
             drawSweeping(batch, card);
@@ -561,6 +662,11 @@ final class BoardView {
      * window rather than the card wobbling. A card mid-flight or mid-effect does
      * not come through here: those own their motion, and a bob underneath would
      * fight it.
+     *
+     * @param batch the board's batch, already begun
+     * @param card  the card to draw
+     * @param slotX the card's left edge, in design pixels
+     * @param slotY the card's top edge, in design pixels measured downward
      */
     void drawCard(Batch batch, Card card, int slotX, int slotY) {
         cardFrame.draw(batch, card.type(), slotX, slotY);
@@ -762,6 +868,10 @@ final class BoardView {
      * The region to draw for a card right now. Only creatures have idle frames
      * — none were drawn for weapons or potions — so everything else is its
      * static base sprite, which is frame 1 of a cycle anyway.
+     *
+     * @param card      the card
+     * @param animating whether its idle cycle runs (it is hovered); frame 1 if not
+     * @return the region, owned by the atlas
      */
     TextureRegion spriteFor(Card card, boolean animating) {
         if (card.type() != CardType.MONSTER) {
@@ -772,11 +882,19 @@ final class BoardView {
         return frames.get(IdleCycle.frameIndex(elapsed, offset, frames.size, animating));
     }
 
-    /** The screen-death pattern, which lives with the other generated shapes. */
+    /**
+     * The screen-death pattern, which lives with the other generated shapes.
+     *
+     * @param level  how many of the sixteen cells are dark
+     * @param width  the area to cover, in pixels
+     * @param height the area to cover, in pixels
+     * @return the shared dither region, sized to repeat across the area
+     */
     TextureRegion dither(int level, int width, int height) {
         return effectArt.ditherAt(level, width, height);
     }
 
+    /** Disposes the pip and effect textures this board built; the atlas is not its own. */
     void dispose() {
         pips.dispose();
         effectArt.dispose();
