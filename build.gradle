@@ -56,15 +56,19 @@ configure(subprojects) {
   }
 
   // Every non-private declaration carries a Javadoc comment with its @param,
-  // @return and @throws tags. Doclint checks it at package visibility, since
-  // most screens helpers are package-private and the default (protected)
-  // would skip them.
+  // @return and @throws tags, and check holds it there. Doclint checks it at
+  // package visibility, since most screens helpers are package-private and the
+  // default (protected) would skip them, and any warning fails the build: a
+  // missing tag is the whole thing being checked, so it cannot be a warning
+  // nobody reads. A broken {@link} fails the same way.
   javadoc {
     options.encoding = 'UTF-8'
     options.memberLevel = JavadocMemberLevel.PACKAGE
     options.addBooleanOption('Xdoclint:all', true)
+    options.addBooleanOption('Xwerror', true)
     options.addStringOption('Xmaxwarns', '10000')
   }
+  check.dependsOn javadoc
 }
 
 subprojects {
