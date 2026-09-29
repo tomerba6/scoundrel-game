@@ -31,11 +31,6 @@ final class ScreenArt {
     static final int FACE_PANEL = 0x161210;
     /** The face of a table: the ledger's totals and the run-end panel's figures. */
     static final int FACE_TABLE = 0x141110;
-    /**
-     * A well's recess, the same iron as the board's rail well. Pinned by
-     * {@code ScreenArtTest}; no screen draws from this constant directly.
-     */
-    static final int FACE_WELL = 0x12161a;
 
     /** A gold plate's face. */
     static final int GOLD = 0xd9a441;

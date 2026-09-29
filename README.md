@@ -269,7 +269,7 @@ out of the GL classes stay in the same package. `screens` splits cleanly in two:
 
 | Inside `screens` | Classes | Source lines | Executable lines | Line coverage |
 |---|---|---|---|---|
-| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `Beats`, …) | 46 | 6,016 | 898 | 97.0% |
+| pure helpers, no libGDX import (`PressGesture`, `LedgerRow`, `TextWrap`, `ScreenArt`, `Frames`, `Beats`, …) | 46 | 6,011 | 898 | 97.0% |
 | GL-bound (`GameScreen`, `BoardView`, `PixelScreen`, `Theme`, `SoundBank`, the screens themselves) | 21 | 6,594 | 2,527 | 0.2% |
 
 Two line counts because they tell different stories and only one of them is JaCoCo's. **Executable

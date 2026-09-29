@@ -30,7 +30,7 @@ final class UiPalette {
             0x0f1410,   // FRAME — the 2px recess around every widget
             0x161210,   // FACE_PANEL
             0x141110,   // FACE_TABLE, and the even ledger row
-            0x12161a,   // FACE_WELL, the rail's recess, the gold plate's label
+            0x12161a,   // the rail's recess, the gold plate's label
             0x1a1410,   // DARK plate
             0x2f2620,   // DARK_LIGHT, its lit bevel
             0x0a0806,   // DARK_DARK, its shadowed bevel; also the value and

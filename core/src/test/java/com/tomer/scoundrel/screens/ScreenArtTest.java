@@ -21,7 +21,6 @@ class ScreenArtTest {
         assertEquals(0x0f1410, ScreenArt.FRAME);
         assertEquals(0x161210, ScreenArt.FACE_PANEL);
         assertEquals(0x141110, ScreenArt.FACE_TABLE);
-        assertEquals(0x12161a, ScreenArt.FACE_WELL);
         assertEquals(0xd9a441, ScreenArt.GOLD);
         assertEquals(0xf2cf7a, ScreenArt.GOLD_LIGHT);
         assertEquals(0xb5651f, ScreenArt.GOLD_DARK);
