@@ -99,12 +99,21 @@ public final class TutorialScript {
             TutorialStep.act("Finish the last monster to clear the dungeon.",
                     new Move.FightBarehanded(M3S)));
 
-    /** The curated dungeon, top card first, for {@code engine.newGame(...)}. */
+    /**
+     * The curated dungeon, top card first, for {@code engine.newGame(...)}.
+     *
+     * @return an unmodifiable list of 14 cards, played under the standard ruleset
+     * @see com.tomer.scoundrel.rules.ScoundrelEngine#newGame(List)
+     */
     public static List<Card> deck() {
         return DECK;
     }
 
-    /** The ordered beats — a mix of explanation and gated action steps. */
+    /**
+     * The ordered beats — a mix of explanation and gated action steps.
+     *
+     * @return an unmodifiable list, in the order the guide walks it
+     */
     public static List<TutorialStep> steps() {
         return STEPS;
     }
