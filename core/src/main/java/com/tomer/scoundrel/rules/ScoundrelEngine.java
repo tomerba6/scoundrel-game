@@ -21,11 +21,23 @@ public final class ScoundrelEngine {
 
     private final Ruleset rules;
 
+    /**
+     * An engine for one ruleset; it keeps no game state, so one engine can run any
+     * number of games.
+     *
+     * @param rules the constants, strategies and deck every game is played with
+     */
     public ScoundrelEngine(Ruleset rules) {
         this.rules = rules;
     }
 
-    /** A new game with the deck shuffled reproducibly from the seed. */
+    /**
+     * A new game with the deck shuffled reproducibly from the seed.
+     *
+     * @param seed any value; the same seed and ruleset always deal the same dungeon
+     * @return the opening state: the first room dealt, full health, in progress
+     * @see java.util.Collections#shuffle(List, Random)
+     */
     public GameState newGame(long seed) {
         List<Card> cards = new ArrayList<>();
         for (CardDefinition def : rules.deck().cards()) {
@@ -35,7 +47,14 @@ public final class ScoundrelEngine {
         return newGame(cards);
     }
 
-    /** Test hook: a new game with an exact dungeon order, index 0 on top. */
+    /**
+     * Test hook: a new game with an exact dungeon order, index 0 on top. The
+     * tutorial's scripted deck comes in this way too.
+     *
+     * @param orderedDungeon the cards to play, top first; copied, and not checked against
+     *                       the ruleset's deck
+     * @return the opening state: the first room dealt from the top, full health, in progress
+     */
     public GameState newGame(List<Card> orderedDungeon) {
         List<Card> dungeon = new ArrayList<>(orderedDungeon);
         List<Card> room = new ArrayList<>();
@@ -44,6 +63,13 @@ public final class ScoundrelEngine {
                 0, false, null, Status.IN_PROGRESS, null);
     }
 
+    /**
+     * Every move the player may make now: avoiding (if the avoid rule allows it),
+     * then each room card's moves, in room order.
+     *
+     * @param state the game as it stands
+     * @return the moves {@link #apply} will accept; empty once the game is over
+     */
     public List<Move> legalMoves(GameState state) {
         if (state.status() != Status.IN_PROGRESS) {
             return List.of();
@@ -58,6 +84,18 @@ public final class ScoundrelEngine {
         return List.copyOf(moves);
     }
 
+    /**
+     * Plays one move. Resolves the card through its effect, then runs the turn
+     * loop: a loss freezes the state; the ruleset's cards-per-turn (or an emptied
+     * room) end the turn and refill the room; an empty room and dungeon is a win. A
+     * finished game is scored before it is returned.
+     *
+     * @param state the game as it stands; not modified
+     * @param move  one of {@link #legalMoves legalMoves(state)}
+     * @return the next state and the events of this move, in order
+     * @throws IllegalMoveException if {@code move} is not currently legal, including any
+     *                              move once the game is over
+     */
     public MoveResult apply(GameState state, Move move) {
         if (!legalMoves(state).contains(move)) {
             throw new IllegalMoveException("Illegal move " + move);

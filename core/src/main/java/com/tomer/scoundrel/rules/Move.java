@@ -14,18 +14,44 @@ public sealed interface Move {
 
     /** A move that resolves one specific card in the current room. */
     sealed interface CardMove extends Move {
+        /**
+         * The card this move resolves.
+         *
+         * @return a card in the current room
+         */
         Card targetCard();
     }
 
+    /**
+     * Equip a weapon from the room, discarding the old one and its stack.
+     *
+     * @param targetCard the weapon card to equip
+     */
     record TakeWeapon(Card targetCard) implements CardMove {
     }
 
+    /**
+     * Drink a potion from the room; it heals only within the turn's allowance.
+     *
+     * @param targetCard the potion card to drink
+     */
     record TakePotion(Card targetCard) implements CardMove {
     }
 
+    /**
+     * Fight a monster from the room with no weapon, taking its full value as damage.
+     *
+     * @param targetCard the monster card to fight
+     */
     record FightBarehanded(Card targetCard) implements CardMove {
     }
 
+    /**
+     * Fight a monster from the room with the equipped weapon; offered only while
+     * the weapon's degradation allows it.
+     *
+     * @param targetCard the monster card to fight
+     */
     record FightWithWeapon(Card targetCard) implements CardMove {
     }
 }

@@ -8,6 +8,10 @@ import com.tomer.scoundrel.model.GameState;
  */
 public final class NeverAvoidRule implements AvoidRule {
 
+    /** Creates the rule; it holds no state. */
+    public NeverAvoidRule() {
+    }
+
     @Override
     public boolean canAvoid(GameState state) {
         return false;

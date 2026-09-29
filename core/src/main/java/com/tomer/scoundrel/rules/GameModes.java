@@ -13,6 +13,7 @@ public final class GameModes {
     private GameModes() {
     }
 
+    /** Base Scoundrel: first in the menu, the tutorial's rules, and the only mode achievements count in. */
     public static final GameMode STANDARD = new GameMode(
             "standard", "Standard",
             "The classic dungeon. Scoop a room to skip it now and then — but never twice in a row.",
@@ -27,11 +28,21 @@ public final class GameModes {
                     "You begin at 14 health and can never heal past it. Every wound bites deeper.",
                     Rulesets.frail(), false));
 
+    /**
+     * Every shipped mode, in menu order.
+     *
+     * @return an unmodifiable list, {@link #STANDARD} first
+     */
     public static List<GameMode> all() {
         return CATALOG;
     }
 
-    /** The mode with this id, or empty for an unknown or retired id (e.g. an old log). */
+    /**
+     * The mode with this id, or empty for an unknown or retired id (e.g. an old log).
+     *
+     * @param id a {@link GameMode#id()}, typically read back from a run record
+     * @return the matching mode, or empty
+     */
     public static Optional<GameMode> byId(String id) {
         return CATALOG.stream().filter(mode -> mode.id().equals(id)).findFirst();
     }

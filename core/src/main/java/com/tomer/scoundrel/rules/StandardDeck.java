@@ -18,6 +18,10 @@ public final class StandardDeck implements DeckDefinition {
     private final List<CardDefinition> cards;
     private final Map<String, CardDefinition> byId;
 
+    /**
+     * Builds the 44 definitions — clubs then spades 2–A, diamonds 2–10, hearts 2–10 — with
+     * one shared effect per type, and indexes them by id.
+     */
     public StandardDeck() {
         CardEffect monster = new MonsterEffect();
         CardEffect weapon = new WeaponEffect();

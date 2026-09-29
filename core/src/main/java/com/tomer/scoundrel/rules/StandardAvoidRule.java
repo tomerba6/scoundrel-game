@@ -11,6 +11,10 @@ import com.tomer.scoundrel.model.Status;
  */
 public final class StandardAvoidRule implements AvoidRule {
 
+    /** Creates the rule; it holds no state. */
+    public StandardAvoidRule() {
+    }
+
     @Override
     public boolean canAvoid(GameState state) {
         return state.status() == Status.IN_PROGRESS

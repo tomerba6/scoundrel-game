@@ -12,6 +12,10 @@ import java.util.List;
  */
 public final class PotionEffect implements CardEffect {
 
+    /** Creates the effect. It holds no state, so one instance serves every potion. */
+    public PotionEffect() {
+    }
+
     @Override
     public List<Move> legalMoves(Card card, GameState state) {
         return List.of(new Move.TakePotion(card));
