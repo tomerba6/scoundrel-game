@@ -54,6 +54,17 @@ configure(subprojects) {
   compileJava {
     options.incremental = true
   }
+
+  // Every non-private declaration carries a Javadoc comment with its @param,
+  // @return and @throws tags. Doclint checks it at package visibility, since
+  // most screens helpers are package-private and the default (protected)
+  // would skip them.
+  javadoc {
+    options.encoding = 'UTF-8'
+    options.memberLevel = JavadocMemberLevel.PACKAGE
+    options.addBooleanOption('Xdoclint:all', true)
+    options.addStringOption('Xmaxwarns', '10000')
+  }
 }
 
 subprojects {
