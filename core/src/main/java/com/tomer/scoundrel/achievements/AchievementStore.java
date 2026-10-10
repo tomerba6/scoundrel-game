@@ -73,9 +73,11 @@ public final class AchievementStore {
     }
 
     /**
-     * Every earned achievement, deduped by id (earliest earn kept); empty when none exist.
+     * Every earned achievement, deduped by id, keeping the first line written for
+     * each (its earliest earn, since unlocks are appended as they are won); empty
+     * when none exist.
      *
-     * @return an unmodifiable list in first-earned order; unparseable lines are skipped
+     * @return an unmodifiable list in the order first written; unparseable lines are skipped
      * @throws UncheckedIOException if the file exists but cannot be read
      */
     public List<UnlockedAchievement> readAll() {

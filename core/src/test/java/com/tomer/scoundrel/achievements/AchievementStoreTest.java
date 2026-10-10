@@ -14,8 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * The unlocked-achievements file: appending, reading back deduped and
+ * tolerant, and clearing to a backup.
+ */
 class AchievementStoreTest {
 
+    /** A fresh directory for each test, deleted afterwards. */
     @TempDir
     Path dir;
 
@@ -23,6 +28,7 @@ class AchievementStoreTest {
         return new UnlockedAchievement(id, Instant.parse(earnedAt));
     }
 
+    /** Appending to a store in a missing directory creates the directories and the file. */
     @Test
     void appendCreatesMissingDirectoriesAndFile() {
         Path file = dir.resolve("nested").resolve("achievements.log");
@@ -33,6 +39,7 @@ class AchievementStoreTest {
         assertEquals(List.of(earned), store.readAll());
     }
 
+    /** Unlocks read back in the order they were written, and their ids make the unlocked set. */
     @Test
     void appendsAccumulateInOrder() {
         AchievementStore store = new AchievementStore(dir.resolve("achievements.log"));
@@ -44,6 +51,7 @@ class AchievementStoreTest {
         assertEquals(Set.of("first_blood", "giant_slayer"), store.unlockedIds());
     }
 
+    /** A store that was never written reads as empty, with nothing unlocked. */
     @Test
     void readingWithoutAFileIsEmpty() {
         AchievementStore store = new AchievementStore(dir.resolve("never-written.log"));
@@ -51,6 +59,7 @@ class AchievementStoreTest {
         assertEquals(Set.of(), store.unlockedIds());
     }
 
+    /** An id written twice reads back once, keeping the first earn written. */
     @Test
     void aRepeatedIdIsDedupedKeepingTheEarliestEarn() {
         AchievementStore store = new AchievementStore(dir.resolve("achievements.log"));
@@ -61,6 +70,7 @@ class AchievementStoreTest {
         assertEquals(Set.of("seasoned"), store.unlockedIds());
     }
 
+    /** Garbage and unknown-version lines are skipped, and the good unlocks around them still read. */
     @Test
     void corruptLinesAreSkippedNotFatal() throws Exception {
         Path file = dir.resolve("achievements.log");
@@ -71,6 +81,7 @@ class AchievementStoreTest {
         assertEquals(List.of(good, alsoGood), new AchievementStore(file).readAll());
     }
 
+    /** Appending where the directory cannot be created throws UncheckedIOException. */
     @Test
     void unwritableLocationThrowsUncheckedIOExceptionForTheCallerToHandle() throws Exception {
         Path blocker = dir.resolve("blocker");
@@ -80,6 +91,7 @@ class AchievementStoreTest {
                 () -> store.append(unlock("first_blood", "2026-07-10T10:00:00Z")));
     }
 
+    /** Reading a path that cannot be read, here a directory, throws UncheckedIOException. */
     @Test
     void readingAnUnreadablePathThrowsUncheckedIOException() throws Exception {
         // The store path is actually a directory, so readAllLines cannot read it.
@@ -88,6 +100,7 @@ class AchievementStoreTest {
         assertThrows(UncheckedIOException.class, () -> new AchievementStore(asDir).readAll());
     }
 
+    /** Clearing empties the store and keeps its unlocks in {@code achievements.log.bak}. */
     @Test
     void clearMovesTheLogAsideToARecoverableBackupAndEmptiesIt() {
         Path file = dir.resolve("achievements.log");
@@ -102,6 +115,7 @@ class AchievementStoreTest {
         assertEquals(List.of(earned), new AchievementStore(backup).readAll());
     }
 
+    /** Clearing a store that does not exist does nothing. */
     @Test
     void clearWithoutAFileIsANoOp() {
         AchievementStore store = new AchievementStore(dir.resolve("achievements.log"));
@@ -109,6 +123,7 @@ class AchievementStoreTest {
         assertEquals(List.of(), store.readAll());
     }
 
+    /** A second clear replaces the previous backup. */
     @Test
     void clearOverwritesAnyPriorBackup() {
         AchievementStore store = new AchievementStore(dir.resolve("achievements.log"));
