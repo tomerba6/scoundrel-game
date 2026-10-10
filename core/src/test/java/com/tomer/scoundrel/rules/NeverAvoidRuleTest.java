@@ -8,10 +8,12 @@ import static com.tomer.scoundrel.rules.StateBuilder.state;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The avoid rule Relentless plays under. */
 class NeverAvoidRuleTest {
 
     private final AvoidRule rule = new NeverAvoidRule();
 
+    /** Avoiding is refused even in a room the standard rule would let you avoid. */
     @Test
     void avoidingIsNeverLegalEvenInACanonicallyAvoidableRoom() {
         // Fresh, unstarted, not-previously-avoided, dungeon still has cards: exactly

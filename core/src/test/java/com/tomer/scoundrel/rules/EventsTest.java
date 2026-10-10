@@ -16,10 +16,12 @@ import static com.tomer.scoundrel.rules.StateBuilder.state;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The events each move reports alongside its new state. */
 class EventsTest {
 
     private final ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
 
+    /** A fight reports MonsterDefeated with whether a weapon was used and the damage taken. */
     @Test
     void fightsEmitMonsterDefeatedWithWeaponInfoAndDamage() {
         GameState bare = state().room(monster(7), weapon(2), weapon(3), weapon(4)).build();
@@ -32,6 +34,7 @@ class EventsTest {
                 .contains(new GameEvent.MonsterDefeated(monster(11), true, 6)));
     }
 
+    /** PotionUsed carries the health actually gained after the cap, not the potion's value. */
     @Test
     void potionUsedCarriesTheActualCapClippedHeal() {
         GameState s = state().health(19).room(potion(7), weapon(2), weapon(3), weapon(4)).build();
@@ -39,6 +42,7 @@ class EventsTest {
                 .contains(new GameEvent.PotionUsed(potion(7), 1)));
     }
 
+    /** A potion past the turn's allowance reports PotionWasted and no PotionUsed. */
     @Test
     void secondPotionEmitsWastedNotUsed() {
         GameState s = state().health(10).potionsUsed(1).started()
@@ -48,6 +52,7 @@ class EventsTest {
         assertTrue(events.stream().noneMatch(e -> e instanceof GameEvent.PotionUsed));
     }
 
+    /** A weapon kill reports WeaponDegraded with the slain monster's value as the new limit. */
     @Test
     void weaponKillsEmitWeaponDegradedWithTheNewThreshold() {
         GameState s = state().room(monster(11), weapon(2), weapon(3), weapon(4))
@@ -56,6 +61,10 @@ class EventsTest {
                 .contains(new GameEvent.WeaponDegraded(weapon(5), 11)));
     }
 
+    /**
+     * Avoiding reports RoomAvoided and the RoomDealt that replaces it; finishing a
+     * turn reports the next RoomDealt.
+     */
     @Test
     void refillsAndAvoidsEmitRoomEvents() {
         GameState g = engine.newGame(List.of(
@@ -76,6 +85,7 @@ class EventsTest {
                 new GameEvent.RoomDealt(List.of(potion(9), potion(2), potion(3), potion(4)))));
     }
 
+    /** The move that ends a game reports GameWon or GameLost with the final score. */
     @Test
     void terminalMovesEmitGameWonOrGameLostWithTheScore() {
         MoveResult win = engine.apply(state().health(13).room(monster(2)).build(),

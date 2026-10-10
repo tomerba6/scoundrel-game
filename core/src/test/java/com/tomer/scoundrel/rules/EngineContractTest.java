@@ -20,10 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * What the engine promises any caller: bad moves are refused, inputs are never
+ * changed, and results are repeatable.
+ */
 class EngineContractTest {
 
     private final ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
 
+    /** A move of the wrong kind for its card is refused with an IllegalMoveException. */
     @Test
     void movesOfTheWrongTypeForACardAreRejected() {
         GameState s = state().room(monster2(12), weapon(5), potion(5), weapon(2)).build();
@@ -32,6 +37,7 @@ class EngineContractTest {
         assertThrows(IllegalMoveException.class, () -> engine.apply(s, new FightBarehanded(potion(5))));
     }
 
+    /** A move on a card outside the room, in the dungeon or not in the game at all, is refused. */
     @Test
     void movesTargetingCardsNotInTheRoomAreRejected() {
         GameState s = state().room(potion(2), potion(3), potion(4), potion(5))
@@ -42,6 +48,7 @@ class EngineContractTest {
         assertThrows(IllegalMoveException.class, () -> engine.apply(s, new FightBarehanded(monster(13))));
     }
 
+    /** Playing only offered moves, a seeded game runs to an end with a score and no moves left. */
     @Test
     void everyLegalMoveAppliesCleanlyOverAFullSeededGame() {
         GameState g = engine.newGame(42L);
@@ -56,6 +63,7 @@ class EngineContractTest {
         assertTrue(engine.legalMoves(g).isEmpty());
     }
 
+    /** Applying a move leaves the state it was given unchanged. */
     @Test
     void applyNeverMutatesItsInputState() {
         GameState s = state().health(10)
@@ -68,6 +76,7 @@ class EngineContractTest {
         assertEquals(snapshot, s);
     }
 
+    /** The same move on the same state gives equal results, events included. */
     @Test
     void applyingTheSameMoveToTheSameStateTwiceGivesEqualResults() {
         GameState s = state().health(10)

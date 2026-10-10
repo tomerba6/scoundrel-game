@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** The shipped difficulty variants: same engine, different Ruleset instances. */
 class VariantRulesetsTest {
 
+    /** Relentless is Standard in every constant, with an avoid rule that never allows it. */
     @Test
     void relentlessMatchesStandardButForbidsAvoiding() {
         Ruleset standard = Rulesets.standard();
@@ -32,6 +33,7 @@ class VariantRulesetsTest {
         assertTrue(relentless.deck() instanceof StandardDeck);
     }
 
+    /** Relentless offers no avoid move, even on the first full room. */
     @Test
     void relentlessOffersNoAvoidMoveEvenOnAFreshFullRoom() {
         ScoundrelEngine engine = new ScoundrelEngine(Rulesets.relentless());
@@ -39,6 +41,7 @@ class VariantRulesetsTest {
         assertFalse(engine.legalMoves(g).contains(new Move.AvoidRoom()));
     }
 
+    /** Frail starts at 14 health and caps there, and still allows avoiding. */
     @Test
     void frailStartsAndCapsAtFourteen() {
         Ruleset frail = Rulesets.frail();
@@ -48,6 +51,7 @@ class VariantRulesetsTest {
         assertEquals(14, new ScoundrelEngine(frail).newGame(1L).health());
     }
 
+    /** Frail's healing stops at its cap of 14. */
     @Test
     void frailHealingClipsToItsLowerCap() {
         ScoundrelEngine engine = new ScoundrelEngine(Rulesets.frail());
@@ -56,6 +60,7 @@ class VariantRulesetsTest {
         assertEquals(14, next.health()); // 10 + 9 = 19, clipped to the frail cap
     }
 
+    /** Each of the three rulesets plays a seeded game through to a score. */
     @Test
     void everyModePlaysAFullSeededGameToTermination() {
         for (Ruleset rules : List.of(Rulesets.standard(), Rulesets.relentless(), Rulesets.frail())) {
