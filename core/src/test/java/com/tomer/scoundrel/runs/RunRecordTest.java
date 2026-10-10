@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** One run's record and its one-line text form. */
 class RunRecordTest {
 
     private static final Instant ENDED = Instant.parse("2026-07-06T10:15:30Z");
@@ -20,12 +21,14 @@ class RunRecordTest {
                 18, 27, 15, 5, 2, 3, 4);
     }
 
+    /** A record written to a line parses back equal. */
     @Test
     void encodeParseRoundTrips() {
         RunRecord original = sample();
         assertEquals(Optional.of(original), RunRecord.parse(original.toLine()));
     }
 
+    /** A record without a seed writes no seed key and parses back without one. */
     @Test
     void nullSeedRoundTripsAsAbsentKey() {
         RunRecord seedless = new RunRecord(null, "standard", Status.LOST, -24, ENDED, 100,
@@ -37,12 +40,14 @@ class RunRecordTest {
         assertEquals(seedless, parsed);
     }
 
+    /** Unknown keys on a line are ignored. */
     @Test
     void unknownKeysAreIgnored() {
         String line = sample().toLine() + "\tfuturestat=99\tnote=hello";
         assertEquals(Optional.of(sample()), RunRecord.parse(line));
     }
 
+    /** A line with only the essential keys parses, with every counter at zero and no seed. */
     @Test
     void missingCountersDefaultToZero() {
         String minimal = "v=1\truleset=standard\toutcome=WON\tscore=20\tended=" + ENDED;
@@ -54,6 +59,7 @@ class RunRecordTest {
         assertEquals(20, parsed.score());
     }
 
+    /** A line missing the version, outcome, score or end time parses to nothing. */
     @Test
     void linesMissingEssentialsAreRejected() {
         String base = sample().toLine();
@@ -63,6 +69,7 @@ class RunRecordTest {
         assertEquals(Optional.empty(), RunRecord.parse(base.replace("v=1\t", "")));
     }
 
+    /** An unknown version, an unfinished outcome, an empty line or garbage parses to nothing. */
     @Test
     void unknownVersionsAndGarbageAreRejected() {
         assertEquals(Optional.empty(), RunRecord.parse(sample().toLine().replace("v=1", "v=2")));
@@ -71,6 +78,10 @@ class RunRecordTest {
         assertEquals(Optional.empty(), RunRecord.parse(sample().toLine().replace("outcome=WON", "outcome=IN_PROGRESS")));
     }
 
+    /**
+     * A record cannot be built for an unfinished run, a mode id containing
+     * whitespace, or a missing end time.
+     */
     @Test
     void constructorRejectsInvalidRecords() {
         assertThrows(IllegalArgumentException.class, () ->
