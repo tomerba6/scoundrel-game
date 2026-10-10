@@ -18,7 +18,7 @@ import com.tomer.scoundrel.model.CardType;
  */
 final class Pips implements Disposable {
 
-    /** The size the mock draws a pip at. */
+    /** The size a pip is drawn at, in pixels. */
     static final int SIZE = PipMask.SIZE;
 
     private final Texture[] textures = new Texture[PipMask.Suit.values().length];

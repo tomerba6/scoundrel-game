@@ -7,9 +7,9 @@ package com.tomer.scoundrel.screens;
  * was.
  *
  * <p>It <b>goes nowhere</b>, and that is the whole effect. A wasted potion that
- * flew to the health bar and tipped over it with nothing to pour read as the
- * heal being broken; spilling it on the table says the potion was wasted, which
- * is what actually happened. Release 1 made the same distinction.
+ * flew to the health bar and tipped over it with nothing to pour would read as
+ * the heal being broken; spilling it on the table says the potion was wasted,
+ * which is what actually happened.
  *
  * <p>Shorter than a drink, too. Nothing is gained by it, so it has no business
  * holding the board as long as the one that heals you.

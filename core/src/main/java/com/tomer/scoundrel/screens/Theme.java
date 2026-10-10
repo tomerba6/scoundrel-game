@@ -17,8 +17,8 @@ import java.util.Random;
 /**
  * What every screen needs from the GL side: the Silkscreen faces at their five
  * sizes, the generated textures the backdrop and the dither draw from, and the
- * two accent colours the torch itself is lit in. The drawables it used to hold
- * went with Scene2D. Must be created and disposed on the GL thread.
+ * two accent colours the torch itself is lit in. Must be created and disposed
+ * on the GL thread.
  */
 public final class Theme implements Disposable {
 
@@ -135,16 +135,16 @@ public final class Theme implements Disposable {
     }
 
     /**
-     * The dim a modal overlay puts the live screen under: a 4×4 ordered dither
-     * at 82%, sized in tiles so one draw covers the stage.
+     * The dim an overlay puts the live screen under: a 4×4 ordered dither,
+     * sized in tiles so one draw covers the stage.
      *
-     * <p>Not an alpha scrim — HANDOFF §11 is explicit, and it is the same rule
-     * the death wipe follows. A scrim blends every colour underneath toward
-     * black and lands them off the eighty; the dither turns whole pixels off in
-     * a fixed order and leaves the rest exactly as they were, so what shows
-     * through is still palette-true and still legible.
+     * <p>Not an alpha scrim — the same rule the death wipe follows. A scrim
+     * blends every colour underneath toward black and lands them off the
+     * eighty; the dither turns whole pixels off in a fixed order and leaves the
+     * rest exactly as they were, so what shows through is still palette-true and
+     * still legible.
      *
-     * @param heavy  true for the modal 13-of-16 dim, false for the tutorial's lighter veil
+     * @param heavy  true for the modal 13-of-16 dim, false for the tutorial's 8-of-16 veil
      * @param width  the area to cover, in pixels
      * @param height the area to cover, in pixels
      * @return the shared region, resized to repeat across the area
@@ -159,12 +159,11 @@ public final class Theme implements Disposable {
     /**
      * Two strengths, because two things want dimming for different reasons.
      *
-     * <p>{@code MODAL} is 13 of 16 cells — the 82% §11 names — for a dialog that
-     * must be answered before anything behind it matters. {@code VEIL} is half
-     * that, for the tutorial, where the board underneath is the thing you are
-     * about to click and has to stay readable. §11 asks for 82% there too, but
-     * its own render disagrees with it: sampled over a card, the reference has
-     * <em>no</em> pure-black pixels at all and keeps roughly half the art.
+     * <p>{@code DITHER_MODAL} blacks out 13 of the 16 cells, about 81%, for a
+     * dialog that must be answered before anything behind it matters.
+     * {@code DITHER_VEIL} blacks out 8, half of them, for the tutorial, where the
+     * board underneath is the thing you are about to click and has to stay
+     * readable.
      */
     private static final int DITHER_MODAL = 13;
     private static final int DITHER_VEIL = 8;
@@ -335,12 +334,9 @@ public final class Theme implements Disposable {
      * with no supersampling, nearest-filtered, unhinted, un-gamma'd and with
      * anti-aliasing off entirely.
      *
-     * <p>Every one of those is the opposite of what release 1 did to the vector
-     * faces, and for good reason: those were rasterised at 3× and scaled back
-     * down so they stayed smooth when the viewport upscaled them. Doing that to
-     * Silkscreen would take a face that is already exactly right at 1:1 and blur
-     * it. Same problem, opposite answer, because the art changed kind — and the
-     * generator that did the 3× went with the faces themselves.
+     * <p>Silkscreen is already exactly right at 1:1, so it is not supersampled:
+     * rasterising at a multiple and scaling back down — the usual way to keep a
+     * vector face smooth under an upscaling viewport — would blur it.
      */
     private static BitmapFont generatePixel(FreeTypeFontGenerator generator, int size) {
         FreeTypeFontParameter parameter = new FreeTypeFontParameter();

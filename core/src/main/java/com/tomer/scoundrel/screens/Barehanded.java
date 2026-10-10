@@ -16,11 +16,11 @@ final class Barehanded {
     static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /**
-     * ~333ms. The art direction quoted 900, and at that length the exchange
-     * read as a pause rather than a blow — the outcome is already decided, so
-     * every frame after it registers is a frame spent waiting. Four frames is
-     * the floor: two blows a frame apart, each star growing through its three
-     * held sizes, and the last one gone exactly as the effect ends.
+     * ~333ms. Any longer reads as a pause rather than a blow — the outcome is
+     * already decided, so every frame after it registers is a frame spent
+     * waiting. Four frames is the floor: two blows a frame apart, each star
+     * growing through its three held sizes, and the last one gone exactly as the
+     * effect ends.
      */
     static final float TOTAL = 4 * FRAME;
 

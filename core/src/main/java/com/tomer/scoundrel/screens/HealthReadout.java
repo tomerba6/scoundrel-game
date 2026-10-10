@@ -10,10 +10,10 @@ package com.tomer.scoundrel.screens;
  * So between the press and the pour the bar {@link Phase#HELD holds} the
  * reading it is about to leave.
  *
- * <p>That choice used to be a branch inside the screen, and it was wrong: the
- * held case fell through to "at rest", which paints the state's own health. The
- * bar filled on the press, then rewound and filled again on the pour. It is a
- * decision rather than a drawing, so it lives out here where it can be pinned.
+ * <p>It is a decision rather than a drawing, so it lives out here where it can
+ * be pinned. The held case must not fall through to "at rest", which paints the
+ * state's own health: the bar would fill on the press, then rewind and fill
+ * again on the pour.
  *
  * @param fill     how wide the filled part is, in pixels
  * @param number   the reading beside the bar, which may be negative

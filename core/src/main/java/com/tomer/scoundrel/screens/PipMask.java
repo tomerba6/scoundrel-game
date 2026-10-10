@@ -3,9 +3,8 @@ package com.tomer.scoundrel.screens;
 /**
  * The four suit pips as 12×12 masks.
  *
- * <p>They are rasterised from the same circles and triangles the reference mock
- * draws them with, scaled from its 64-unit box down to 12 and thresholded at
- * each pixel's centre. A hard test rather than coverage sampling: anti-aliasing
+ * <p>They are rasterised from circles and triangles in a 64-unit box, scaled
+ * down to 12 and thresholded at each pixel's centre. A hard test rather than coverage sampling: anti-aliasing
  * a 12px glyph would spend half its pixels on grey edges, and grey is not a
  * colour this board has.
  *
@@ -16,9 +15,9 @@ package com.tomer.scoundrel.screens;
  */
 final class PipMask {
 
-    /** The size the mock draws a pip at, and the box the geometry is scaled into. */
+    /** The size a pip is drawn at, and the box the geometry is scaled into. */
     static final int SIZE = 12;
-    /** The mock's SVG viewBox, which every coordinate below is in. */
+    /** The 64-unit box every coordinate below is in. */
     private static final float BOX = 64f;
 
     /** The four suits a pip can show; monsters are clubs or spades, weapons diamonds, potions hearts. */
@@ -68,12 +67,12 @@ final class PipMask {
     /**
      * A filled rhombus — the taxicab disc, which is exactly what a diamond is.
      *
-     * <p>The mock builds its diamond from two triangles meeting at the waist,
-     * and that is fine at 64 units. Thresholded down to 12 it produced four
-     * straight rows of eight through the middle: a rounded blob rather than a
-     * diamond. Stating the shape as {@code |dx| + |dy| <= r} instead makes the
-     * rows step exactly one pixel apiece, which is 45° on the nose and the only
-     * diagonal a pixel grid can draw cleanly.
+     * <p>Stated as {@code |dx| + |dy| <= r} rather than as two triangles
+     * meeting at the waist: thresholded down to 12, the triangles give four
+     * straight rows of eight through the middle, a rounded blob rather than a
+     * diamond. The taxicab form makes the rows step exactly one pixel apiece,
+     * which is 45° on the nose and the only diagonal a pixel grid can draw
+     * cleanly.
      */
     private record Rhombus(float cx, float cy, float rx, float ry) implements Shape {
         @Override

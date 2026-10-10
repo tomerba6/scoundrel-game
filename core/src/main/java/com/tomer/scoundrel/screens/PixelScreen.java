@@ -19,14 +19,13 @@ import com.tomer.scoundrel.ScoundrelGame;
  * Activating a target navigates, and navigating disposes this screen along with
  * its batch and surface — drawing afterwards reads freed native memory and takes
  * the JVM down with an {@code EXCEPTION_ACCESS_VIOLATION} rather than throwing
- * something a test could catch. That guard used to be hand-copied into five
- * screens. Here it is written once, above a {@link #drawContent} a subclass
- * cannot reach until the check has passed.
+ * something a test could catch. The guard is written once, here, above a
+ * {@link #drawContent} a subclass cannot reach until the check has passed.
  *
  * <p>The two passes are equally load-bearing. Everything is drawn at 1:1 onto
  * the surface, and that one image is scaled to the window once — drawn straight
  * to the window instead, every quad rounds separately and identical features
- * disagree by a pixel. See {@code HANDOFF.md} §4.
+ * disagree by a pixel.
  *
  * <p>{@code SpriteLab} deliberately does not extend this: it has no press
  * gesture and no backdrop, and it is a developer tool rather than a screen

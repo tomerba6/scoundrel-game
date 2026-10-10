@@ -4,8 +4,7 @@ import com.tomer.scoundrel.model.CardType;
 
 /**
  * How a card is built: its measurements and the ramp its type is drawn from.
- * The one place these numbers live — they were set by hand against the art
- * handoff and its reference mock, so check there before changing one.
+ * The one place these numbers live.
  *
  * <p>Pure, so the arithmetic is testable and {@link CardFrame} is left with
  * nothing but draw calls.
@@ -42,9 +41,8 @@ final class CardArt {
     /** A card's height, in design pixels. */
     static final int CARD_H = 256;
     /**
-     * The written spec quotes 220; the reference render puts the row's top
-     * bezel on 214, which is where centring the row between the HUD strip and
-     * the rail actually lands it. The render is the visual target, so it wins.
+     * The card row's top bezel, in design pixels measured downward: 145 below
+     * the HUD strip and 140 above the rail.
      */
     static final int SLOT_Y = 214;
     private static final int SLOT_X0 = 252;
@@ -92,8 +90,7 @@ final class CardArt {
     /**
      * Top of the well. The plate is inset by the frame, so the 26px header runs
      * from {@code SLOT_Y + FRAME} and the well starts {@code FRAME} lower than
-     * the {@code SLOT_Y + 26} the written spec quotes, which omits the frame.
-     * The mock is the visual target and it insets, so it wins.
+     * {@code SLOT_Y + 26}.
      *
      * @return the well's top edge, in design pixels measured downward
      */

@@ -10,9 +10,9 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
  * The five parts every screen outside the board is assembled from: a frame, a
  * face, a bevel, a label and a rule.
  *
- * <p>HANDOFF §11 states that the six menu screens are these and nothing else,
- * so this is the whole vocabulary — a screen that needs a sixth part is either
- * wrong or is telling us the spec was. Everything is a tinted rectangle on a
+ * <p>The six menu screens are these and nothing else, so this is the whole
+ * vocabulary — a screen that needs a sixth part is either wrong or showing that
+ * the vocabulary is. Everything is a tinted rectangle on a
  * single white pixel, so a whole screen is one texture and never breaks the
  * batch, exactly as {@link CardFrame} and {@link BoardHud} already work.
  *
@@ -21,7 +21,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
  */
 final class Chrome {
 
-    /** The two button faces §11 specifies, plus the board's disabled one. */
+    /** The two menu button faces, plus the board's disabled one. */
     enum Plate {
         /** The prominent choice: gold, with a dark label. */
         GOLD,
@@ -196,13 +196,12 @@ final class Chrome {
     }
 
     /**
-     * The same plate, held down. The mock has no pressed state — it renders one
-     * still frame per screen — but a menu that acts on release has to show what
+     * The same plate, held down. A menu that acts on release has to show what
      * it is about to act on, or a press that gets taken back by sliding off
      * looks like a button that did not work.
      *
-     * <p>It is not the hover glow §11 rules out: nothing lights up, nothing
-     * scales, and every colour is on the eighty. The bevel inverts — the dark
+     * <p>It is not a hover glow: nothing lights up, nothing scales, and every
+     * colour is on the eighty. The bevel inverts — the dark
      * tone along the top and left, the light along the bottom and right — so the
      * same four colours read as a recess instead of a raise; the face drops to
      * its shadowed step; and the label travels {@link ScreenArt#SINK} down and

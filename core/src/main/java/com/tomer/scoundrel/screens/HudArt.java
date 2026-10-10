@@ -2,17 +2,15 @@ package com.tomer.scoundrel.screens;
 
 /**
  * The board HUD's measurements and colours — the health bar, the depth ticker
- * and the Avoid button. Every number here was read off the reference render
- * rather than guessed, and this is the one place they live.
+ * and the Avoid button. This is the one place they live.
  *
  * <p>Coordinates are 1280×720 with y measured downward, as the art is
  * specified; {@link CardArt#toWorldY} converts when drawing.
  *
  * <p>Note that the chrome colours are <b>not</b> all on the sprite ramps. The
- * frame and the bar's bands come from the reference render and sit between
- * ramp steps. Sprites are strictly on-palette; the furniture around them is
- * whatever the design drew, and matching it exactly is what lets a render be
- * diffed against the reference pixel for pixel.
+ * frame and two of the bar's three bands sit between ramp steps, and are listed
+ * in {@link UiPalette}. Sprites are strictly on-palette; the furniture around
+ * them is matched exactly to the design instead.
  */
 final class HudArt {
 
@@ -72,7 +70,7 @@ final class HudArt {
 
     /** The health readout beside the bar, and where it sits. */
     static final int NUMBER_X = BAR_X + BAR_W + 10;
-    /** Sits beside the bar rather than under it, as the reference does. */
+    /** The readout's baseline, in design pixels measured downward: it sits beside the bar rather than under it. */
     static final int NUMBER_BASELINE = 44;
     /** The number's colour when nothing is happening to the bar: bone. */
     static final int NUMBER_REST = 0xe8ddc7;
@@ -88,10 +86,9 @@ final class HudArt {
     static final int SEGMENT_LINE = 0x2d3029;
     /**
      * The separators are translucent, so each takes the tone of the band it
-     * crosses rather than cutting a flat grey line through all three. Over the
-     * top band the reference reads #535349 and over the spent track's lip
-     * #30342b; solving both blends gives this colour at 0.798, which
-     * reproduces each exactly.
+     * crosses rather than cutting a flat grey line through all three. This
+     * colour at 0.798 blends to #535349 over the fill's top band and to #30342b
+     * over the spent track's lip, which are the two tones it has to hit.
      */
     static final float SEGMENT_ALPHA = 0.798f;
 
@@ -111,11 +108,8 @@ final class HudArt {
     // --- avoid button ------------------------------------------------------
 
     /**
-     * The whole button, <b>frame included</b>. These were 1143/26/111/41 — the
-     * plate and its bevel but not the 2px recess around them, so the shipped
-     * button was the reference's interior and 4px smaller each way than the
-     * render. Unifying it with the menu kit is what turned that up: every widget
-     * carries the frame, and the button had been drawn without one.
+     * The whole button, <b>frame included</b>: the 2px recess, with the plate
+     * and its bevel inside it, like every other widget.
      */
     static final int AVOID_X = 1141;
     /** The Avoid button's top edge, in design pixels measured downward. */
@@ -187,10 +181,6 @@ final class HudArt {
      * gold is what you actually read, and keeping it in the middle means the eye
      * never has to follow it. The cost is that the strip walks right as the
      * dungeon drains, taking its dim tail with it.
-     *
-     * <p>This is a deliberate deviation from the reference render, where the
-     * ticker sits at 656 and is not centred on anything — the mock's top strip
-     * is a three-item flex row, and the health group pushed the middle one right.
      *
      * @param depth cards still face-down
      * @return the first tick's left edge, in design pixels

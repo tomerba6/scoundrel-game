@@ -8,9 +8,8 @@ package com.tomer.scoundrel.screens;
  *
  * <p>The struck frame is shared with the bare-handed exchange on purpose, so a
  * creature reads the same however it is being killed and only the outcome
- * differs. The art direction specifies an outline alone here, with the sprite
- * otherwise untouched; holding the full struck frame reads as one blow rather
- * than two unrelated effects.
+ * differs. Holding the full struck frame, rather than an outline alone over an
+ * untouched sprite, reads as one blow rather than two unrelated effects.
  *
  * <p>The ordering is the effect. The flash has to finish before anything is
  * drawn over the card, and the trap is subtle: an element that exists early and
@@ -28,11 +27,9 @@ final class WeaponKill {
     static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /**
-     * The flash holds this long before the blade lands. The art direction
-     * quotes 0.36s, which is 4.32 frames at 12fps — not a frame boundary, and
-     * at the 4 frames it was rounded to the creature stood lit for a third of a
-     * second while nothing happened. One frame is a flash, which is what a
-     * blade landing actually is.
+     * The flash holds this long before the blade lands: one frame. A flash is
+     * what a blade landing actually is; any longer and the creature stands lit
+     * while nothing happens.
      */
     static final float RIM_TIME = FRAME;
 
@@ -52,7 +49,7 @@ final class WeaponKill {
     static final float TOTAL = RIM_TIME + 3 * FRAME;
 
     private static final int LIFT_PX = 10;
-    // Where each half has drifted to by the end, from the reference mock.
+    // Where each half has drifted to by the end.
     private static final int UPPER_END_X = -24;
     private static final int UPPER_END_Y = -34;
     private static final int LOWER_END_X = 24;

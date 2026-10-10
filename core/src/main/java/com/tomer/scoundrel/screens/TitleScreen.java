@@ -21,17 +21,16 @@ import java.util.OptionalInt;
  * positions, and a layout engine's job is to compute positions.
  *
  * <p>It is the only menu carrying a sprite — The Debt, idling at ×3 in its
- * well. HANDOFF §11 is explicit that this is what makes the screen read as
- * <em>this</em> game rather than a card game in general, so it is not
+ * well. It is what makes the screen read as <em>this</em> game rather than a
+ * card game in general, so it is not
  * decoration and should not be cut for tidiness.
  */
 public final class TitleScreen extends PixelScreen {
 
     private static final String WORDMARK = "SCOUNDREL";
     /**
-     * Forty-four, not the mock's fifty-two. The reference render assumes a
-     * standard deck; this game removes the six red face cards and the two red
-     * aces from one, leaving 44 — asserted by
+     * Forty-four: this game removes the six red face cards and the two red aces
+     * from a standard deck, leaving 44 — asserted by
      * {@code StandardDeckTest.deckHasExactly44Cards}. A title screen that
      * miscounts its own deck is the first thing a player would catch.
      */
@@ -41,8 +40,8 @@ public final class TitleScreen extends PixelScreen {
             "DESIGNED BY ZACH GAGE & KURT BIEG — AN UNOFFICIAL IMPLEMENTATION";
     /**
      * The Debt: the Ace, and the thing at the bottom of the dungeon. The clubs
-     * drawing, which is the red-coated one the reference render uses — the two
-     * suits are separate drawings, not a recolour.
+     * drawing, the red-coated one — the two suits are separate drawings, not a
+     * recolour.
      */
     private static final String PORTRAIT_STEM = "creature_14_the_debt_clubs_idle";
 
@@ -262,8 +261,8 @@ public final class TitleScreen extends PixelScreen {
 
     /**
      * MUSIC and SOUND, one row under the menu, each showing its level as pips, and
-     * under them the line that says what M does. Not in the mock, which has no
-     * audio: built from the menu's own measures and parts.
+     * under them the line that says what M does, built from the menu's own
+     * measures and parts.
      */
     private void drawVolume(int sunk) {
         AudioSettings volume = game.audioSettings();
@@ -282,12 +281,10 @@ public final class TitleScreen extends PixelScreen {
      * The one-time welcome, shown over the menu on the very first launch. Both
      * choices mark the tutorial seen, so it never nags twice.
      *
-     * <p>It is not in the mock — the reference has no first run — so it is built
-     * from the same five parts as everything else rather than invented. It has
-     * its own geometry in {@link ScreenArt} rather than borrowing the menu
-     * column's: it used to reuse {@code buttonY}, which put the first plate
-     * straight through the second line of its own copy. Nobody had seen it,
-     * because it only appears when the tutorial flag is absent.
+     * <p>It is built from the same five parts as everything else, with its own
+     * geometry in {@link ScreenArt} rather than the menu column's: the column's
+     * {@code buttonY} would put the first plate straight through the second line
+     * of its own copy.
      */
     private void drawPrompt() {
         // The menu behind has to stop competing — the prompt is a question, and

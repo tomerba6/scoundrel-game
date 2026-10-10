@@ -190,8 +190,8 @@ public final class RecordsScreen extends PixelScreen {
 
     /**
      * Column headings are gold held back. Silkscreen has no anti-aliasing, so a
-     * full-strength gold at 8px is louder here than the same colour is in the
-     * render, where the browser's own softening takes the edge off it.
+     * full-strength gold at 8px has no softened edge to take the glare off it,
+     * and reads louder than a heading should.
      */
     private static final float HEADING_ALPHA = 0.75f;
 

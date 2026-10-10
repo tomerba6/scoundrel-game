@@ -54,9 +54,8 @@ final class DeathCinematic {
     };
     /**
      * One frame each. At 12fps a step every frame is as smooth as anything in
-     * this game can be, and any hold longer than that is a visible stutter — the
-     * previous version held its first steps four frames apiece while they were
-     * also the largest jumps in the run, which is what made the start lurch.
+     * this game can be, and any hold longer than that is a visible stutter,
+     * worst on the first steps, where the jumps are largest.
      * The death is slow because its lead-in is long, not because the title
      * pauses on the way in.
      */

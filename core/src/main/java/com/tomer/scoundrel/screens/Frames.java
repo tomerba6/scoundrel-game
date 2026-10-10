@@ -18,12 +18,11 @@ package com.tomer.scoundrel.screens;
  * {@link #EPSILON} is a ten-thousandth of a frame, about 8 microseconds at 12 fps:
  * far below anything that can be seen, timed, or reached by an accumulating clock.
  *
- * <p>The constant used to be copied into nine places, with the comment explaining
- * it beside only one of them.
+ * <p>This is the one place the nudge lives, so every caller floors the same way.
  */
 final class Frames {
 
-    /** Effects: 12 fps, 83ms a frame. Chosen in HANDOFF §10 so the durations divide. */
+    /** Effects: 12 fps, 83ms a frame. */
     static final int EFFECT_FPS = 12;
     /** Idles: 6 fps, 167ms a frame. Slower on purpose — a breath, not an action. */
     static final int IDLE_FPS = 6;

@@ -7,8 +7,8 @@ package com.tomer.scoundrel.screens;
  * <p>All even, deliberately. The viewport snaps to half-steps, so at 1920×1080
  * everything is drawn at ×1.5 and an odd size lands on a half pixel — which is
  * precisely the blur a pixel face exists to avoid, and which nothing in a code
- * review would catch. The art direction quotes 11 and 13; those are replaced by
- * 12 and 14 here.
+ * review would catch. So there is no 11 or 13; text that would be set at one is
+ * set at 12 or 14.
  */
 final class PixelType {
 

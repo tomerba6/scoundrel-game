@@ -22,6 +22,10 @@
  * {@link com.tomer.scoundrel.screens.UiPalette}. The torchlit backdrop is the
  * one deliberate exception, and stays smooth.
  *
+ * <p>The layout numbers and the colours drawn in code are measured off the
+ * reference render in {@code art-reference/}, which is the visual target for
+ * every screen.
+ *
  * <p>Half the package is pure. The layout numbers ({@code CardArt},
  * {@code BoardArt}, {@code HudArt}, {@code ScreenArt}), the effect timelines
  * ({@code WeaponKill}, {@code Barehanded}, {@code PotionDrink} and the rest),

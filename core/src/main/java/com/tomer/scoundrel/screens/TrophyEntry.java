@@ -11,12 +11,12 @@ import java.util.Locale;
  * One entry in TROPHIES: what the row says and whether its seal is filled.
  *
  * <p>The seal's fill is the <em>only</em> difference between earned and locked
- * — HANDOFF §11 rules out a padlock glyph and a greyscale filter, so an empty
- * well is the locked state. A hidden trophy gives away neither its name nor its
+ * — there is no padlock glyph and no greyscale filter, so an empty well is the
+ * locked state. A hidden trophy gives away neither its name nor its
  * rule until it is won, which is the whole point of hiding it.
  *
- * <p>The date a trophy was won is kept, which the reference render drops. It is
- * real information the row has the width for.
+ * <p>The date a trophy was won is shown: it is real information the row has the
+ * width for.
  *
  * @param title       the trophy's name, upper-cased, or {@code ???} while hidden
  * @param description what earns it, upper-cased, or a placeholder while hidden

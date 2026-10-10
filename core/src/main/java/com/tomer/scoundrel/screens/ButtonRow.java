@@ -6,8 +6,8 @@ import java.util.function.ToIntFunction;
 
 /**
  * A row of buttons sized by their labels and laid out centred with a fixed gap
- * — the run-end panel's four, which the reference render shows at 112, 119, 106
- * and 122 rather than at one shared width.
+ * — the run-end panel's four, each as wide as its own label rather than one
+ * shared width.
  *
  * <p>How wide a label is needs a font, so it is passed in and the placing stays
  * arithmetic. Same seam as {@link TextWrap}, and the same reason: a row that
@@ -34,8 +34,8 @@ final class ButtonRow {
      *
      * @param labels the buttons' text, in order
      * @param left   the left edge of the region to centre within — the panel's,
-     *               not the stage's; the render centres the run-end row on 638
-     *               rather than 640 because the panel is not quite centred itself
+     *               not the stage's; the run-end panel spans 338..938, so its row
+     *               centres on 638 rather than the stage's 640
      * @param across the width of that region
      * @param gap    the space between neighbours
      * @param measure label to button width, padding included

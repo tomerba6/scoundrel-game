@@ -279,7 +279,7 @@ public final class GameScreen extends PixelScreen {
     private static final int KEEP_PLAYING = -5;
     private static final int ABANDON = -6;
 
-    /** The four ways on from a finished run, in the render's order. */
+    /** The four ways on from a finished run, left to right. */
     private static final List<String> END_BUTTONS =
             List.of("NEW GAME", "MAIN MENU", "TROPHIES", "THE LEDGER");
     /** The tutorial's own two, which go somewhere gentler than a fresh run. */
@@ -651,12 +651,12 @@ public final class GameScreen extends PixelScreen {
         game.music().enterRun(); // from the end panel: the run track from the top
     }
 
-    // --- the run-end panel: screen five of §11 ---
+    // --- the run-end panel ---
 
     /**
-     * One panel over the modal dim, covering both outcomes — §11 is explicit
-     * that a death is the same layout with the gold accents swapped to dried
-     * blood, so there is one method here and not two.
+     * One panel over the modal dim, covering both outcomes — a death is the
+     * same layout with the gold accents swapped to dried blood, so there is one
+     * method here and not two.
      */
     private void drawEndPanel() {
         boolean withTrophies = !newlyUnlocked.isEmpty();
@@ -880,7 +880,7 @@ public final class GameScreen extends PixelScreen {
     /**
      * A staircase, not a triangle: the notch steps in two pixels a row so it is
      * built from whole blocks. A real triangle would need a rotation, and a
-     * rotated pixel is a blurred pixel (HANDOFF §10).
+     * rotated pixel is a blurred pixel.
      */
     private void drawNotch(CalloutPlacement.Placement at, int h) {
         int rows = CalloutPlacement.NOTCH_H / 2;
