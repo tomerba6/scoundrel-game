@@ -18,6 +18,7 @@ class TextWrapTest {
     /** A fake face: ten pixels a character, so line widths are countable by eye. */
     private static final ToIntFunction<String> TEN = s -> s.length() * 10;
 
+    /** Text that fits stays on one line. */
     @Test
     void textThatFitsIsLeftAlone() {
         assertEquals(List.of("SHORT ENOUGH"), TextWrap.wrap("SHORT ENOUGH", 200, 2, TEN));
@@ -36,6 +37,7 @@ class TextWrapTest {
                 String.join(" ", lines), "wrapping lost or moved a word");
     }
 
+    /** A long text wraps with every word kept, in order. */
     @Test
     void everyWordSurvivesALongWrap() {
         String text = "FALL TO THE WORST SCORE THE DUNGEON CAN INFLICT — "
@@ -65,6 +67,7 @@ class TextWrapTest {
         assertEquals("A SUPERCALIFRAGILISTIC B", String.join(" ", lines));
     }
 
+    /** Empty text gives one empty line. */
     @Test
     void emptyTextIsOneEmptyLineRatherThanNothing() {
         assertEquals(List.of(""), TextWrap.wrap("", 100, 2, TEN));

@@ -5,10 +5,11 @@ import com.tomer.scoundrel.model.EquippedWeapon;
 import com.tomer.scoundrel.rules.Move;
 
 /**
- * Short UI labels — pure, so they are unit tested (moved verbatim out of
- * GameScreen): the chooser button text for a move, the trophy-rail plate
- * describing how much bite the equipped weapon has left, and the
- * Tutorial-complete line that reads a winning score back as its scoring rule.
+ * Short UI labels, pure so they are unit tested: a card's rank and type, the
+ * chooser button text for a move, the trophy-rail plate describing how much bite
+ * the equipped weapon has left, the end screen's score breakdown, the
+ * Tutorial-complete line that reads a winning score back as its scoring rule, and
+ * the hint under the title's volume plates.
  */
 final class Labels {
 

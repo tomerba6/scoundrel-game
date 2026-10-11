@@ -21,6 +21,7 @@ class PressGestureTest {
 
     private static final float FRAME = 1 / 60f;
 
+    /** A press on a target sinks it and reports that it landed. */
     @Test
     void aPressSinksTheTargetItLandedOn() {
         PressGesture press = new PressGesture();
@@ -28,6 +29,7 @@ class PressGestureTest {
         assertEquals(2, press.sunk());
     }
 
+    /** A press on nothing sinks nothing and reports a miss. */
     @Test
     void aPressThatMissesEverythingSinksNothing() {
         PressGesture press = new PressGesture();
@@ -35,6 +37,7 @@ class PressGestureTest {
         assertEquals(PressGesture.NONE, press.sunk());
     }
 
+    /** Sliding off a held button lifts it. */
     @Test
     void slidingOffLiftsTheButtonBackUp() {
         PressGesture press = new PressGesture();
@@ -52,6 +55,7 @@ class PressGestureTest {
         assertEquals(PressGesture.NONE, press.sunk());
     }
 
+    /** Sliding back onto the held button sinks it again. */
     @Test
     void slidingBackOnSinksItAgain() {
         PressGesture press = new PressGesture();
@@ -69,6 +73,7 @@ class PressGestureTest {
         assertEquals(PressGesture.NONE, press.sunk());
     }
 
+    /** Releasing on the held button arms it, and it acts. */
     @Test
     void releasingOnTheHeldTargetActivatesIt() {
         PressGesture press = new PressGesture();
@@ -77,6 +82,7 @@ class PressGestureTest {
         assertEquals(2, fire(press));
     }
 
+    /** Releasing after sliding off acts on nothing. */
     @Test
     void releasingAfterSlidingOffActivatesNothing() {
         PressGesture press = new PressGesture();
@@ -86,6 +92,7 @@ class PressGestureTest {
         assertEquals(PressGesture.NONE, fire(press));
     }
 
+    /** Releasing on a different button acts on neither. */
     @Test
     void releasingOnADifferentButtonActivatesNeither() {
         PressGesture press = new PressGesture();
@@ -94,6 +101,7 @@ class PressGestureTest {
         assertEquals(PressGesture.NONE, fire(press));
     }
 
+    /** A release with nothing held acts on nothing. */
     @Test
     void aReleaseWithNothingHeldActivatesNothing() {
         PressGesture press = new PressGesture();
@@ -154,6 +162,7 @@ class PressGestureTest {
                 "one frame of sink had been seen, not a second's worth");
     }
 
+    /** A button acts once per click, then comes up. */
     @Test
     void aTargetActsOnlyOnce() {
         PressGesture press = new PressGesture();
@@ -192,6 +201,7 @@ class PressGestureTest {
 
     // --- a press that is already down (the click sound's guard) ------------------
 
+    /** A held button, and only that one, is already down until it is released. */
     @Test
     void aHeldTargetIsAlreadyDownUntilItComesUp() {
         // Seen once, on the session's first click after leaving fullscreen: one
@@ -206,6 +216,7 @@ class PressGestureTest {
         assertFalse(press.alreadyDown(2), "up again, so the next press is a new one");
     }
 
+    /** A button slid off is still held, so it cannot go down again. */
     @Test
     void slidingOffDoesNotLetTheSameButtonGoDownAgain() {
         PressGesture press = new PressGesture();
@@ -214,6 +225,7 @@ class PressGestureTest {
         assertTrue(press.alreadyDown(2), "still held, only lifted - no release came");
     }
 
+    /** No target is never already down. */
     @Test
     void nothingIsAlreadyDownOnNothing() {
         PressGesture press = new PressGesture();
@@ -221,6 +233,7 @@ class PressGestureTest {
         assertFalse(press.alreadyDown(PressGesture.NONE));
     }
 
+    /** After a cancel the button can go down again. */
     @Test
     void aCancelLetsTheButtonGoDownAfresh() {
         PressGesture press = new PressGesture();

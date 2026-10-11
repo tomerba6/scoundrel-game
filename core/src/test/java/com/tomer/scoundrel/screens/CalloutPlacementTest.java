@@ -35,6 +35,7 @@ class CalloutPlacementTest {
         assertTrue(p.y() >= 0);
     }
 
+    /** With no room above the card, the callout sits below it, one gap clear. */
     @Test
     void itDropsBelowWhenThereIsNotRoomAbove() {
         CalloutPlacement.Placement p = place(250, 40, 176, 256);
@@ -42,6 +43,7 @@ class CalloutPlacementTest {
         assertEquals(40 + 256 + GAP, p.y());
     }
 
+    /** The callout is centred on its card. */
     @Test
     void itIsCentredOnTheTarget() {
         CalloutPlacement.Placement p = place(640 - 88, 232, 176, 256);
@@ -101,6 +103,7 @@ class CalloutPlacementTest {
         assertTrue(tall.y() + 300 <= 720, "the callout runs off the bottom");
     }
 
+    /** A callout placed on a card has a notch, above it or below. */
     @Test
     void aPlacedCalloutAlwaysHasItsNotch() {
         assertTrue(place(250, 232, 176, 256).hasNotch());
@@ -108,9 +111,8 @@ class CalloutPlacementTest {
     }
 
     // --- the NEXT plate ----------------------------------------------------
-    // Characterized before it moved off GameScreen, where it was one of two
-    // methods returning a bare int[] of four numbers meaning x, y, w, h.
 
+    /** The NEXT plate's right edge sits one pad in from the callout's right edge. */
     @Test
     void theNextPlateIsRightAlignedInsideTheCallout() {
         CalloutPlacement.Plate plate = CalloutPlacement.nextPlate(100, 200, 180, 40);
@@ -120,6 +122,10 @@ class CalloutPlacementTest {
                 "its right edge sits one pad in from the callout's right edge");
     }
 
+    /**
+     * The NEXT plate is the skip plate's height and sits one bottom pad up from
+     * the callout's bottom edge.
+     */
     @Test
     void theNextPlateSitsBelowTheLastLineRatherThanOverIt() {
         int calloutY = 200;
@@ -131,6 +137,7 @@ class CalloutPlacementTest {
         assertEquals(ScreenArt.SKIP_H, plate.h());
     }
 
+    /** The NEXT plate is its label's width plus padding each side, so a longer label widens it. */
     @Test
     void theNextPlateWidensWithItsLabel() {
         int narrow = CalloutPlacement.nextPlate(100, 200, 180, 40).w();
@@ -140,6 +147,7 @@ class CalloutPlacementTest {
         assertTrue(wide > narrow);
     }
 
+    /** A taller callout moves its NEXT plate down with its bottom edge. */
     @Test
     void aTallerCalloutPushesItsNextPlateDown() {
         int shortOne = CalloutPlacement.nextPlate(100, 200, 150, 40).y();

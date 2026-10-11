@@ -1,8 +1,7 @@
 package com.tomer.scoundrel.screens;
 
 /**
- * What ESC does on the board — and Android's Back button with it, which is
- * why a run in progress is never left on one press.
+ * What ESC does on the board, where a run in progress is never left on one press.
  *
  * <p>It backs out of the innermost thing first, the way the ledger's erase
  * dialog does: the question, then the death still playing, then the chooser.

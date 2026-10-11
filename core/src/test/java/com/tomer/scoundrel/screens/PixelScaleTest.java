@@ -16,6 +16,7 @@ class PixelScaleTest {
     private static final float W = 1280;
     private static final float H = 720;
 
+    /** A scale already on a half-step is kept. */
     @Test
     void aScaleThatIsAlreadyCleanIsLeftAlone() {
         assertEquals(1.0f, PixelScale.snap(1.0f));
@@ -24,6 +25,7 @@ class PixelScaleTest {
         assertEquals(3.0f, PixelScale.snap(3.0f));
     }
 
+    /** A scale between half-steps falls to the one below. */
     @Test
     void aFractionalScaleFallsToTheHalfStepBelow() {
         // Rounding *down* rather than to nearest: rounding up would scale the
@@ -33,6 +35,7 @@ class PixelScaleTest {
         assertEquals(2.5f, PixelScale.snap(2.9f));
     }
 
+    /** No scale snaps below 0.5. */
     @Test
     void itNeverCollapsesBelowAHalfStep() {
         // A window smaller than half the design size would otherwise snap to 0
@@ -53,6 +56,7 @@ class PixelScaleTest {
         }
     }
 
+    /** Above the 0.5 floor, the world never comes out larger than the window. */
     @Test
     void neverScalesTheWorldLargerThanTheWindow() {
         for (int w = 640; w <= 3840; w += 17) {
@@ -66,6 +70,10 @@ class PixelScaleTest {
         }
     }
 
+    /**
+     * Common displays get 1.0 up to 1600×900, 1.5 at 1920×1080, 2.0 at 2560×1440
+     * and 3.0 at 3840×2160.
+     */
     @Test
     void commonDisplaysGetTheExpectedScale() {
         // 1080p is the case worth protecting: it fits at exactly 1.5, which is
@@ -79,6 +87,7 @@ class PixelScaleTest {
         assertEquals(3.0f, PixelScale.forScreen(3840, 2160, W, H));
     }
 
+    /** An ultrawide's scale is set by its height. */
     @Test
     void anUltrawideIsLimitedByItsHeight() {
         // 3440x1440: 2.68 across but only 2.0 down, so height wins and the
@@ -86,6 +95,7 @@ class PixelScaleTest {
         assertEquals(2.0f, PixelScale.forScreen(3440, 1440, W, H));
     }
 
+    /** A 16:10 display's scale is set by its width. */
     @Test
     void aSixteenTenDisplayIsLimitedByItsWidth() {
         assertEquals(1.5f, PixelScale.forScreen(1920, 1200, W, H));

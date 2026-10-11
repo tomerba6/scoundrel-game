@@ -7,8 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * What ESC does on the board. It backs out of the innermost thing first, and it
- * never throws away a run without asking — Android's Back button lands here
- * too, where one stray press mid-run is easy.
+ * never throws away a run without asking — one stray press mid-run is easy to
+ * make.
  */
 class BoardEscapeTest {
 
@@ -18,6 +18,7 @@ class BoardEscapeTest {
         return BoardEscape.of(asking, deathPlaying, runOver, chooserOpen, tutorial);
     }
 
+    /** Mid-run, ESC asks before abandoning. */
     @Test
     void midRunItAsksBeforeAbandoning() {
         assertEquals(BoardEscape.Action.ASK, press(false, false, false, false, false));
@@ -31,6 +32,7 @@ class BoardEscapeTest {
                 "the question sits over everything, the chooser included");
     }
 
+    /** An open chooser closes first, in the tutorial too. */
     @Test
     void anOpenChooserClosesBeforeAnythingIsAsked() {
         assertEquals(BoardEscape.Action.CLOSE_CHOOSER, press(false, false, false, true, false));
