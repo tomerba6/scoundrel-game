@@ -33,6 +33,12 @@ class HurtMaskTest {
         return Path.of("..", "art-reference", "sprites");
     }
 
+    /**
+     * Whether the reference sprites are present; the tests that compare against
+     * them run only then.
+     *
+     * @return true when {@code art-reference/sprites/anim} exists
+     */
     static boolean hasReferenceArt() {
         return Files.isDirectory(referenceDir().resolve("anim"));
     }

@@ -334,10 +334,11 @@ class ScreenArtTest {
     }
 
     /**
-     * The first-run prompt's copy and its plates must not overlap. They did:
-     * the prompt borrowed the menu column's {@link ScreenArt#buttonY}, which put
-     * the first plate at 326 — straight through the second line of its own text.
-     * It only shows on a first launch, so nobody had ever seen it.
+     * The first-run prompt's copy and its plates must not overlap. The prompt
+     * has its own button positions: the menu column's {@link ScreenArt#buttonY}
+     * would put the first plate at 326, straight through the second line of its
+     * text — and it only shows on a first launch, so a screenshot rarely catches
+     * it.
      */
     @Test
     void theFirstRunPromptsTextClearsItsButtons() {
@@ -474,8 +475,8 @@ class ScreenArtTest {
 
     /**
      * An unlocked trophy's description stops where the rule above it stops — the
-     * panel's own right margin — not wherever its words run out. Drawn as one
-     * unbounded line, Rock Bottom's ran about 65 px off the panel.
+     * panel's own right margin — not wherever its words run out; drawn as one
+     * unbounded line, the longest description would run off the panel.
      */
     @Test
     void anUnlockedTrophysTextStopsWhereTheRuleDoes() {
