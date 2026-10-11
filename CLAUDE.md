@@ -20,7 +20,9 @@ A desktop implementation of **Scoundrel**, a single-player roguelike card game, 
   visibility, so every non-private declaration (screens helpers included) needs a comment and its
   `@param`/`@return`/`@throws`, and a broken `{@link}` fails too. CI runs `core:check lwjgl3:check`.
   Tags carry what the signature can't — units (design px, y down vs world y up), ranges, nullability,
-  which clock — never a restated type. Existing prose is kept; tags go under it.
+  which clock — never a restated type. Existing prose is kept; tags go under it. Tests are not
+  doclinted, but `TestDocGateTest` fails on any `@Test`/`@ParameterizedTest` without a `/** */`
+  above it: one line, the behaviour it checks and the outcome it expects.
 - Drive/screenshot the real game (the only way to verify UI): the `run-scoundrel` skill.
 - Audio (`audio-source/README.md`): `python audio-source/render.py` renders every sound
   into `assets/audio/`, `check.py` measures them (non-zero on a failure), `audition.py` builds

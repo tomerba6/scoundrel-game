@@ -127,6 +127,11 @@ test {
       .withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('src/main/java/com/tomer/scoundrel/ScoundrelGame.java')
       .withPathSensitivity(PathSensitivity.RELATIVE)
+  // And for TestDocGateTest, which reads the test sources for their doc
+  // comments: a comment never reaches the compiled class, so turning a test's
+  // /** */ into a // on the same line would otherwise leave :core:test
+  // UP-TO-DATE and the check unrun.
+  inputs.dir('src/test/java').withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 jacocoTestReport {
