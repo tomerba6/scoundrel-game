@@ -13,14 +13,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The weapon kill's timeline. The outline flashes cream with the creature still
  * on the card, and only then does the blade land.
  *
- * <p>That ordering is the whole point of the effect and it is easy to lose: in
- * the reference mock it broke twice, because the cleaved halves existed and were
- * merely transparent during the flash, so they still covered the sprite. The
- * property test below is the guard — nothing may be drawable over the card
- * before the flash ends.
+ * <p>That ordering is the whole point of the effect and it is easy to lose:
+ * halves that exist but are merely transparent during the flash still cover the
+ * sprite. The property test below is the guard — nothing may be drawable over
+ * the card before the flash ends.
  */
 class WeaponKillTest {
 
+    /** The flash holds for one frame and then ends. */
     @Test
     void theFlashHoldsBeforeAnythingElseHappens() {
         // The spec quotes 0.36s. That is 4.32 frames at 12fps -- not a frame
@@ -48,6 +48,7 @@ class WeaponKillTest {
         }
     }
 
+    /** As the flash ends the card is cut and lifted 10px. */
     @Test
     void theBladeLandsTheInstantTheFlashEnds() {
         float t = WeaponKill.RIM_TIME;
@@ -57,9 +58,9 @@ class WeaponKillTest {
 
     /**
      * The card is lifted whole for a frame, and only then does anything cover
-     * it — that ordering is the effect and does not change. What has gone is
-     * the frame that separated the slash from the parting: the bar now crosses
-     * as the halves come apart, which is what a blade actually does.
+     * it — that ordering is the effect. The slash and the parting share the next
+     * frame: the bar crosses as the halves come apart, which is what a blade
+     * actually does.
      */
     @Test
     void theCardIsLiftedWholeBeforeAnythingCoversIt() {
@@ -71,6 +72,7 @@ class WeaponKillTest {
         assertTrue(WeaponKill.halvesShowing(WeaponKill.RIM_TIME + WeaponKill.FRAME));
     }
 
+    /** The halves rise and drift apart, the upper left and the lower right. */
     @Test
     void theHalvesPartAndRiseWithoutEverRotating() {
         // Whole-pixel offsets only. There is no rotation in the API at all --
@@ -93,6 +95,7 @@ class WeaponKillTest {
         assertTrue(WeaponKill.lowerDx(end) > 0, "lower half should drift right");
     }
 
+    /** The halves fade out by the end. */
     @Test
     void theHalvesFadeOut() {
         float start = WeaponKill.RIM_TIME + WeaponKill.FRAME;
@@ -119,6 +122,7 @@ class WeaponKillTest {
         }
     }
 
+    /** The kill is four frames long, flash included, and then over. */
     @Test
     void theEffectEnds() {
         assertFalse(WeaponKill.finished(WeaponKill.TOTAL - 0.01f));
@@ -129,6 +133,7 @@ class WeaponKillTest {
         assertEquals(4 * WeaponKill.FRAME, WeaponKill.TOTAL, 1e-6f);
     }
 
+    /** Times floor onto the 12 fps grid. */
     @Test
     void quantiseFloorsToTheEffectGrid() {
         assertEquals(0f, WeaponKill.quantise(0f), 1e-6f);

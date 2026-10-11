@@ -20,11 +20,13 @@ class BeatsTest {
     /** Well inside a frame, well outside float noise. */
     private static final float HAIR = 0.005f;
 
+    /** A bare-handed fight sounds at once, on its first blow. */
     @Test
     void aBareHandedFightSoundsOnItsFirstBlow() {
         assertEquals(0f, Beats.strike(), EPSILON);
     }
 
+    /** A weapon kill sounds two frames in, as the slash appears. */
     @Test
     void aWeaponKillSoundsAsTheSlashCrosses() {
         assertEquals(2 * FRAME, Beats.slice(), EPSILON);
@@ -32,6 +34,7 @@ class BeatsTest {
         assertTrue(WeaponKill.slashShowing(Beats.slice() + HAIR));
     }
 
+    /** An equip sounds three frames in, as the weapon lands on the rail. */
     @Test
     void anEquipSoundsAsTheWeaponReachesTheRail() {
         assertEquals(3 * FRAME, Beats.equip(), EPSILON);
@@ -39,12 +42,14 @@ class BeatsTest {
         assertTrue(CardFlight.landed(CardFlight.EQUIP, 0, Beats.equip() + HAIR));
     }
 
+    /** An avoid sounds at once, as the sweep sets off. */
     @Test
     void anAvoidSweepsFromTheStart() {
         assertEquals(0f, Beats.sweep(), EPSILON);
         assertTrue(CardFlight.started(CardFlight.AVOID, 0, Beats.sweep()));
     }
 
+    /** A drink sounds five frames in, as the pour starts. */
     @Test
     void aDrinkSoundsAsItPours() {
         assertEquals(5 * FRAME, Beats.drink(), EPSILON);
@@ -52,6 +57,7 @@ class BeatsTest {
         assertTrue(PotionDrink.pouring(Beats.drink() + HAIR));
     }
 
+    /** A spill sounds three frames in, as the potion starts to spill. */
     @Test
     void aSpillSoundsAsItSpills() {
         assertEquals(3 * FRAME, Beats.spill(), EPSILON);
@@ -59,6 +65,10 @@ class BeatsTest {
         assertTrue(PotionSpill.spilling(Beats.spill() + HAIR));
     }
 
+    /**
+     * Each card of a deal sounds as it lands, the first three frames in and each
+     * a frame after the one before.
+     */
     @Test
     void eachCardOfADealSoundsAsItLandsAFrameAfterTheLast() {
         CardFlight.Flight deal = CardFlight.dealTo(0, 0);
@@ -69,6 +79,7 @@ class BeatsTest {
         }
     }
 
+    /** Every beat falls inside its effect. */
     @Test
     void everyBeatFallsInsideItsEffect() {
         // A beat past the end would only ever play when the effect was flushed.

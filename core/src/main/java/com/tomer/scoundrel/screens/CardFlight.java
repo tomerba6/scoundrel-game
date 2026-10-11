@@ -25,7 +25,7 @@ final class CardFlight {
      *
      * <p>The rail's anchor is <b>not</b> declared here. It lives in
      * {@link BoardArt} with the rest of the furniture, and {@link #EQUIP} reads
-     * it from there; a second copy is how it came to be 32px wrong.
+     * it from there; a second copy can drift from the one the rail is drawn at.
      */
     static final int TICKER_CX = 640;
     /** The depth ticker's centre y, in design pixels measured downward. */
@@ -125,8 +125,8 @@ final class CardFlight {
      *
      * <p>That difference is deliberate. Cards coming up out of the dungeon are
      * four separate events and read better one after another. The survivors
-     * shifting along are one row re-centring itself, and cascading them made a
-     * resolved card look as though it had set off a second deal.
+     * shifting along are one row re-centring itself, and cascading them would make
+     * a resolved card look as though it had set off a second deal.
      *
      * @param toX the new slot's x, in design pixels
      * @param toY the new slot's y, in design pixels

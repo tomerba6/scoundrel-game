@@ -36,9 +36,9 @@ final class WeaponKill {
     /**
      * The bar crosses as the halves come apart, not a frame before them. The
      * ordering that matters is that the card is lifted <em>whole</em> for one
-     * frame first — nothing may cover it until the flash has finished — and
-     * that still holds. Separating the slash from the parting only added a
-     * frame in which a blade hung over an uncut card.
+     * frame first — nothing may cover it until the flash has finished.
+     * Separating the slash from the parting would only add a frame in which a
+     * blade hangs over an uncut card.
      */
     static final float SLASH_START = RIM_TIME + FRAME;
     private static final float SLASH_TIME = 2 * FRAME;

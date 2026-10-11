@@ -21,6 +21,7 @@ class PotionDrinkTest {
 
     private static final float FRAME = 1f / 12f;
 
+    /** The card collapses, then the bottle flies, then it pours once it has arrived. */
     @Test
     void thePhasesRunInOrder() {
         assertTrue(PotionDrink.collapsing(0f), "starts by collapsing the card");
@@ -46,6 +47,7 @@ class PotionDrinkTest {
         }
     }
 
+    /** The bottle goes from upright to fully tipped in held steps, with nothing in between. */
     @Test
     void theBottleTipsThroughDiscreteStages() {
         Set<Integer> stages = new LinkedHashSet<>();
@@ -74,6 +76,7 @@ class PotionDrinkTest {
                 "should end well over");
     }
 
+    /** Three drops fall during the pour, one at a time. */
     @Test
     void threeDropsFallOverThePour() {
         assertEquals(0, PotionDrink.dropsFallen(PotionDrink.POUR_START - FRAME));
@@ -86,6 +89,7 @@ class PotionDrinkTest {
         assertTrue(counts.size() >= 3, "drops should arrive separately, saw " + counts);
     }
 
+    /** The card starts full size and shrinks from the second frame. */
     @Test
     void theCardShrinksIntoTheBottleRatherThanVanishing() {
         assertEquals(100, PotionDrink.cardScale(0f));
@@ -93,6 +97,7 @@ class PotionDrinkTest {
         assertTrue(PotionDrink.cardScale(PotionDrink.COLLAPSE_FRAMES * FRAME) <= 100);
     }
 
+    /** Every value holds for a whole frame. */
     @Test
     void everyValueHoldsForAWholeFrame() {
         for (int frame = 0; frame < 8; frame++) {
@@ -107,11 +112,10 @@ class PotionDrinkTest {
     }
 
     /**
-     * The quoted 1600ms made the drink the longest thing in the game — a third
-     * of it was the bottle sitting tipped over a bar that had already filled.
-     * Eight frames keeps every phase: the pour is shorter, and the bottle turns
-     * over in a single held step rather than two. Nothing here tweens anyway,
-     * so one step and two look equally deliberate — one is just quicker.
+     * Eight frames keep every phase, with the bottle turning over in a single
+     * held step; any longer and the bottle sits tipped over a bar that has
+     * already filled. Nothing here tweens, so one step looks as deliberate as
+     * two, only quicker.
      */
     @Test
     void theDrinkIsOverInTwoThirdsOfASecond() {

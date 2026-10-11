@@ -173,8 +173,8 @@ final class Barehanded {
 
     /**
      * Which of the three growth steps a star is on, or -1 when it is not up.
-     * One step per frame: the spec's "three steps over two frames" would change
-     * a value mid-frame, and nothing here is allowed to slide.
+     * One step per frame: three steps over two frames would change a value
+     * mid-frame, and nothing here is allowed to slide.
      */
     private static int starStep(int hit, float elapsed) {
         int frame = frameOf(elapsed);

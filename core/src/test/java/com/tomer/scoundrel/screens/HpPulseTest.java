@@ -18,6 +18,7 @@ class HpPulseTest {
 
     private static final float FRAME = 1f / 12f;
 
+    /** A hit jolts the bar 4px left, then right, then settles. */
     @Test
     void damageShakesTheBarAndSettles() {
         // Nothing lost, so only the two-frame floor.
@@ -43,6 +44,7 @@ class HpPulseTest {
         assertFalse(HpPulse.bleeding(140, 40, 10 * FRAME));
     }
 
+    /** The shake is always a multiple of 4px. */
     @Test
     void theShakeIsAlwaysAWholePixel() {
         for (float t = 0f; t < 1f; t += 0.004f) {
@@ -64,6 +66,7 @@ class HpPulseTest {
         assertFalse(HpPulse.numberBloodied(140, 40, 10 * FRAME));
     }
 
+    /** A hit that costs nothing still reddens the number for three frames. */
     @Test
     void aHitThatTakesNothingStillRedensBriefly() {
         assertTrue(HpPulse.numberBloodied(120, 120, 0f));
@@ -71,6 +74,7 @@ class HpPulseTest {
         assertFalse(HpPulse.numberBloodied(120, 120, 3 * FRAME));
     }
 
+    /** The number stays green while the bar fills, and not at all when nothing was gained. */
     @Test
     void theNumberStaysGreenForTheWholeFill() {
         // 0 to 120 is four frames at thirty pixels a frame.
@@ -83,10 +87,10 @@ class HpPulseTest {
     }
 
     /**
-     * A heal climbs three segments a frame. It used to run at one, the same
-     * rate as the drain, which made a big drink take the best part of a second
-     * to register — long after the bottle had finished pouring. A drain earns
-     * its time because it is the dramatic beat; a heal is just good news.
+     * A heal climbs three segments a frame. At one, the drain's rate, a big
+     * drink would take the best part of a second to register — long after the
+     * bottle had finished pouring. A drain earns its time because it is the
+     * dramatic beat; a heal is just good news.
      */
     @Test
     void aHealGrowsThreeSegmentsPerFrame() {
@@ -108,6 +112,7 @@ class HpPulseTest {
         assertTrue(frames <= 8, "a full heal took " + frames + " frames");
     }
 
+    /** A heal stops exactly on its target, even on a partial last step. */
     @Test
     void aHealNeverOvershootsItsTarget() {
         assertEquals(140, HpPulse.healWidth(100, 140, 99f));
@@ -116,6 +121,7 @@ class HpPulseTest {
         assertEquals(135, HpPulse.healWidth(100, 135, 4 * FRAME));
     }
 
+    /** A heal holds each width for a whole frame. */
     @Test
     void aHealHoldsEachStepForAWholeFrame() {
         Set<Integer> widths = new LinkedHashSet<>();
@@ -125,6 +131,7 @@ class HpPulseTest {
         assertEquals(4, widths.size(), "expected one width per frame, got " + widths);
     }
 
+    /** A heal that changes nothing is finished at once. */
     @Test
     void aHealThatChangesNothingIsAlreadyDone() {
         assertEquals(120, HpPulse.healWidth(120, 120, 0f));
@@ -144,6 +151,7 @@ class HpPulseTest {
         assertEquals(100, HpPulse.damageWidth(140, 100, 4 * FRAME));
     }
 
+    /** A drain stops exactly on its target, and a killing blow empties the bar. */
     @Test
     void damageNeverUndershootsItsTarget() {
         assertEquals(100, HpPulse.damageWidth(140, 100, 99f));
@@ -152,6 +160,7 @@ class HpPulseTest {
         assertTrue(HpPulse.damageWidth(140, 100, 99f) >= 0);
     }
 
+    /** A hit for nothing jolts the bar without draining it. */
     @Test
     void aHitThatChangesNothingStillJolts() {
         // Being struck for zero -- a weapon that outclasses the monster -- should
@@ -160,6 +169,7 @@ class HpPulseTest {
         assertEquals(-4, HpPulse.barOffset(120, 120, 0f));
     }
 
+    /** The bar bleeds while it drains, and not when nothing was lost. */
     @Test
     void theBarBleedsWhileItIsDraining() {
         assertTrue(HpPulse.bleeding(140, 100, 0f));
@@ -179,6 +189,7 @@ class HpPulseTest {
         assertTrue(HpPulse.damageFinished(140, 130, 3 * FRAME));
     }
 
+    /** A hit for nothing ends with its jolt, and a heal once it reaches its target. */
     @Test
     void bothPulsesEnd() {
         assertTrue(HpPulse.damageFinished(120, 120, HpPulse.JOLT_TOTAL));
