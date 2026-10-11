@@ -5,8 +5,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * The torch's flicker: bounded, visibly moving, smooth from frame to frame, and
+ * the same at the same moment.
+ */
 class TorchFlickerTest {
 
+    /** Over five minutes the brightness stays within its depth either side of 1. */
     @Test
     void staysWithinItsBoundsAcrossALongSweep() {
         for (float t = 0; t < 300; t += 0.01f) {
@@ -16,6 +21,7 @@ class TorchFlickerTest {
         }
     }
 
+    /** Over twenty seconds the brightness swings by more than its depth. */
     @Test
     void actuallyFlickers() {
         float min = Float.MAX_VALUE;
@@ -29,6 +35,7 @@ class TorchFlickerTest {
         assertTrue(max - min > TorchFlicker.DEPTH, "range too small: " + (max - min));
     }
 
+    /** The brightness changes by less than 0.03 from one 60 fps frame to the next. */
     @Test
     void isContinuousFrameToFrame() {
         float dt = 1f / 60f;
@@ -41,6 +48,7 @@ class TorchFlickerTest {
         }
     }
 
+    /** The same moment gives the same brightness. */
     @Test
     void isDeterministic() {
         assertEquals(TorchFlicker.intensityAt(7.5f), TorchFlicker.intensityAt(7.5f));

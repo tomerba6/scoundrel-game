@@ -8,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The one place time is floored onto a frame grid. Nothing in this art tweens,
  * so every effect and every idle asks this class which frame it is on, and the
- * answer must be the same answer everywhere — the constant used to be copied
- * into nine places, where the one comment explaining it sat beside only one.
+ * answer must be the same answer everywhere — so the grid, and the comment
+ * explaining it, live here once.
  */
 class FramesTest {
 

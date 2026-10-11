@@ -20,6 +20,7 @@ class RoomMotionTest {
         return RoomMotion.of(false, effect, closing, dealing);
     }
 
+    /** With nothing moving, every card rests. */
     @Test
     void aSettledRoomIsAtRest() {
         assertEquals(RoomMotion.Phase.RESTING, survivor(false, false, false));
@@ -27,9 +28,9 @@ class RoomMotionTest {
     }
 
     /**
-     * The change. A survivor re-centres <em>while</em> the resolved card is
-     * still being killed, drunk or carried away — the room closes over the gap
-     * rather than waiting for the effect and then shuffling along after it.
+     * A survivor re-centres <em>while</em> the resolved card is still being
+     * killed, drunk or carried away — the room closes over the gap rather than
+     * waiting for the effect and then shuffling along after it.
      */
     @Test
     void theRoomClosesWhileTheEffectIsStillPlaying() {
@@ -37,6 +38,7 @@ class RoomMotionTest {
         assertEquals(RoomMotion.Phase.SLIDING, survivor(true, true, true));
     }
 
+    /** A survivor slides while the room closes, whether or not a card is being dealt. */
     @Test
     void aSurvivorSlidesWhetherOrNotAnythingIsBeingDealt() {
         assertEquals(RoomMotion.Phase.SLIDING, survivor(false, true, false));
@@ -54,6 +56,7 @@ class RoomMotionTest {
         assertEquals(RoomMotion.Phase.HIDDEN, fresh(true, true, true));
     }
 
+    /** A replacement is dealt once the effect has finished. */
     @Test
     void aReplacementComesUpOnceTheEffectHasFinished() {
         assertEquals(RoomMotion.Phase.DEALING, fresh(false, false, true));
