@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The guide that walks the tutorial's beats and decides which moves are allowed. */
 class TutorialGuideTest {
 
     private static final Card GOBLIN = new Card("2C", CardType.MONSTER, 2);
@@ -24,6 +25,7 @@ class TutorialGuideTest {
                 TutorialStep.say("done")));
     }
 
+    /** An explanation beat accepts no move, and Next moves on from it. */
     @Test
     void anExplanationBeatAcceptsNoMoveAndAdvancesOnNext() {
         TutorialGuide g = guide();
@@ -32,6 +34,7 @@ class TutorialGuideTest {
         assertTrue(g.current().isAction(), "Next moved on to the action beat");
     }
 
+    /** An action beat accepts only the move it asks for. */
     @Test
     void anActionBeatAcceptsOnlyItsExpectedMove() {
         TutorialGuide g = guide();
@@ -41,6 +44,7 @@ class TutorialGuideTest {
         assertFalse(g.accepts(new Move.TakePotion(GOBLIN)));
     }
 
+    /** Next does not move past an action beat. */
     @Test
     void nextDoesNotSkipAnActionBeat() {
         TutorialGuide g = guide();
@@ -49,6 +53,7 @@ class TutorialGuideTest {
         assertTrue(g.accepts(FIGHT), "still waiting on the action");
     }
 
+    /** An action beat advances on its expected move and on no other. */
     @Test
     void onlyTheExpectedMoveAdvancesAnActionBeat() {
         TutorialGuide g = guide();
@@ -60,6 +65,10 @@ class TutorialGuideTest {
         assertFalse(g.current().isAction(), "now on the closing explanation beat");
     }
 
+    /**
+     * Once every beat is done the guide is complete, and asking for the current
+     * step throws IllegalStateException.
+     */
     @Test
     void runsToCompletionAndThenHasNoCurrentStep() {
         TutorialGuide g = guide();

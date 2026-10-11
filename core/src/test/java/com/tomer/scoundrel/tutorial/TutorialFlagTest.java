@@ -11,16 +11,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The marker that records the tutorial has been seen. */
 class TutorialFlagTest {
 
+    /** A fresh directory for each test, deleted afterwards. */
     @TempDir
     Path dir;
 
+    /** A flag that was never marked reads as not seen. */
     @Test
     void aFreshFlagHasNotBeenSeen() {
         assertFalse(new TutorialFlag(dir.resolve("tutorial.seen")).isSeen());
     }
 
+    /**
+     * Marking it seen creates any missing directories, and a new handle on the
+     * same path reads it as seen.
+     */
     @Test
     void markingSeenPersistsAcrossHandlesAndCreatesMissingDirectories() {
         Path file = dir.resolve("nested").resolve("tutorial.seen");
@@ -31,6 +38,7 @@ class TutorialFlagTest {
         assertTrue(new TutorialFlag(file).isSeen(), "a fresh handle to the same path reads seen");
     }
 
+    /** Marking it seen twice leaves it seen. */
     @Test
     void markingSeenTwiceIsHarmless() {
         TutorialFlag flag = new TutorialFlag(dir.resolve("tutorial.seen"));
@@ -39,6 +47,7 @@ class TutorialFlagTest {
         assertTrue(flag.isSeen());
     }
 
+    /** Clearing makes it read as not seen again and keeps the marker as {@code tutorial.seen.bak}. */
     @Test
     void clearForgetsItButKeepsARecoverableBackup() {
         Path file = dir.resolve("tutorial.seen");
@@ -49,6 +58,7 @@ class TutorialFlagTest {
         assertTrue(Files.exists(dir.resolve("tutorial.seen.bak")), "a backup must be kept");
     }
 
+    /** Clearing a flag that was never marked does nothing. */
     @Test
     void clearWithoutHavingSeenItIsANoOp() {
         TutorialFlag flag = new TutorialFlag(dir.resolve("tutorial.seen"));
@@ -56,6 +66,10 @@ class TutorialFlagTest {
         assertFalse(flag.isSeen());
     }
 
+    /**
+     * Marking it seen where the file cannot be written, here a directory, throws
+     * UncheckedIOException.
+     */
     @Test
     void markingSeenAtAnUnwritablePathThrowsUncheckedIOException() throws Exception {
         // The marker path is a directory, so it can't be written as a file.

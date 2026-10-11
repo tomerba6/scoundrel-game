@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The scripted tutorial: its curated deck and narrated beats, checked against the real engine. */
 class TutorialScriptTest {
 
     /**
@@ -55,10 +56,11 @@ class TutorialScriptTest {
     }
 
     /**
-     * The generated font covers ASCII plus {@code Theme.EXTRA_CHARS} and nothing
-     * else, so any other glyph renders as a blank gap on the board — silently,
-     * since nothing throws. A real minus sign (U+2212) had already slipped into
-     * the combat-arithmetic beat this way.
+     * The font is generated for LibGDX's default character set plus
+     * {@code Theme.EXTRA_CHARS}, and a glyph outside what it generated renders as
+     * a blank gap on the board — silently, since nothing throws. The narration is
+     * held to the safe subset: printable ASCII and those extras. A real minus sign
+     * (U+2212) in arithmetic is the easy way to break it.
      */
     @Test
     void everyNarrationUsesCharactersTheFontCanRender() {
@@ -91,6 +93,7 @@ class TutorialScriptTest {
                 "no beat explains the cleared-dungeon score and the 20-plus-potion case");
     }
 
+    /** Every beat has narration, and the deck holds all three card types. */
     @Test
     void thebeatsAreWellFormedAndTeachEachCardType() {
         assertFalse(TutorialScript.steps().isEmpty());
@@ -103,6 +106,7 @@ class TutorialScriptTest {
         assertTrue(TutorialScript.deck().stream().anyMatch(c -> c.type() == CardType.POTION));
     }
 
+    /** Every action beat's move targets a card the deck deals. */
     @Test
     void everyActionStepTargetsACardActuallyInTheDeck() {
         // A move against a card the deck never deals could never be made.
