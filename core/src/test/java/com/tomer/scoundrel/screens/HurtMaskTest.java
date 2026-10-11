@@ -43,6 +43,7 @@ class HurtMaskTest {
         return out;
     }
 
+    /** The ramp table holds the eighty colours, BONE 0 and ACCENT 7 among them. */
     @Test
     void theRampTableIsCompleteAndUnambiguous() {
         assertEquals(80, Ramps.size(), "the palette is eighty colours");
@@ -50,6 +51,7 @@ class HurtMaskTest {
         assertTrue(Ramps.contains(0xf7f0dc), "ACCENT 7");
     }
 
+    /** Lightening moves a colour two steps up its own ramp. */
     @Test
     void aColourMovesUpItsOwnRamp() {
         assertEquals(0x383341, Ramps.lighten(0x12101c, 2));   // BONE 0 -> 2
@@ -57,6 +59,7 @@ class HurtMaskTest {
         assertEquals(0x58964a, Ramps.lighten(0x325a31, 2));   // ROT 3 -> 5
     }
 
+    /** Lightening stops at the top of the ramp. */
     @Test
     void theLightestStepIsAsFarAsItGoes() {
         assertEquals(0xe6dcc0, Ramps.lighten(0xb3a683, 2));   // BONE 6 -> clamped 7
@@ -76,6 +79,7 @@ class HurtMaskTest {
         assertNotEquals(0x584636, lightened, "an off-ramp colour should still brighten");
     }
 
+    /** An on-ramp colour lightens along its own ramp, not a neighbour's. */
     @Test
     void aColourAlreadyOnTheRampIsNotDisturbedByTheFallback() {
         // The nearest match to an exact entry is itself, so on-ramp colours
@@ -83,6 +87,7 @@ class HurtMaskTest {
         assertEquals(0x383341, Ramps.lighten(0x12101c, 2));
     }
 
+    /** Clear pixels stay clear. */
     @Test
     void transparentPixelsStayTransparent() {
         int[] src = new int[4];
@@ -91,6 +96,7 @@ class HurtMaskTest {
         }
     }
 
+    /** An edge pixel ends up cream. */
     @Test
     void theOutlineIsLaidOverTheBrightenedSprite() {
         // A single opaque pixel is entirely its own edge, so it ends up cream.
@@ -98,6 +104,7 @@ class HurtMaskTest {
         assertEquals(CREAM, HurtMask.generate(src, 1, 1)[0]);
     }
 
+    /** An interior pixel brightens two steps while an edge pixel turns cream. */
     @Test
     void theInteriorIsBrightenedRatherThanOutlined() {
         // 3x3 of BONE 0: the centre is interior, so it brightens to BONE 2.
@@ -108,6 +115,7 @@ class HurtMaskTest {
         assertEquals(CREAM, hurt[0], "corner is on the edge, so cream");
     }
 
+    /** A hurt frame's interior is lighter than its source. */
     @Test
     void aHurtFrameIsBrighterThanItsSource() {
         int[] src = new int[25];
@@ -118,10 +126,9 @@ class HurtMaskTest {
     }
 
     /**
-     * The verify for this step, over every sprite rather than an example: the
-     * hurt frame must be brighter but still on-palette — no white, no invented
-     * colours. Brightening along the ramp is what guarantees it; blending
-     * toward white would not.
+     * Over every sprite rather than an example: the hurt frame must be brighter
+     * but still on-palette — no white, no invented colours. Brightening along the
+     * ramp is what guarantees it; blending toward white would not.
      */
     @Test
     @EnabledIf("hasReferenceArt")

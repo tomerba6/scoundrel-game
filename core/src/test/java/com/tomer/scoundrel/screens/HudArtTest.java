@@ -7,12 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The board HUD's measurements, read off the reference render rather than
- * invented. Pinned here because they are hand-set constants that a screenshot
- * would only catch if someone looked at exactly the right pixel.
+ * The board HUD's measurements. Pinned here because they are hand-set constants
+ * that a screenshot would only catch if someone looked at exactly the right
+ * pixel.
  */
 class HudArtTest {
 
+    /** The health bar is 216×24 at (24, 34), with a 212×20 interior inside its 2px frame. */
     @Test
     void theHealthBarMatchesTheReference() {
         assertEquals(24, HudArt.BAR_X);
@@ -26,8 +27,8 @@ class HudArtTest {
 
     /**
      * The fill is proportional, not one segment per point of health — the
-     * separators are an overlay on top of a continuous bar. At 14 of 20 the
-     * reference fills to x=174, which is 148px of the 212 available.
+     * separators are an overlay on top of a continuous bar. At 14 of 20 it fills
+     * to x=174, which is 148px of the 212 available.
      */
     @Test
     void theFillIsProportionalAndMatchesTheReferenceAtFourteenOfTwenty() {
@@ -36,12 +37,14 @@ class HudArtTest {
         assertEquals(212, HudArt.barFillWidth(20, 20));
     }
 
+    /** The fill clamps to the bar for health above the cap or below zero. */
     @Test
     void theFillNeverOverrunsOrGoesNegative() {
         assertEquals(212, HudArt.barFillWidth(25, 20), "over-full health should clamp");
         assertEquals(0, HudArt.barFillWidth(-7, 20), "a negative score should not draw backwards");
     }
 
+    /** The interior is banded 6, 8 and 6px, filling its 20px. */
     @Test
     void theBarIsBandedInThreeStripes() {
         // 6 / 8 / 6 of the 20px interior, lightest at the top.
@@ -59,6 +62,7 @@ class HudArtTest {
         assertEquals(0x1e2a1c, HudArt.BAR_EMPTY);
     }
 
+    /** Separators are translucent 2px lines on a 10px pitch. */
     @Test
     void separatorsSitOnATenPixelPitch() {
         assertEquals(10, HudArt.SEGMENT_PITCH);
@@ -81,9 +85,7 @@ class HudArtTest {
     /**
      * The lit block is the thing you read, so it is what stays centred — not the
      * whole strip. The dim tail runs off to the right and the strip's left edge
-     * walks right as the dungeon drains. That is a deliberate deviation from the
-     * reference render, which has the ticker off-centre entirely (656..821, a
-     * flex-row artefact of the mock's top strip).
+     * walks right as the dungeon drains.
      */
     @Test
     void theLitTicksStayCentredAsTheDungeonDrains() {
@@ -95,12 +97,14 @@ class HudArtTest {
         }
     }
 
+    /** A shallower dungeon puts the ticker strip further right. */
     @Test
     void theStripWalksRightAsItDrains() {
         assertTrue(HudArt.tickerX(20) > HudArt.tickerX(44),
                 "a shallower dungeon puts the strip further right");
     }
 
+    /** The ticker strip, full or empty, stays on the stage and clear of the Avoid plate. */
     @Test
     void theTickerFitsTheWholeDungeonInsideTheStage() {
         int width = HudArt.tickerWidth(44);
@@ -114,11 +118,8 @@ class HudArtTest {
     }
 
     /**
-     * The whole button, frame included. These were 1143/26/111/41 — the plate
-     * and its bevel, but not the 2px recess around them, so the shipped button
-     * was the reference's interior. The render has 0f1410 at 1141-1142 before
-     * the bevel starts; unifying the board's button with the menu kit, where
-     * every widget carries a frame, is what turned that up.
+     * The whole button, frame included — the 2px frame around the plate and its
+     * bevel, as every widget in the menu kit has.
      */
     @Test
     void theAvoidButtonMatchesTheReferenceIncludingItsFrame() {

@@ -7,12 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The furniture around the cards — the card's own header and value, the trophy
- * rail, the potion marker and the feed. Every number was read off the reference
- * render, and pinning them here is the only way a wrong one gets caught: on
- * screen a six-pixel error looks like a design choice.
+ * rail, the potion marker and the feed. Pinning every number here is the only
+ * way a wrong one gets caught: on screen a six-pixel error looks like a design
+ * choice.
  */
 class BoardArtTest {
 
+    /** The rail well is an 80px box at (24, 610). */
     @Test
     void theRailWellMatchesTheReference() {
         assertEquals(24, BoardArt.RAIL_X);
@@ -21,10 +22,9 @@ class BoardArtTest {
     }
 
     /**
-     * The reference draws the rail weapon at 72px, which is ×1.125 of a 64px
-     * sprite — some source pixels would get one screen pixel and their
-     * neighbours two. It is drawn at ×1 instead and centred in the same well,
-     * so the chrome matches the render and only the icon is smaller.
+     * The rail weapon is drawn at ×1 and centred in its well: 72px would be
+     * ×1.125 of a 64px sprite, giving some source pixels one screen pixel and
+     * their neighbours two.
      */
     @Test
     void theRailIconIsDrawnAtTimesOneAndCentredInItsWell() {
@@ -37,6 +37,7 @@ class BoardArtTest {
         assertEquals(top, bottom, "rail icon not vertically centred");
     }
 
+    /** Slain chips run right from x=116 on a 26px pitch, 4px apart. */
     @Test
     void slainChipsMarchRightOnTheirOwnPitch() {
         assertEquals(116, BoardArt.chipX(0));
@@ -48,7 +49,7 @@ class BoardArtTest {
 
     /**
      * The degradation plate follows the chips, so it moves right as the weapon
-     * takes kills. Two chips put it at 176 in the reference.
+     * takes kills. Two chips put it at 176.
      */
     @Test
     void theSlaysPlateFollowsTheChips() {
@@ -66,6 +67,7 @@ class BoardArtTest {
                 "plate should not sit left of the rail column");
     }
 
+    /** Feed lines stack downward from below the Avoid button, a pitch apart. */
     @Test
     void theFeedStacksDownwardFromUnderTheAvoidButton() {
         assertTrue(BoardArt.feedLineY(0) > HudArt.AVOID_Y + HudArt.AVOID_H,
@@ -81,6 +83,10 @@ class BoardArtTest {
         assertTrue(BoardArt.FEED_RIGHT < Theme.WORLD_WIDTH, "feed must stay on screen");
     }
 
+    /**
+     * The header's rank and type sit 8px in from the card's edges, and the pip
+     * is centred in the header.
+     */
     @Test
     void theCardHeaderSitsInsideThePlatePadding() {
         int slot = CardArt.slotX(1);
@@ -93,6 +99,7 @@ class BoardArtTest {
                 "pip not vertically centred in the header");
     }
 
+    /** The value numeral is centred on its card. */
     @Test
     void theValueNumeralIsCentredOnTheCard() {
         for (int i = 0; i < 4; i++) {

@@ -42,7 +42,7 @@ public final class Theme implements Disposable {
     // at this multiple and drawn at their world size, so they stay crisp when upscaled.
     private static final int SHAPE_SUPERSAMPLE = 2;
 
-    /** Silkscreen — the only face left, now that every screen is converted. */
+    /** Silkscreen — the game's only face. */
     public final BitmapFont pixelSmall;
     /** Silkscreen at {@link PixelType#LABEL} size: section headings and badges. */
     public final BitmapFont pixelLabel;

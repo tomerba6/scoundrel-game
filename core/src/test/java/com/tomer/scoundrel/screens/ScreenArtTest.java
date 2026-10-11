@@ -9,13 +9,13 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The menu kit's measurements, read off the reference renders rather than
- * guessed. Pinned here because they are hand-set constants that a screenshot
- * would only catch if someone looked at exactly the right pixel.
+ * The menu kit's measurements. Pinned here because they are hand-set constants
+ * that a screenshot would only catch if someone looked at exactly the right
+ * pixel.
  */
 class ScreenArtTest {
 
-    /** The palette HANDOFF §11 states outright. If these drift, screens stop matching. */
+    /** The five parts' palette. If these drift, screens stop matching. */
     @Test
     void theFivePartsAreTheColoursTheSpecNames() {
         assertEquals(0x0f1410, ScreenArt.FRAME);
@@ -64,7 +64,7 @@ class ScreenArtTest {
 
     /**
      * The board's Avoid button and a menu button are the same shape at
-     * different sizes. The spec calls for 268 wide; the render agrees.
+     * different sizes.
      */
     @Test
     void aButtonIsTwoHundredAndSixtyEightWideOnAFiftySixPitch() {
@@ -169,6 +169,7 @@ class ScreenArtTest {
         }
     }
 
+    /** A press between menu buttons, or just left or right of the column, hits nothing. */
     @Test
     void theGapsBetweenButtonsHitNothing() {
         int x = ScreenArt.COLUMN_X;
@@ -222,9 +223,9 @@ class ScreenArtTest {
     }
 
     /**
-     * The ledger's table, measured off the render. The height follows from the
-     * rows rather than being its own constant, so a row count and a frame
-     * cannot disagree — the failure that leaves a table with a floating edge.
+     * The ledger's table. The height follows from the rows rather than being its
+     * own constant, so a row count and a frame cannot disagree — the failure that
+     * leaves a table with a floating edge.
      */
     @Test
     void theLedgerTableIsItsRowsPlusItsHeader() {
@@ -258,7 +259,7 @@ class ScreenArtTest {
 
     /**
      * Eight totals rows with a 2px rule at the foot of each but the last, and
-     * the whole stack inside the panel. The rule positions are the render's.
+     * the whole stack inside the panel.
      */
     @Test
     void theTotalsPanelHoldsEightRowsAndItsRules() {
@@ -293,9 +294,9 @@ class ScreenArtTest {
     }
 
     /**
-     * A trophy row has to hold a title and both description lines. The render's
-     * 55px row does not, because its copy is placeholder — 26 characters against
-     * the real catalog's 85 — so the row grew rather than the type shrinking.
+     * A trophy row has to hold a title and both description lines: the real
+     * catalog's descriptions take two lines, so the row is sized for them rather
+     * than the type being shrunk.
      */
     @Test
     void aTrophyRowHasRoomForBothDescriptionLines() {
@@ -309,6 +310,10 @@ class ScreenArtTest {
         assertTrue(ScreenArt.trophyTextWidth() > 0);
     }
 
+    /**
+     * The two trophy columns clear each other and stay on the stage, and their
+     * rows do not overlap.
+     */
     @Test
     void theTwoTrophyColumnsClearEachOtherAndTheStage() {
         assertTrue(ScreenArt.trophyX(0) + ScreenArt.TROPHY_W < ScreenArt.trophyX(5));
@@ -362,9 +367,8 @@ class ScreenArtTest {
     }
 
     /**
-     * The confirmation dialog, exactly where the ledger's erase dialog drew it
-     * before it was shared: the board's abandon-run question is the same dialog,
-     * so moving it must not move a pixel of the one that already shipped.
+     * The confirmation dialog is shared by the ledger's erase question and the
+     * board's abandon-run question, and sits exactly where the ledger draws it.
      */
     @Test
     void theConfirmationSitsWhereTheLedgerDrewIt() {
@@ -415,10 +419,10 @@ class ScreenArtTest {
     }
 
     /**
-     * The run-end panel has two heights: with the trophy band and without. A run
-     * that unlocked nothing used to keep the taller one, leaving a hole between
-     * the rule and the buttons. Whichever height it is, the panel stays centred
-     * and the buttons keep the same clearance from its foot.
+     * The run-end panel has two heights: with the trophy band and without.
+     * Keeping the taller one for a run that unlocked nothing would leave a hole
+     * between the rule and the buttons. Whichever height it is, the panel stays
+     * centred and the buttons keep the same clearance from its foot.
      */
     @Test
     void theRunEndPanelShrinksWhenNothingWasUnlocked() {
@@ -446,8 +450,7 @@ class ScreenArtTest {
 
     /**
      * The tutorial's Skip plate must clear the potion marker in the bottom
-     * strip. It did not: converted from Scene2D it landed on the render's own
-     * y, and the render's board has no marker showing to collide with.
+     * strip.
      */
     @Test
     void skipTutorialClearsThePotionMarker() {
@@ -528,6 +531,7 @@ class ScreenArtTest {
         assertTrue(ScreenArt.MUTE_HINT_TOP + PixelType.SMALL < ScreenArt.CREDIT_TOP);
     }
 
+    /** Each audio plate is hit at both its edges. */
     @Test
     void eachAudioPlateIsHitWhereItIsDrawn() {
         float middleY = CardArt.toWorldY(ScreenArt.AUDIO_Y, ScreenArt.AUDIO_H) + ScreenArt.AUDIO_H / 2f;
@@ -539,6 +543,7 @@ class ScreenArtTest {
         }
     }
 
+    /** A press between, beside, above or below the audio plates hits nothing. */
     @Test
     void theGapsAroundTheAudioPlatesHitNothing() {
         float middleY = CardArt.toWorldY(ScreenArt.AUDIO_Y, ScreenArt.AUDIO_H) + ScreenArt.AUDIO_H / 2f;

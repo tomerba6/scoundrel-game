@@ -20,6 +20,7 @@ class SpentMaskTest {
 
     private static final int OPAQUE = 0xff000000;
 
+    /** Every drained colour is on the ramps. */
     @Test
     void everyDrainedColourIsStillOnThePalette() {
         int[] source = {
@@ -35,6 +36,7 @@ class SpentMaskTest {
         }
     }
 
+    /** The glass loses its green for a near-neutral tone. */
     @Test
     void theColourIsActuallyDrained() {
         int[] spent = SpentMask.generate(new int[] {OPAQUE | 0x5d8a4a});
@@ -64,6 +66,7 @@ class SpentMaskTest {
         assertTrue(luma(spent[1]) <= luma(spent[2]), "the shade outran the glass");
     }
 
+    /** Clear pixels stay clear and opaque ones opaque. */
     @Test
     void transparentPixelsStayTransparent() {
         int[] spent = SpentMask.generate(new int[] {0, OPAQUE | 0x5d8a4a, 0});
@@ -72,6 +75,7 @@ class SpentMaskTest {
         assertEquals(0xff, spent[1] >>> 24, "an opaque pixel should stay opaque");
     }
 
+    /** Generating leaves the source untouched. */
     @Test
     void theSourceIsNotTouched() {
         int[] source = {OPAQUE | 0x5d8a4a};

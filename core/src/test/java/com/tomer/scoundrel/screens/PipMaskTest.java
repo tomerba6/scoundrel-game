@@ -7,14 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The four suit pips as 12×12 masks, rasterised from the mock's own geometry
- * and thresholded at each pixel's centre. A hard test rather than coverage
+ * The four suit pips as 12×12 masks, rasterised from circles and triangles in a
+ * 64-unit box and thresholded at each pixel's centre. A hard test rather than coverage
  * sampling: anti-aliasing a 12px glyph spends half its pixels on grey edges,
  * and grey is not a colour this board has.
  *
- * <p>Row widths are the whole shape at this size, so they are what is pinned.
- * Three of the four are characterised exactly as they already draw; the
- * diamond is the one being changed.
+ * <p>Row widths are the whole shape at this size, so they are what is pinned,
+ * for all four suits.
  */
 class PipMaskTest {
 
@@ -32,10 +31,10 @@ class PipMaskTest {
     }
 
     /**
-     * The old diamond came from two triangles meeting at the waist, and at this
-     * size that rasterised to four straight rows of eight through the middle —
-     * a rounded blob, not a diamond. The taxicab rhombus steps exactly one pixel
-     * a row, which is 45° on the nose.
+     * The diamond is a taxicab rhombus, stepping exactly one pixel a row — 45° on
+     * the nose. Two triangles meeting at the waist would rasterise at this size
+     * to four straight rows of eight through the middle: a rounded blob, not a
+     * diamond.
      */
     @Test
     void theDiamondStepsOnePixelPerRow() {
@@ -46,8 +45,8 @@ class PipMaskTest {
     /**
      * The edges never run straight. Every row is wider than the one above it
      * until the waist and narrower after — the single pair of equal rows at the
-     * widest point is the waist itself. The old shape had four equal rows there,
-     * which is exactly what made it read round.
+     * widest point is the waist itself. Four equal rows there would make it read
+     * round.
      */
     @Test
     void theDiamondHasNoStraightSides() {
@@ -66,6 +65,7 @@ class PipMaskTest {
         }
     }
 
+    /** The diamond mirrors across both axes. */
     @Test
     void theDiamondIsSymmetricBothWays() {
         boolean[] mask = PipMask.generate(PipMask.Suit.DIAMONDS);
@@ -80,25 +80,28 @@ class PipMaskTest {
         }
     }
 
-    /** The other three are untouched. Pinned so a diamond fix cannot reach them. */
+    /** The other three are pinned too, so a change to the diamond cannot reach them. */
     @Test
     void theClubIsUnchanged() {
         assertArrayEquals(new int[] {0, 4, 4, 4, 8, 8, 10, 10, 6, 2, 2, 4},
                 widths(PipMask.Suit.CLUBS));
     }
 
+    /** The heart's row widths are pinned. */
     @Test
     void theHeartIsUnchanged() {
         assertArrayEquals(new int[] {0, 6, 10, 10, 10, 10, 8, 6, 4, 2, 2, 0},
                 widths(PipMask.Suit.HEARTS));
     }
 
+    /** The spade's row widths are pinned. */
     @Test
     void theSpadeIsUnchanged() {
         assertArrayEquals(new int[] {0, 2, 4, 6, 8, 10, 10, 10, 10, 6, 2, 4},
                 widths(PipMask.Suit.SPADES));
     }
 
+    /** Every pip fills a 12×12 mask with more than twenty pixels inked. */
     @Test
     void everyPipFitsItsBoxAndIsActuallyInked() {
         for (PipMask.Suit suit : PipMask.Suit.values()) {

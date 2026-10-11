@@ -133,8 +133,8 @@ final class BoardArt {
     /**
      * The line YOU DIED grows outward from, above the middle of the screen.
      * Drawing it by the top of its line instead — which is what a Batch draw
-     * takes — made it grow downward, so it read as being pushed rather than as
-     * arriving.
+     * takes — would make it grow downward, so it would read as being pushed
+     * rather than as arriving.
      */
     static final int DEATH_TITLE_CENTRE_Y = 300;
 

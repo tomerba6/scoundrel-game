@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class CardArtTest {
 
+    /** The four slots' left edges are at 252, 452, 652 and 852. */
     @Test
     void theFourSlotsSitOnTheSpecifiedPitch() {
         assertEquals(252, CardArt.slotX(0));
@@ -22,11 +23,13 @@ class CardArtTest {
         assertEquals(852, CardArt.slotX(3));
     }
 
+    /** The row's top edge is at y=214. */
     @Test
     void theRowSitsWhereTheReferenceRenderPutsIt() {
         assertEquals(214, CardArt.SLOT_Y);
     }
 
+    /** A row of four is centred on the stage. */
     @Test
     void theRowOfFourIsCentredInTheWorld() {
         int left = CardArt.slotX(0);
@@ -34,11 +37,13 @@ class CardArtTest {
         assertEquals(left, right, "row should be symmetric, was " + left + " vs " + right);
     }
 
+    /** Neighbouring cards are 24px apart. */
     @Test
     void theGapBetweenCardsIsTwentyFour() {
         assertEquals(24, CardArt.slotX(1) - (CardArt.slotX(0) + CardArt.CARD_W));
     }
 
+    /** Each card type has its own plate, well and label colours. */
     @Test
     void eachCardTypeCarriesItsOwnRamp() {
         // The mock's PALETTES table.
@@ -55,6 +60,7 @@ class CardArtTest {
         assertEquals(0x71b45c, CardArt.paletteFor(CardType.POTION).label());
     }
 
+    /** Every card type has a palette. */
     @Test
     void everyTypeHasAPalette() {
         for (CardType type : CardType.values()) {
@@ -64,9 +70,8 @@ class CardArtTest {
 
     /**
      * The plate is inset 2px inside the outer frame, so the 26px header runs
-     * from y=2 to y=28 and the well starts at SLOT_Y+28 — not the SLOT_Y+26 that
-     * the written spec quotes, which omits the frame. The mock is the visual
-     * target, so it wins.
+     * from y=2 to y=28 and the well starts at SLOT_Y+28 — not SLOT_Y+26, which
+     * would leave the frame out.
      */
     @Test
     void theWellSitsBelowTheHeaderInsideTheFrame() {
@@ -76,6 +81,7 @@ class CardArtTest {
         assertEquals(160, CardArt.wellWidth());
     }
 
+    /** The sprite is centred in its well, both ways. */
     @Test
     void theSpriteIsCentredInTheWell() {
         int slot = CardArt.slotX(2);
@@ -88,6 +94,7 @@ class CardArtTest {
         assertEquals(top, bottom, "sprite not vertically centred");
     }
 
+    /** The sprite is 128px wide at even offsets, so each source pixel lands whole at ×2. */
     @Test
     void theSpriteLandsOnWholePixelsAtTimesTwo() {
         // 64x64 drawn at x2. If any of these offsets were odd the art would sit
