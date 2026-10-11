@@ -25,6 +25,7 @@ class LedgerRowTest {
                 seconds, 12, 8, 6, 3, 1, 2, 1);
     }
 
+    /** The run number is a Roman numeral, counted from I. */
     @Test
     void theRunNumberIsARomanNumeral() {
         assertEquals("I", LedgerRow.of(0, run(17, Status.WON, "standard", 252)).numeral());
@@ -43,6 +44,7 @@ class LedgerRowTest {
         assertEquals(ScreenArt.SCORE_POSITIVE, LedgerRow.of(0, run(0, Status.WON, "standard", 252)).scoreColour());
     }
 
+    /** A row reads CLEARED or DEFEATED, each in its own outcome colour. */
     @Test
     void theOutcomeSaysWhichAndColoursItself() {
         LedgerRow won = LedgerRow.of(0, run(17, Status.WON, "standard", 252));
@@ -63,6 +65,7 @@ class LedgerRowTest {
         assertEquals("CHAOS", LedgerRow.of(0, run(5, Status.WON, "chaos", 100)).mode());
     }
 
+    /** A row's date reads like JUL 24, its time like 4:12, and its slain count as the bare number. */
     @Test
     void theDateAndClockAreTheirOwnColumns() {
         LedgerRow row = LedgerRow.of(0, run(17, Status.WON, "standard", 252));
@@ -72,9 +75,8 @@ class LedgerRowTest {
     }
 
     /**
-     * Rows stripe by flat colour, never alpha — HANDOFF §11 is explicit, because
-     * a translucent stripe over the torchlit backdrop would shift down the table
-     * as the gradient does.
+     * Rows stripe by flat colour, never alpha, because a translucent stripe over
+     * the torchlit backdrop would shift down the table as the gradient does.
      */
     @Test
     void rowsStripeByFlatColourAndAlternate() {

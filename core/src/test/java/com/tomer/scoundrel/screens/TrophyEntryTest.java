@@ -29,6 +29,7 @@ class TrophyEntryTest {
         return ZonedDateTime.of(2026, 7, 27, 9, 30, 0, 0, ZoneId.systemDefault()).toInstant();
     }
 
+    /** An earned trophy is lit and reads EARNED with the day it was won. */
     @Test
     void anEarnedTrophyIsLitAndCarriesTheDayItWasWon() {
         TrophyEntry entry = TrophyEntry.of(open(), july27());
@@ -38,6 +39,7 @@ class TrophyEntryTest {
         assertEquals("EARNED JUL 27", entry.status());
     }
 
+    /** A locked trophy still shows its name and rule, and reads LOCKED. */
     @Test
     void aLockedTrophyStillSaysWhatToAimFor() {
         TrophyEntry entry = TrophyEntry.of(open(), null);
@@ -56,6 +58,7 @@ class TrophyEntryTest {
         assertFalse(hidden.earned());
     }
 
+    /** A hidden trophy shows its name and rule once earned. */
     @Test
     void aHiddenTrophyRevealsItselfOnceEarned() {
         TrophyEntry revealed = TrophyEntry.of(secret(), july27());
@@ -65,8 +68,8 @@ class TrophyEntryTest {
     }
 
     /**
-     * The empty well is the locked state — HANDOFF §11 rules out a padlock glyph
-     * and a greyscale filter, so the seal's fill is the only thing that says it.
+     * The empty well is the locked state — there is no padlock glyph and no
+     * greyscale filter, so the seal's fill is the only thing that says it.
      */
     @Test
     void theSealsFillIsTheOnlyDifferenceBetweenEarnedAndLocked() {

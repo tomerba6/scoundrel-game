@@ -10,13 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What the run-end panel says, decided before anything is drawn. One layout
- * covers both outcomes — HANDOFF §11 is explicit that the death variant is the
- * same panel with the gold accents swapped to dried blood — so the only thing
- * that can go wrong here is the wording and the colours, which is exactly what a
- * test can hold and a screenshot cannot.
+ * covers both outcomes — the death variant is the same panel with the gold
+ * accents swapped to dried blood — so the only thing that can go wrong here is
+ * the wording and the colours, which is exactly what a test can hold and a
+ * screenshot cannot.
  */
 class EndSummaryTest {
 
+    /** A cleared dungeon reads THE DUNGEON RAN OUT and CLEARED, with gold accents. */
     @Test
     void clearingTheDungeonReadsAsAnAchievementNotAnEnding() {
         EndSummary won = EndSummary.of(Status.WON, 17, 252, true, 12, 47);
@@ -25,6 +26,7 @@ class EndSummaryTest {
         assertEquals(ScreenArt.GOLD, won.accent());
     }
 
+    /** A death reads YOU DIED, with the dried-blood accent instead of gold. */
     @Test
     void dyingSwapsEveryGoldAccentForDriedBlood() {
         EndSummary lost = EndSummary.of(Status.LOST, -63, 158, false, 12, 47);
@@ -49,7 +51,7 @@ class EndSummaryTest {
 
     /**
      * Clearing the dungeon scores the health you kept, so a HEALTH LEFT cell
-     * beside the score was the same number twice. What it costs to get out is
+     * beside the score would be the same number twice. What it costs to get out is
      * the figure the score cannot carry: two runs that both end on 17 are not
      * the same run if one of them bled 60 along the way.
      */
@@ -84,9 +86,9 @@ class EndSummaryTest {
      * dungeon still had in it — the count of monsters still face-down, which is
      * exactly what the loss score was charged for.
      *
-     * <p>It used to repeat the score there, which said nothing twice. The count
-     * is the one figure that explains why the number is as far below zero as it
-     * is: falling early with the deck still full is the worst score there is.
+     * <p>Repeating the score there would say nothing twice. The count is the one
+     * figure that explains why the number is as far below zero as it is: falling
+     * early with the deck still full is the worst score there is.
      */
     @Test
     void aLostRunCountsWhatWasStillWaitingRatherThanRepeatingTheScore() {
@@ -124,9 +126,9 @@ class EndSummaryTest {
     /**
      * CLEARED is green and YOU DIED is blood — the two outcome colours the game
      * already uses everywhere else, on the ledger's rows and in the health bar.
-     * The reference render sets the headline cream and leaves the hard shadow to
-     * carry it; this is a deliberate departure, so the panel's verdict reads the
-     * same colour here as it will on the ledger row this run becomes.
+     * The headline takes the outcome colour rather than cream, so the panel's
+     * verdict reads the same colour here as it will on the ledger row this run
+     * becomes.
      */
     @Test
     void theHeadlineTakesTheOutcomeColourEitherWay() {
@@ -151,13 +153,13 @@ class EndSummaryTest {
 
     /**
      * It reports no time. The board hides the clock for the whole tutorial —
-     * it is not a timed run — and the panel showed a TIME cell anyway, which
-     * could only ever read 0:00 because nothing was recording.
+     * it is not a timed run — so a TIME cell could only ever read 0:00, since
+     * nothing is recording.
      *
      * <p>What it shows instead is the worked example the last beat just taught:
      * score and health left, side by side and equal. It is the one panel that
      * still reports health, and deliberately — teaching that equality is the
-     * whole point of the beat, where on a real run it was redundancy.
+     * whole point of the beat, where on a real run it would be redundant.
      */
     @Test
     void theTutorialShowsTheScoringLessonRatherThanATimeItNeverKept() {
@@ -176,6 +178,7 @@ class EndSummaryTest {
         assertEquals("YES", done.cells().get(2).value());
     }
 
+    /** NEW BEST shows only when the run is one, a death included. */
     @Test
     void newBestOnlyShowsWhenItIsOne() {
         assertTrue(EndSummary.of(Status.WON, 17, 252, true, 12, 47).newBest());
@@ -187,8 +190,8 @@ class EndSummaryTest {
     /**
      * The one scoring edge case the game has: clearing on full health with a
      * potion last takes the score above the cap. Reporting the cost instead of
-     * the health settles it — a 27 beside a 20 looked like an error, where a 27
-     * beside what it cost simply is the run.
+     * the health settles it — a 27 beside a 20 would look like an error, where a
+     * 27 beside what it cost simply is the run.
      */
     @Test
     void aScoreAboveTheHealthCapIsShownAsItStands() {

@@ -12,10 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * card, but nothing may appear at the bar until the bottle has flown there and
  * poured, or the fill has no visible cause.
  *
- * <p>Choosing between those readings was a branch inside the screen, and it was
- * wrong — the held case fell through to "at rest", so the bar filled on the
- * press and then filled again on the pour. It is a decision, so it lives out
- * here where it can be pinned.
+ * <p>Choosing between those readings is a decision, so it lives out here where
+ * it can be pinned. The held case must not fall through to "at rest", or the
+ * bar fills on the press and then again on the pour.
  */
 class HealthReadoutTest {
 
@@ -27,6 +26,7 @@ class HealthReadoutTest {
     private static final HealthReadout.Change HIT = new HealthReadout.Change(
             HudArt.barFillWidth(20, CAP), HudArt.barFillWidth(8, CAP), 20, 8);
 
+    /** At rest, the bar and number show the state's health, unmoved. */
     @Test
     void atRestTheBarSaysWhatTheStateSays() {
         HealthReadout readout = HealthReadout.of(
@@ -39,7 +39,7 @@ class HealthReadoutTest {
     }
 
     /**
-     * The whole bug, in one assertion. Between the press and the pour the
+     * The held case, in one assertion. Between the press and the pour the
      * engine has already healed you — {@code health} is 20 here — but the bar
      * must still read 14, or the heal is shown twice.
      */
@@ -67,6 +67,7 @@ class HealthReadoutTest {
                 "the bar rewound between the press and the pour");
     }
 
+    /** A heal grows the bar to its new width and marks it as healing. */
     @Test
     void aHealGrowsToTheNewWidthAndPaintsItselfGreen() {
         HealthReadout start = HealthReadout.of(
@@ -79,6 +80,7 @@ class HealthReadoutTest {
         assertTrue(end.fill() > start.fill(), "the fill should have grown");
     }
 
+    /** A hit drains the bar, shakes it, and marks it as bleeding. */
     @Test
     void aHitDrainsTheBarAndJoltsIt() {
         HealthReadout readout = HealthReadout.of(
@@ -113,8 +115,8 @@ class HealthReadoutTest {
     /**
      * But the <em>number</em> goes past zero, and must. How far under you went
      * is the whole story of the last blow — and the death score charges you for
-     * it — so a fatal hit that reads "0" hides what actually happened. Release 1
-     * printed it unclamped; the bar's fill is what clamps.
+     * it — so a fatal hit that reads "0" hides what actually happened. The bar's
+     * fill is what clamps.
      */
     @Test
     void theReadingGoesNegativeEvenThoughTheBarCannot() {

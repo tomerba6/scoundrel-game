@@ -5,9 +5,8 @@ import com.tomer.scoundrel.rules.GameEvent;
 
 /**
  * The event feed's text — the one-line messages the player reads as a move
- * resolves. Pure, so it is unit tested (moved verbatim out of GameScreen): it
- * maps a {@link GameEvent} to its feed line, or null for events the board
- * already shows.
+ * resolves. Pure, so it is unit tested: it maps a {@link GameEvent} to its feed
+ * line, or null for events the board already shows.
  */
 final class FeedText {
 
