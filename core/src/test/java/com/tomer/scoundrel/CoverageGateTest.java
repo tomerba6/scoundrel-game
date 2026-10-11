@@ -33,9 +33,9 @@ import org.junit.jupiter.api.Test;
  * threshold.
  *
  * <p>The root package is not a candidate: {@code ScoundrelGame} lives there and
- * is GL-bound, so the package as a whole is not pure even though {@code CrashLog}
- * and {@code Progress} are. Gating is per package, and that is the granularity
- * Gradle offers.
+ * is GL-bound, so the package as a whole is not pure even though {@code CrashLog},
+ * {@code LaunchSwitch} and {@code Progress} are. The gate's rule works per package
+ * ({@code element = 'PACKAGE'}), so those three go ungated.
  */
 class CoverageGateTest {
 
@@ -53,6 +53,7 @@ class CoverageGateTest {
     private static final Pattern BADGE_SET = Pattern.compile("GATED\\s*=\\s*\\{([^}]*)\\}");
     private static final Pattern QUOTED = Pattern.compile("\"([a-z][a-z0-9]*)\"");
 
+    /** Every main package that imports no LibGDX is in the coverage gate's includes list. */
     @Test
     void everyPurePackageIsGated() throws IOException {
         Set<String> gated = gatedPackages();
@@ -68,6 +69,7 @@ class CoverageGateTest {
                         + "\n  currently gated: " + gated);
     }
 
+    /** Every package the gate names still exists in the main sources. */
     @Test
     void everyGatedPackageStillExists() throws IOException {
         Set<String> present = new TreeSet<>();
@@ -88,9 +90,9 @@ class CoverageGateTest {
 
     /**
      * The README's badge reports the gate, but its script keeps its own copy of
-     * the list, and nothing held the two together: {@code audio} joined the gate
-     * and never reached the badge, which went on reporting five packages as the
-     * six. The copy is checked against the original rather than remembered.
+     * the list, and nothing else holds the two together. A package added to the
+     * gate but not to the script would be gated yet left out of the badge's
+     * figure. The copy is checked against the original rather than remembered.
      */
     @Test
     void theBadgeMeasuresExactlyWhatTheGateGates() throws IOException {
@@ -112,7 +114,7 @@ class CoverageGateTest {
         return found;
     }
 
-    /** The `includes` list as the build file actually declares it. */
+    /** The {@code includes} list as the build file actually declares it. */
     private Set<String> gatedPackages() throws IOException {
         String build = Files.readString(BUILD_FILE);
         Set<String> found = new TreeSet<>();

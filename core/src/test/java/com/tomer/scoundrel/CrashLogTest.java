@@ -12,13 +12,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * The crash log: each entry's format, appending to the file, and the
+ * uncaught-exception handler, none of which may throw.
+ */
 class CrashLogTest {
 
     private static final Instant WHEN = Instant.parse("2026-07-27T10:15:30Z");
 
+    /** A fresh directory for each test, deleted afterwards. */
     @TempDir
     Path dir;
 
+    /** An entry holds the timestamp, the exception's type and message, and its stack frames. */
     @Test
     void formatCarriesTheTimestampMessageAndStackTrace() {
         String text = CrashLog.format(new IllegalStateException("boom while dealing"), WHEN);
@@ -28,6 +34,7 @@ class CrashLogTest {
         assertTrue(text.contains("at com.tomer.scoundrel.CrashLogTest"), "has a stack frame");
     }
 
+    /** An entry unrolls the cause chain, with each cause's message. */
     @Test
     void formatIncludesTheCauseChain() {
         Throwable wrapped = new RuntimeException("render failed",
@@ -38,6 +45,7 @@ class CrashLogTest {
         assertTrue(text.contains("no room tile"));
     }
 
+    /** Recording creates the file and any missing directories, and each crash adds its own entry. */
     @Test
     void recordCreatesTheFileAndAppendsEachCrash() throws Exception {
         Path file = dir.resolve("nested").resolve("crash.log");
@@ -51,6 +59,7 @@ class CrashLogTest {
         assertEquals(2, contents.split("===== crash at ", -1).length - 1);
     }
 
+    /** Recording where the file cannot be written, here a directory, does not throw. */
     @Test
     void recordNeverThrowsEvenWhenItCannotWrite() throws Exception {
         // The "file" is a directory, so writing must fail — but record swallows it.
@@ -59,6 +68,7 @@ class CrashLogTest {
         new CrashLog(asDir).record(new RuntimeException("boom"), WHEN); // must not throw
     }
 
+    /** The handler records the crash, then passes it on to the previous handler. */
     @Test
     void asHandlerRecordsTheCrashThenPassesItOn() throws Exception {
         Path file = dir.resolve("crash.log");
@@ -73,6 +83,7 @@ class CrashLogTest {
         assertTrue(chained.get(), "the previous handler still ran");
     }
 
+    /** With no previous handler, the handler still records the crash. */
     @Test
     void asHandlerWithoutAPreviousHandlerStillRecords() throws Exception {
         Path file = dir.resolve("crash.log");

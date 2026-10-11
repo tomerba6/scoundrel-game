@@ -32,6 +32,10 @@ class VersionTagTest {
     private static final Pattern PROJECT_VERSION =
             Pattern.compile("^projectVersion\\s*=\\s*(\\S+)\\s*$", Pattern.MULTILINE);
 
+    /**
+     * {@code ScoundrelGame}'s {@code @version} tag matches {@code projectVersion}
+     * in {@code gradle.properties}.
+     */
     @Test
     void theVersionTagIsTheProjectVersion() throws IOException {
         assertEquals(find(PROJECT_VERSION, PROPERTIES), find(VERSION_TAG, GAME),
