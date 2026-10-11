@@ -7,16 +7,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The volume levels, their gains, muting and the plates' cycling. */
 class AudioSettingsTest {
 
     private static final float EPSILON = 1e-4f;
 
+    /** The defaults are music 2, sound 3 and not muted, so the music sits below the effects. */
     @Test
     void firstLaunchHasMusicBelowTheEffectsAndNothingMuted() {
         assertEquals(new AudioSettings(2, 3, false), AudioSettings.DEFAULTS);
         assertTrue(AudioSettings.DEFAULTS.musicGain() < AudioSettings.DEFAULTS.soundGain());
     }
 
+    /** Level 3 plays at full gain, each level below it is 6 dB quieter, and 0 is silent. */
     @Test
     void eachLevelIsSixDecibelsBelowTheOneAbove() {
         assertEquals(1f, AudioSettings.gain(3), EPSILON);
@@ -25,6 +28,7 @@ class AudioSettingsTest {
         assertEquals(0f, AudioSettings.gain(0), 0f);
     }
 
+    /** Music and sound each take the gain of their own level. */
     @Test
     void theGainsFollowTheirOwnLevels() {
         AudioSettings settings = new AudioSettings(1, 3, false);
@@ -32,6 +36,7 @@ class AudioSettingsTest {
         assertEquals(AudioSettings.gain(3), settings.soundGain(), EPSILON);
     }
 
+    /** Muting silences both, and unmuting brings back the same levels. */
     @Test
     void mutingSilencesBothButRemembersTheLevels() {
         assertTrue(AudioSettings.DEFAULTS.toggleMute().muted());
@@ -42,6 +47,7 @@ class AudioSettingsTest {
         assertEquals(new AudioSettings(2, 3, false), back);
     }
 
+    /** A plate steps its level up and wraps from 3 to off, leaving the other level alone. */
     @Test
     void aPlateCyclesUpThroughTheLevelsAndWrapsToOff() {
         AudioSettings settings = AudioSettings.DEFAULTS; // music 2
@@ -56,6 +62,7 @@ class AudioSettingsTest {
         assertEquals(2, AudioSettings.DEFAULTS.cycleSound().music(), "and the other way round");
     }
 
+    /** Changing either level unmutes. */
     @Test
     void changingALevelUnmutes() {
         // Turning a volume is a request to hear it; staying silent would read as broken.
@@ -64,6 +71,7 @@ class AudioSettingsTest {
         assertFalse(muted.cycleSound().muted());
     }
 
+    /** A level outside 0 to 3 is refused with IllegalArgumentException. */
     @Test
     void levelsOutsideOffToThreeAreRefused() {
         assertThrows(IllegalArgumentException.class, () -> new AudioSettings(-1, 3, false));

@@ -13,6 +13,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** What the music does across menus, runs, deaths and wins, and when the cues and the chime play. */
 class MusicDirectorTest {
 
     private static final float FRAME = 1f / 60f;
@@ -49,6 +50,7 @@ class MusicDirectorTest {
 
     // --- menus and runs -----------------------------------------------------
 
+    /** A fresh director plays nothing, and both tracks are silent. */
     @Test
     void itStartsSilent() {
         assertEquals(0f, director.gain(Track.MENU), 0f);
@@ -56,6 +58,7 @@ class MusicDirectorTest {
         assertEquals(List.of(), play(1f));
     }
 
+    /** Entering the menus restarts the menu track and fades it in over the crossfade. */
     @Test
     void theMenusStartTheMenuTrackAndFadeItIn() {
         director.enterMenus();
@@ -68,6 +71,7 @@ class MusicDirectorTest {
         assertEquals(1f, director.gain(Track.MENU), EPSILON);
     }
 
+    /** Moving between menu screens carries the menu track on without a restart. */
     @Test
     void theMenuTrackCarriesOnAcrossMenuScreens() {
         director.enterMenus();
@@ -78,6 +82,7 @@ class MusicDirectorTest {
         assertEquals(1f, director.gain(Track.MENU), EPSILON);
     }
 
+    /** Starting a run restarts the run track and crossfades to it at constant power. */
     @Test
     void startingARunCrossfadesAtConstantPower() {
         director.enterMenus();
@@ -95,6 +100,7 @@ class MusicDirectorTest {
         assertEquals(1f, director.gain(Track.RUN), EPSILON);
     }
 
+    /** Returning to the menus mid-crossfade fades back without restarting the menu track. */
     @Test
     void changingYourMindMidFadeTurnsItBackWithoutARestart() {
         director.enterMenus();
@@ -110,6 +116,7 @@ class MusicDirectorTest {
 
     // --- death --------------------------------------------------------------
 
+    /** On a death the run music holds until the fade starts, then fades out with the torch. */
     @Test
     void theRunMusicDiesWithTheTorch() {
         settledInRun();
@@ -122,6 +129,7 @@ class MusicDirectorTest {
         assertEquals(0f, director.gain(Track.RUN), EPSILON, "gone as the torch is");
     }
 
+    /** The death cue plays once, on the frame YOU DIED starts to grow in. */
     @Test
     void theDeathCueLandsAsYouDiedGrowsInAndOnlyOnce() {
         settledInRun();
@@ -141,6 +149,10 @@ class MusicDirectorTest {
         assertTrue(heardAt >= CUE_AT && heardAt < CUE_AT + FRAME + EPSILON, "heard at " + heardAt);
     }
 
+    /**
+     * Clicking through the death plays the cue at once, fades the music quickly,
+     * and never plays the cue again.
+     */
     @Test
     void clickingThroughTheDeathPlaysTheCueAtOnceAndNeverAgain() {
         settledInRun();
@@ -154,6 +166,7 @@ class MusicDirectorTest {
         assertEquals(0, count(play(10f), new Play(Cue.DEATH)));
     }
 
+    /** Settling after the death cue has played does not play it again. */
     @Test
     void settlingAfterTheCueDoesNotReplayIt() {
         settledInRun();
@@ -163,6 +176,7 @@ class MusicDirectorTest {
         assertEquals(0, count(play(1f), new Play(Cue.DEATH)));
     }
 
+    /** A zero-length fade cuts the music at its start and still plays the cue. */
     @Test
     void aZeroLengthFadeCutsTheMusicAtItsStart() {
         settledInRun();
@@ -176,6 +190,7 @@ class MusicDirectorTest {
 
     // --- winning ------------------------------------------------------------
 
+    /** A win waits for the board to go idle, then fades the run music and plays the win cue once. */
     @Test
     void aWinWaitsForTheBoardThenFadesThenCues() {
         settledInRun();
@@ -191,6 +206,7 @@ class MusicDirectorTest {
 
     // --- the chime ----------------------------------------------------------
 
+    /** With trophies unlocked, the chime plays once after the win cue ends, and never again. */
     @Test
     void theChimeFollowsTheWinCue() {
         settledInRun();
@@ -208,6 +224,7 @@ class MusicDirectorTest {
         assertEquals(0, count(play(1f), new Play(Cue.CHIME)));
     }
 
+    /** With no trophies unlocked there is no chime. */
     @Test
     void noTrophiesNoChime() {
         settledInRun();
@@ -217,6 +234,7 @@ class MusicDirectorTest {
         assertEquals(0, count(play(2f), new Play(Cue.CHIME)));
     }
 
+    /** After a death the chime waits for the end panel, not just the cue. */
     @Test
     void afterADeathTheChimeWaitsForThePanel() {
         settledInRun();
@@ -229,6 +247,7 @@ class MusicDirectorTest {
         assertEquals(1, count(play(FRAME), new Play(Cue.CHIME)));
     }
 
+    /** After a click-through the chime waits for the death cue to end. */
     @Test
     void afterAClickThroughTheChimeWaitsForTheCue() {
         settledInRun();
@@ -243,6 +262,7 @@ class MusicDirectorTest {
         assertEquals(1, count(play(FRAME), new Play(Cue.CHIME)));
     }
 
+    /** A cue ending left over from an earlier run, or the chime's own, does not release this run's chime. */
     @Test
     void aCueEndingFromAnEarlierRunIsIgnored() {
         settledInRun();
@@ -264,6 +284,7 @@ class MusicDirectorTest {
         assertEquals(1, count(play(FRAME), new Play(Cue.CHIME)));
     }
 
+    /** A death straight after a win, with no new run between them, still plays its cue. */
     @Test
     void anEndThatFollowsAnotherWithoutANewRunStillPlaysItsCue() {
         // Only the lab does this - V, then X - but a run's end starts afresh either
@@ -277,6 +298,7 @@ class MusicDirectorTest {
         assertEquals(1, count(play(4f), new Play(Cue.DEATH)));
     }
 
+    /** A second end's chime waits for its own panel and cue. */
     @Test
     void aSecondEndsChimeWaitsForItsOwnPanelAndCue() {
         settledInRun();
@@ -295,6 +317,7 @@ class MusicDirectorTest {
 
     // --- the end panel and after --------------------------------------------
 
+    /** Both tracks stay silent while the end panel is up. */
     @Test
     void theEndPanelIsQuiet() {
         settledInRun();
@@ -305,6 +328,7 @@ class MusicDirectorTest {
         assertEquals(0f, director.gain(Track.MENU), EPSILON);
     }
 
+    /** NEW GAME from the end panel restarts the run track and fades it in. */
     @Test
     void newGameFromTheEndPanelRestartsTheRunTrack() {
         settledInRun();
@@ -316,6 +340,7 @@ class MusicDirectorTest {
         assertEquals(1f, director.gain(Track.RUN), EPSILON);
     }
 
+    /** MAIN MENU from the end panel restarts the menu track and fades it in. */
     @Test
     void mainMenuFromTheEndPanelRestartsTheMenuTrack() {
         settledInRun();
@@ -329,6 +354,7 @@ class MusicDirectorTest {
         assertEquals(0f, director.gain(Track.RUN), EPSILON);
     }
 
+    /** Settling, or a cue ending, outside a run changes nothing. */
     @Test
     void settlingOrWinningOutsideARunChangesNothing() {
         director.enterMenus();
