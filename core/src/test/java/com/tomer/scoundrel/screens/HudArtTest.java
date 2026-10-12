@@ -127,7 +127,7 @@ class HudArtTest {
         assertEquals(24, HudArt.AVOID_Y);
         assertEquals(115, HudArt.AVOID_W);
         assertEquals(45, HudArt.AVOID_H);
-        // frame 2 + bevel 2, both sides, around the plate the render shows.
+        // 111 is the plate, bevel included: the button less its 2px frame on each side.
         assertEquals(111, HudArt.AVOID_W - 2 * 2 * ScreenArt.THICK + 4);
     }
 

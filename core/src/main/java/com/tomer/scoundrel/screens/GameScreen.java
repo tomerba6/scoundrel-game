@@ -160,7 +160,7 @@ public final class GameScreen extends PixelScreen {
 
     @Override
     public void show() {
-        // One processor now: the overlays are drawn by this screen, so they are
+        // One processor: the overlays are drawn by this screen, so they are
         // hit-tested by it too, ahead of the board.
         Gdx.input.setInputProcessor(new BoardInput());
     }
@@ -401,10 +401,9 @@ public final class GameScreen extends PixelScreen {
         if (deathElapsed >= 0f) {
             drawDeath();
         }
-        // The overlays are drawn onto the surface with everything else now, so
-        // they land on the same pixel grid the board does. As Scene2D in the
-        // vector faces they were drawn to the window instead, at a different
-        // scale, which is why they never quite matched the board's edges.
+        // The overlays are drawn onto the surface with everything else, so they
+        // land on the same pixel grid the board does; drawn to the window, they
+        // would sit at a different scale and miss the board's edges.
         if (endSummary != null) {
             drawEndPanel();
         } else if (calloutUp) {

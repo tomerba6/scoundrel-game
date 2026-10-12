@@ -77,14 +77,14 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
         int accent = won ? ScreenArt.GOLD : ScreenArt.OUTCOME_LOST;
         // Neither outcome has a use for the health it ended on. A clear scores
         // exactly the health you kept, so a HEALTH LEFT cell beside the score
-        // was the same number twice; what the clear cost is the figure the score
-        // cannot carry, since two runs that both end on 17 are not the same run
-        // if one of them bled 60 getting there. A death has no health left at
+        // would be the same number twice; what the clear cost is the figure the
+        // score cannot carry, since two runs that both end on 17 are not the same
+        // run if one of them bled 60 getting there. A death has no health left at
         // all, so it counts what was still waiting instead — the one figure that
         // explains how far below zero the score is.
         //
-        // Both are set in the colours the health bar already uses for them:
-        // damage is HudArt.FILL_BLOOD, the same red as OUTCOME_LOST.
+        // Both are set in OUTCOME_LOST. For damage that is the colour the health
+        // bar already uses: HudArt.FILL_BLOOD is the same red.
         Cell middle = won
                 ? new Cell("DAMAGE TAKEN", String.valueOf(damageTaken), ScreenArt.OUTCOME_LOST)
                 : new Cell("STILL DOWN THERE", String.valueOf(monstersLeft),
@@ -95,9 +95,8 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
                 accent,
                 // The verdict takes the outcome's own colour, the same green and
                 // blood the ledger sets CLEARED and DEFEATED in, so a run reads
-                // the same here as on the row it is about to become. The render
-                // has the headline cream and leaves the hard shadow to carry it;
-                // the shadow still does, under the colour.
+                // the same here as on the row it is about to become, and the hard
+                // shadow still sits under it.
                 won ? ScreenArt.OUTCOME_WON : ScreenArt.OUTCOME_LOST,
                 List.of(
                         // A clear's score is the number the whole run was for, and

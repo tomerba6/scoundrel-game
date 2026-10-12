@@ -16,7 +16,8 @@ import sys
 import xml.etree.ElementTree as ET
 
 # Must match the `includes` list in core/build.gradle -- CoverageGateTest
-# fails when it does not (audio once joined the gate and never reached here).
+# fails when it does not, so a package that joins the gate cannot be left off
+# the badge.
 GATED = {"model", "rules", "runs", "achievements", "tutorial", "audio"}
 
 

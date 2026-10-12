@@ -124,8 +124,7 @@ class CardFlightTest {
     @Test
     void aSweepTakesNoLongerForAFullRoomThanForOneCard() {
         assertEquals(CardFlight.AVOID.total(), CardFlight.AVOID.totalFor(4), 1e-5f);
-        // Release 1 swept in 0.20s; three hops of one frame is the nearest this
-        // grid gets, and it is the same beat.
+        // Three hops of one frame: the shortest a three-hop flight can be at 12fps.
         assertEquals(0.25f, CardFlight.AVOID.totalFor(4), 1e-5f);
     }
 

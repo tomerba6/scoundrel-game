@@ -59,7 +59,7 @@ class PixelTypeTest {
     void theOddSizesFromTheSpecAreNotUsed() {
         for (int size : PixelType.SIZES) {
             assertTrue(size != 11 && size != 13,
-                    size + "px is one of the odd sizes the spec quotes; use the even neighbour");
+                    size + "px is an odd size; use the even neighbour");
         }
     }
 }

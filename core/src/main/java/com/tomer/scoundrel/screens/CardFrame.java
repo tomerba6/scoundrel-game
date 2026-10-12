@@ -70,15 +70,15 @@ final class CardFrame {
         fill(batch, plateX, plateY, plateW, plateH, palette.plate());
 
         // Bevels: light along the top and left, dark along the bottom and right,
-        // so the plate reads as raised. Each is 2px and they stop short of each
-        // other's corner exactly as the mock's borders do.
+        // so the plate reads as raised. Each is CardArt.BEVEL, scaled with the
+        // card, and they stop short of each other's corner.
         fill(batch, plateX, plateY, plateW - bevel, bevel, palette.light());
         fill(batch, plateX, plateY, bevel, plateH - bevel, palette.light());
         fill(batch, plateX + bevel, plateY + plateH - bevel, plateW - bevel, bevel, palette.dark());
         fill(batch, plateX + plateW - bevel, plateY + bevel, bevel, plateH - bevel, palette.dark());
 
         // The well, recessed by a hard shadow along its top edge and the faintest
-        // cream lip along its bottom — the mock's two inset box-shadows.
+        // cream lip along its bottom.
         int wellX = slotX + Math.round((CardArt.wellLeft(0)) * sx);
         int wellY = slotY + Math.round((CardArt.wellTop() - CardArt.SLOT_Y) * sy);
         int wellW = Math.round(CardArt.wellWidth() * sx);

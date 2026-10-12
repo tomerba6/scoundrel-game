@@ -288,8 +288,8 @@ class MusicDirectorTest {
     @Test
     void anEndThatFollowsAnotherWithoutANewRunStillPlaysItsCue() {
         // Only the lab does this - V, then X - but a run's end starts afresh either
-        // way. Found in the lab: the win's cue was still remembered, so the death
-        // thought it had already cued and stayed silent.
+        // way: if the win's cue were still remembered, the death would think it
+        // had already cued and stay silent.
         settledInRun();
         director.won();
         play(MusicDirector.WIN_FADE + 0.1f);

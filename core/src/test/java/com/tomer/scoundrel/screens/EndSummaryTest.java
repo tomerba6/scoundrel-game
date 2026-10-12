@@ -66,8 +66,8 @@ class EndSummaryTest {
         assertEquals("47", won.cells().get(1).value());
         assertNotEquals(won.cells().get(0).value(), won.cells().get(1).value(),
                 "the panel is saying the same number twice again");
-        // The health bar already paints damage in this red and healing in the
-        // green the cell used to carry; the stat follows the bar, not the panel.
+        // The health bar already paints damage in this red, so the stat follows
+        // the bar, not the panel's green.
         assertEquals(ScreenArt.OUTCOME_LOST, won.cells().get(1).colour());
         assertEquals("TIME", won.cells().get(2).label());
         assertEquals("4:12", won.cells().get(2).value());

@@ -43,7 +43,7 @@ class BoardArtTest {
         assertEquals(116, BoardArt.chipX(0));
         assertEquals(142, BoardArt.chipX(1));
         assertEquals(168, BoardArt.chipX(2));
-        // 22 wide on a 26 pitch leaves the reference's 4px gap.
+        // 22 wide on a 26 pitch leaves a 4px gap.
         assertEquals(4, BoardArt.chipX(1) - (BoardArt.chipX(0) + BoardArt.CHIP_W));
     }
 
@@ -90,7 +90,7 @@ class BoardArtTest {
     @Test
     void theCardHeaderSitsInsideThePlatePadding() {
         int slot = CardArt.slotX(1);
-        // 2px frame then the mock's 6px padding.
+        // 2px frame then the header's 6px padding.
         assertEquals(slot + 8, BoardArt.rankX(slot));
         assertEquals(slot + CardArt.CARD_W - 8, BoardArt.typeRightX(slot));
         // The pip is centred in the 26px header.

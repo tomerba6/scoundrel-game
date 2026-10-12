@@ -23,10 +23,6 @@ class WeaponKillTest {
     /** The flash holds for one frame and then ends. */
     @Test
     void theFlashHoldsBeforeAnythingElseHappens() {
-        // The spec quotes 0.36s. That is 4.32 frames at 12fps -- not a frame
-        // boundary to begin with -- and at the four frames it was rounded to,
-        // the creature stood lit for a third of a second before the blade
-        // moved. Two frames still reads as a held blow and gets on with it.
         assertEquals(WeaponKill.FRAME, WeaponKill.RIM_TIME, 1e-6f);
         assertTrue(WeaponKill.rimShowing(0f));
         assertTrue(WeaponKill.rimShowing(WeaponKill.RIM_TIME - 0.01f));

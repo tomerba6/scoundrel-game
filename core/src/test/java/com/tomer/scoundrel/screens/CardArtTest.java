@@ -46,7 +46,6 @@ class CardArtTest {
     /** Each card type has its own plate, well and label colours. */
     @Test
     void eachCardTypeCarriesItsOwnRamp() {
-        // The mock's PALETTES table.
         CardArt.Palette monster = CardArt.paletteFor(CardType.MONSTER);
         assertEquals(0x230d16, monster.plate());
         assertEquals(0x4f1d1e, monster.light());

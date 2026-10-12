@@ -113,7 +113,7 @@ final class PipMask {
         boolean[] mask = new boolean[SIZE * SIZE];
         for (int y = 0; y < SIZE; y++) {
             for (int x = 0; x < SIZE; x++) {
-                // The pixel's centre, back in the mock's coordinates.
+                // The pixel's centre, in the 64-unit box the shapes are defined in.
                 float sx = (x + 0.5f) * BOX / SIZE;
                 float sy = (y + 0.5f) * BOX / SIZE;
                 boolean on = false;
