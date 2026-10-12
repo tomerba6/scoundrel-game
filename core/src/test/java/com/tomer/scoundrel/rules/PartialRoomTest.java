@@ -15,10 +15,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The end of the dungeon: rooms of fewer than four cards, and when avoiding is still allowed. */
 class PartialRoomTest {
 
     private final ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
 
+    /**
+     * With too few cards left to fill a room, the carry-over and the rest of the
+     * dungeon make a smaller one.
+     */
     @Test
     void refillWithFewCardsLeftMakesAPartialRoom() {
         GameState g = engine.newGame(List.of(
@@ -31,6 +36,7 @@ class PartialRoomTest {
         assertEquals(Status.IN_PROGRESS, g.status());
     }
 
+    /** A partial room is played to its last card, and the game is won only then. */
     @Test
     void everyCardOfAPartialRoomMustBeResolvedBeforeTheGameEnds() {
         GameState g = engine.newGame(List.of(
@@ -46,6 +52,7 @@ class PartialRoomTest {
         assertEquals(Status.WON, g.status());
     }
 
+    /** Resolving the last card wins, scoring the health left. */
     @Test
     void resolvingTheFinalSingleCardWinsWithHealthLeft() {
         GameState s = state().health(9).room(potion(5)).build();
@@ -54,6 +61,7 @@ class PartialRoomTest {
         assertEquals(14, won.score());
     }
 
+    /** A carry-over with the dungeon empty becomes a one-card room, and resolving it wins. */
     @Test
     void lastCarryoverWithEmptyDungeonBecomesAOneCardRoom() {
         GameState g = engine.newGame(List.of(
@@ -73,6 +81,7 @@ class PartialRoomTest {
         assertEquals(Status.WON, g.status());
     }
 
+    /** A partial room is one turn with one potion allowance, so its second potion is wasted. */
     @Test
     void aRoomThatStartsPartialIsASingleTurnWithOnePotionAllowance() {
         // The standard deck's arithmetic makes every completed game end in a
@@ -88,6 +97,7 @@ class PartialRoomTest {
         assertEquals(15, last.state().score()); // health != 20, so no potion bonus
     }
 
+    /** A partial room, with the dungeon empty, cannot be avoided. */
     @Test
     void avoidingAPartialRoomIsIllegal() {
         GameState s = state().room(potion(2), potion(3), potion(4)).build(); // dungeon empty
@@ -95,6 +105,7 @@ class PartialRoomTest {
         assertThrows(IllegalMoveException.class, () -> engine.apply(s, new AvoidRoom()));
     }
 
+    /** A full room cannot be avoided once the dungeon is empty either. */
     @Test
     void avoidingAFullRoomWithAnEmptyDungeonIsAlsoIllegal() {
         GameState s = state().room(potion(2), potion(3), potion(4), potion(5)).build();
@@ -102,6 +113,10 @@ class PartialRoomTest {
         assertThrows(IllegalMoveException.class, () -> engine.apply(s, new AvoidRoom()));
     }
 
+    /**
+     * With one card left in the dungeon, avoiding is allowed, and the next room is
+     * that card plus three of the avoided four.
+     */
     @Test
     void avoidingWithASingleDungeonCardLeftIsLegal() {
         GameState s = state().room(potion(2), potion(3), potion(4), potion(5))

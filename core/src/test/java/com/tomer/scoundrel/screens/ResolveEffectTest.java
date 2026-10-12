@@ -11,9 +11,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Characterization of the animation-routing decision lifted out of GameScreen:
- * which effect a move drives, and the HP amounts read from a resolve's events.
- * Pins the whole matrix so the extraction is provably behaviour-preserving.
+ * Which effect a move drives, and the HP amounts read from a resolve's events.
+ * The whole matrix is pinned, so any change to the routing is deliberate.
  */
 class ResolveEffectTest {
 
@@ -29,6 +28,10 @@ class ResolveEffectTest {
         return new Card(id, CardType.POTION, value);
     }
 
+    /**
+     * Each move drives its effect: avoiding sweeps, bare hands strike, a weapon
+     * equips, a potion pours, a weapon kill slices.
+     */
     @Test
     void everyMoveTypeMapsToItsEffect() {
         assertEquals(ResolveEffect.AVOID, ResolveEffect.of(new Move.AvoidRoom()));
@@ -38,6 +41,7 @@ class ResolveEffectTest {
         assertEquals(ResolveEffect.SLICE, ResolveEffect.of(new Move.FightWithWeapon(monster("6C", 6))));
     }
 
+    /** The damage taken is the sum over every monster fought, and other events add nothing. */
     @Test
     void damageTakenSumsMonsterDefeatedEvents() {
         List<GameEvent> events = List.of(
@@ -48,6 +52,7 @@ class ResolveEffectTest {
         assertEquals(8, ResolveEffect.damageTaken(events));
     }
 
+    /** With no fight, no damage is taken. */
     @Test
     void damageTakenIsZeroWithoutAKill() {
         assertEquals(0, ResolveEffect.damageTaken(List.of(
@@ -55,6 +60,7 @@ class ResolveEffectTest {
                 new GameEvent.RoomDealt(List.of()))));
     }
 
+    /** The health healed is the sum over potions drunk, and a wasted potion adds nothing. */
     @Test
     void healedSumsPotionUsedEvents() {
         List<GameEvent> events = List.of(
@@ -64,6 +70,7 @@ class ResolveEffectTest {
         assertEquals(4, ResolveEffect.healed(events));
     }
 
+    /** With no potion drunk, nothing is healed. */
     @Test
     void healedIsZeroWithoutADrink() {
         assertEquals(0, ResolveEffect.healed(List.of(

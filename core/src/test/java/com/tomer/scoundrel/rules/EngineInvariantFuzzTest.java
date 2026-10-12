@@ -30,6 +30,10 @@ class EngineInvariantFuzzTest {
     private static final int GAMES_PER_RULESET = 400;
     private static final int STEP_LIMIT = 1000;
 
+    /**
+     * 400 random legal games under each of the three rulesets keep every
+     * invariant at every step and at the end.
+     */
     @Test
     void everyRulesetHoldsItsInvariantsOverManyRandomGames() {
         for (Ruleset rules : List.of(Rulesets.standard(), Rulesets.relentless(), Rulesets.frail())) {

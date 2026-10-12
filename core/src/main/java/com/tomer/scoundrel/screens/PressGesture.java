@@ -9,14 +9,14 @@ package com.tomer.scoundrel.screens;
  * which is what a button has always done. The board is the deliberate exception:
  * cards and the Avoid plate resolve on press, because a click made while the
  * mouse is already travelling to the next card is what fast play looks like and
- * release semantics silently discard it (HANDOFF §10). The board hit-tests its
+ * release semantics silently discard it. The board hit-tests its
  * own rectangles for that, in {@code GameScreen.BoardInput}.
  *
  * <p>The timing is why this is a class rather than two fields on a screen.
  * A click is often shorter than four frames, and every menu button navigates, so
  * acting the instant the button comes up would cut to the next screen before the
  * sunk plate had been drawn once — release semantics would read as <em>less</em>
- * responsive than the press-to-act they replaced. So a release only arms the
+ * responsive than acting on press. So a release only arms the
  * action; {@link #advance} fires it once the plate has actually been on screen
  * for {@link #MIN_SINK}. Targets are whatever integers the screen hit-tests to,
  * matching the {@code -1} for nothing that {@link ScreenArt#buttonAt} returns.
@@ -130,8 +130,7 @@ final class PressGesture {
     /**
      * Whether {@code target} is already held down — pressed, and not yet released or
      * cancelled, whether or not the pointer is still on it. A button that is down
-     * cannot go down again: the one time a single press arrived twice (the session's
-     * first click after leaving fullscreen) it played the menu click twice.
+     * cannot go down again, so a press delivered twice clicks once.
      *
      * @param target the target a new press would land on
      * @return true if that target is held already; always false for {@link #NONE}

@@ -21,6 +21,7 @@ class DeathCinematicTest {
 
     private static final float FRAME = 1f / 12f;
 
+    /** The death flares first, then the dither starts, then the title appears. */
     @Test
     void thePhasesRunInOrder() {
         assertTrue(DeathCinematic.flaring(0f), "the blow flares first");
@@ -32,6 +33,7 @@ class DeathCinematicTest {
         assertFalse(DeathCinematic.titleShowing(DeathCinematic.TITLE_START - FRAME));
     }
 
+    /** The board shakes in multiples of 4px, then settles. */
     @Test
     void theBoardShakesOnAWholePixelGridThenStops() {
         boolean moved = false;
@@ -62,6 +64,7 @@ class DeathCinematicTest {
         assertEquals(DeathCinematic.DITHER_LEVELS, DeathCinematic.ditherLevel(DeathCinematic.TOTAL));
     }
 
+    /** Midway through the dither, the pattern is partial. */
     @Test
     void theBoardIsStillVisibleWhileTheDitherIsClimbing() {
         // Partway through, some of the pattern is on and some is off -- that is
@@ -92,9 +95,9 @@ class DeathCinematicTest {
      * smooth as anything in this game can be — any hold longer than a frame is a
      * visible stutter.
      *
-     * <p>The version before this held its first steps four frames apiece while
-     * they were also the largest jumps in the whole run, which is precisely the
-     * recipe for a lurch: dwell on a size, then leap.
+     * <p>Holding the first steps several frames apiece, while they are also the
+     * largest jumps in the run, is precisely the recipe for a lurch: dwell on a
+     * size, then leap.
      */
     @Test
     void theTitleTakesAStepEveryFrame() {
@@ -107,6 +110,7 @@ class DeathCinematicTest {
         }
     }
 
+    /** The title grows through fifteen sizes. */
     @Test
     void theTitleGrowsInFifteenSteps() {
         Set<Integer> zooms = new LinkedHashSet<>();
@@ -116,6 +120,7 @@ class DeathCinematicTest {
         assertEquals(15, zooms.size(), "expected fifteen steps, got " + zooms);
     }
 
+    /** The title never shrinks. */
     @Test
     void theTitleOnlyEverGrows() {
         int previous = 0;
@@ -133,7 +138,7 @@ class DeathCinematicTest {
      * because at the small end one whole multiple is a large fraction of the
      * size — which is exactly why the title is drawn from the smallest face
      * there is rather than a comfortable one. From the display face the first
-     * step was a third larger in one go.
+     * step would be a third larger in one go.
      */
     @Test
     void noSingleStepIsALurch() {
@@ -148,6 +153,7 @@ class DeathCinematicTest {
                 "biggest jump was " + Math.round((worst - 1) * 100) + "%");
     }
 
+    /** Every value holds for a whole frame. */
     @Test
     void everyValueHoldsForAWholeFrame() {
         for (int frame = 0; frame < 66; frame++) {
@@ -167,7 +173,7 @@ class DeathCinematicTest {
      * The board is left standing for a beat before anything takes it away. The
      * blow lands, the board shakes, and then nothing happens at all — long
      * enough to read the empty bar and the number under zero. A death that
-     * wiped the board in half a second never let the loss register.
+     * wiped the board in half a second would never let the loss register.
      */
     @Test
     void theBoardIsLeftStandingBeforeTheDarkTakesIt() {
@@ -223,6 +229,7 @@ class DeathCinematicTest {
         assertFalse(DeathCinematic.tickerShowing(DeathCinematic.TITLE_START - (1f / 12f)));
     }
 
+    /** The title appears between 3.2s and 3.6s, and the death ends between 5.3s and 5.7s. */
     @Test
     void theWholeDeathIsSlowButStillEnds() {
         assertTrue(DeathCinematic.TITLE_START > 3.2f && DeathCinematic.TITLE_START < 3.6f,

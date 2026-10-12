@@ -13,15 +13,13 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
- * The palette rule, in the version that is actually true.
+ * The palette rule.
  *
- * <p>{@code HANDOFF.md} §6 claims the eighty ramp colours "are also the only
- * colours the UI should use". That was never true and could not be: §11 of the
- * same document specifies chrome hexes that are on no ramp, and the potion
- * bottle, the cleaved card's cut faces and the HUD tints were sampled from the
- * reference render. Even the sprites only mostly obey it — §8 records six that
- * are partly off, which is why {@link Ramps} snaps to the nearest entry before
- * brightening.
+ * <p>The eighty ramp colours are not the only colours the UI uses. The chrome
+ * has hexes on no ramp, and the potion bottle, the cleaved card's cut faces and
+ * the HUD tints are sampled colours of their own. Even the sprites only mostly
+ * keep to the ramps — six are partly off, which is why {@link Ramps} snaps to
+ * the nearest entry before brightening.
  *
  * <p>So: two tiers. {@link Ramps} holds the eighty and governs sprite pixels;
  * {@link UiPalette} holds the colours drawn in code that are not on them, each
@@ -51,6 +49,7 @@ class UiPaletteTest {
         }
     }
 
+    /** Every colour declared in the screens sources is on a ramp or in UiPalette. */
     @Test
     void everyDeclaredColourIsOnARampOrIsANamedException() throws IOException {
         List<Declared> strays = new ArrayList<>();
@@ -65,6 +64,7 @@ class UiPaletteTest {
                         + String.join("\n  ", strays.stream().map(Object::toString).toList()));
     }
 
+    /** No UiPalette colour is also on a ramp. */
     @Test
     void theTwoTiersAreDisjoint() {
         List<String> both = new ArrayList<>();

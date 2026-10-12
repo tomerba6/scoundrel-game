@@ -11,14 +11,11 @@ import java.util.OptionalLong;
  * The eight lifetime figures beside the table, as label/value pairs in the order
  * the panel draws them.
  *
- * <p>The reference render's own list is <b>not</b> reproduced verbatim. It asks
- * for WEAPONS BROKEN, and weapons never break in Scoundrel — they degrade and
- * stay equipped for weaker monsters, which is the rule the whole game turns on.
- * That row was drawn from placeholder data by someone not holding the rules, so
- * the panel keeps the render's shape and its eight-row rhythm and is filled with
- * figures the game actually keeps. Two of them, the best and worst score and the
- * fastest clear, are derived here rather than stored — {@link RunTotals} sums,
- * and these are extremes.
+ * <p>There is deliberately no WEAPONS BROKEN: weapons never break in Scoundrel
+ * — they degrade and stay equipped for weaker monsters, which is the rule the
+ * whole game turns on. The eight rows are figures the game actually keeps.
+ * Three of them, the best and worst score and the fastest clear, are derived
+ * here rather than stored — {@link RunTotals} sums, and these are extremes.
  */
 final class LedgerTotals {
 

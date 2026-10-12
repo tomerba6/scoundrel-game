@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /** The one run-duration formatter, shared by the HUD timer, end screen, and ledger. */
 class ClockTextTest {
 
+    /** Under a minute reads as 0:SS. */
     @Test
     void underAMinuteReadsZeroMinutes() {
         assertEquals("0:00", ClockText.format(0));
@@ -14,6 +15,7 @@ class ClockTextTest {
         assertEquals("0:42", ClockText.format(42));
     }
 
+    /** Under an hour reads as M:SS, the seconds padded to two digits. */
     @Test
     void minutesAndSecondsAreColonSeparatedWithPaddedSeconds() {
         assertEquals("1:00", ClockText.format(60));
@@ -21,6 +23,7 @@ class ClockTextTest {
         assertEquals("59:59", ClockText.format(59 * 60 + 59));
     }
 
+    /** An hour or more reads as hours and whole minutes, dropping the seconds. */
     @Test
     void anHourOrMoreDropsToCoarseHoursAndMinutes() {
         assertEquals("1h 0m", ClockText.format(3600));

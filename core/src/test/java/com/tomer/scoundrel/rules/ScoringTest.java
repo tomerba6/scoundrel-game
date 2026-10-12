@@ -18,10 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** How a game ends and what it scores. */
 class ScoringTest {
 
     private final ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
 
+    /** Dropping to zero health or below ends the game as a loss, with no moves left. */
     @Test
     void reachingZeroHealthLosesImmediately() {
         GameState s = state().health(5).room(monster2(12), weapon(2), weapon(3), weapon(4)).build();
@@ -62,6 +64,7 @@ class ScoringTest {
         assertEquals(-24, lost.score());
     }
 
+    /** A loss scores the final health minus every monster still in the dungeon. */
     @Test
     void lossScoreIsNegativeHealthMinusDungeonMonsters() {
         // Die at -3 with Q(12) + 9 still face-down: -3 - 21 = -24.
@@ -73,6 +76,7 @@ class ScoringTest {
         assertEquals(-24, lost.score());
     }
 
+    /** Monsters left in the room are not charged against a loss score. */
     @Test
     void unresolvedRoomMonstersDoNotCountTowardTheLossPenalty() {
         GameState s = state().health(4)
@@ -83,6 +87,7 @@ class ScoringTest {
         assertEquals(-24, lost.score()); // K and A in the room are ignored
     }
 
+    /** Weapons and potions left in the dungeon are not charged against a loss score. */
     @Test
     void weaponsAndPotionsInTheDungeonAddNothingToTheLossPenalty() {
         GameState s = state().health(4)
@@ -93,6 +98,7 @@ class ScoringTest {
         assertEquals(-3 - 12, lost.score());
     }
 
+    /** Clearing the dungeon wins, scoring the health left. */
     @Test
     void clearingEverythingWinsWithRemainingHealthAsScore() {
         GameState s = state().health(13).room(monster(2)).build();
@@ -101,6 +107,7 @@ class ScoringTest {
         assertEquals(11, won.score());
     }
 
+    /** Winning at 20 health with a potion as the last card scores 20 plus that potion. */
     @Test
     void winningAtExactly20WithAPotionLastScores20PlusItsValue() {
         GameState s = state().health(16).room(potion(4)).build();
@@ -109,6 +116,7 @@ class ScoringTest {
         assertEquals(24, won.score());
     }
 
+    /** Winning at 20 with a monster as the last card scores just 20. */
     @Test
     void winningAt20WithAMonsterLastScoresJust20() {
         GameState s = state().health(20).room(monster(3)).weapon(weapon(10)).build();
@@ -117,6 +125,7 @@ class ScoringTest {
         assertEquals(20, won.score());
     }
 
+    /** Winning below 20 with a potion last scores only the health left. */
     @Test
     void winningBelow20WithAPotionLastGetsNoBonus() {
         GameState s = state().health(15).room(potion(4)).build();
@@ -124,6 +133,7 @@ class ScoringTest {
         assertEquals(19, won.score());
     }
 
+    /** A last potion drunk at full health, healing nothing, still earns the bonus. */
     @Test
     void capWastedFinalPotionStillTriggersTheBonus() {
         GameState s = state().health(20).room(potion(9)).build();
@@ -132,6 +142,7 @@ class ScoringTest {
         assertEquals(29, won.score());
     }
 
+    /** Dying on the last card is a loss, scored on health alone when the dungeon is empty. */
     @Test
     void dyingOnTheVeryLastCardIsALoss() {
         GameState s = state().health(3).room(monster(5)).build();
@@ -140,6 +151,7 @@ class ScoringTest {
         assertEquals(-2, lost.score()); // empty dungeon adds no penalty
     }
 
+    /** Exactly zero health is a loss, not a survival. */
     @Test
     void hittingExactlyZeroHealthIsALossNotASurvival() {
         // The boundary: 0 is death, not 1-hp survival. A 5 barehanded at 5 hp.
@@ -151,6 +163,7 @@ class ScoringTest {
         assertTrue(engine.legalMoves(lost).isEmpty());
     }
 
+    /** A fatal armed fight still stacks the monster, degrades the weapon and scores the loss as usual. */
     @Test
     void aFatalWeaponFightStillStacksDegradesAndScores() {
         // Death by the weapon, not barehanded: the excess damage kills you, but
@@ -171,6 +184,7 @@ class ScoringTest {
         assertEquals(-3 - 9, lost.score());
     }
 
+    /** Once a game is won or lost, no move is offered and any move is refused. */
     @Test
     void noMovesAreLegalAfterTheGameEnds() {
         GameState won = engine.apply(

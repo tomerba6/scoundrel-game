@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class FeedTest {
 
+    /** A new line is at full strength. */
     @Test
     void aNewLineIsAtFullStrength() {
         Feed feed = new Feed();
@@ -22,6 +23,7 @@ class FeedTest {
         assertEquals(1f, feed.alphaAt(0), 1e-4);
     }
 
+    /** Lines stack oldest first, newest last. */
     @Test
     void linesStackNewestLast() {
         Feed feed = new Feed();
@@ -43,6 +45,7 @@ class FeedTest {
         assertEquals("line 6", feed.textAt(0));
     }
 
+    /** A line stays at full strength until its hold is over. */
     @Test
     void aLineHoldsAtFullStrengthBeforeItStartsToGo() {
         Feed feed = new Feed();
@@ -71,6 +74,7 @@ class FeedTest {
         }
     }
 
+    /** A line is removed once it has faded. */
     @Test
     void aLineGoesOutAltogetherOnceItHasFaded() {
         Feed feed = new Feed();
@@ -90,6 +94,7 @@ class FeedTest {
                 "the older line should be the fainter one");
     }
 
+    /** Clearing removes every line. */
     @Test
     void clearingEmptiesIt() {
         Feed feed = new Feed();

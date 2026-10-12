@@ -19,10 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Building a run's record from the events the engine reports. */
 class RunRecorderTest {
 
     private static final Clock FIXED = Clock.fixed(Instant.parse("2026-07-06T10:00:00Z"), java.time.ZoneOffset.UTC);
 
+    /** Every counter is tallied from the events observed, and the final outcome and score are kept. */
     @Test
     void talliesCountersFromEvents() {
         RunRecorder recorder = new RunRecorder(42L, "standard", FIXED);
@@ -51,6 +53,7 @@ class RunRecorderTest {
         assertEquals(-24, record.score());
     }
 
+    /** A win finishes the run and is recorded with its score. */
     @Test
     void winIsCapturedWithItsScore() {
         RunRecorder recorder = new RunRecorder(7L, "standard", FIXED);
@@ -61,6 +64,7 @@ class RunRecorderTest {
         assertEquals(23, record.score());
     }
 
+    /** Asking for the record before the run has ended throws IllegalStateException. */
     @Test
     void toRecordBeforeTheGameEndsThrows() {
         RunRecorder recorder = new RunRecorder(7L, "standard", FIXED);
@@ -69,6 +73,7 @@ class RunRecorderTest {
         assertThrows(IllegalStateException.class, recorder::toRecord);
     }
 
+    /** The record's end time and duration come from the clock. */
     @Test
     void clockDrivesTimestampAndDuration() {
         Instant start = Instant.parse("2026-07-06T10:00:00Z");
@@ -80,12 +85,14 @@ class RunRecorderTest {
         assertEquals(310, record.seconds());
     }
 
+    /** Elapsed time reads zero before the clock moves. */
     @Test
     void elapsedSecondsIsZeroAtTheStart() {
         RunRecorder recorder = new RunRecorder(1L, "standard", FIXED);
         assertEquals(0, recorder.elapsedSeconds());
     }
 
+    /** Elapsed time counts from the start at each reading of the clock. */
     @Test
     void elapsedSecondsTracksTheClockFromTheStart() {
         Instant start = Instant.parse("2026-07-06T10:00:00Z");
@@ -96,6 +103,7 @@ class RunRecorderTest {
         assertEquals(187, recorder.elapsedSeconds());
     }
 
+    /** The seed and mode id reach the record unchanged, a missing seed included. */
     @Test
     void seedAndRulesetIdPassThrough() {
         RunRecorder withSeed = new RunRecorder(42L, "standard", FIXED);

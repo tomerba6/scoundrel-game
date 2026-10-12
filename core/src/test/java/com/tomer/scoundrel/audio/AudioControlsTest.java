@@ -13,8 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The volume controls: settings loaded at launch, changes saved at once, and silence while minimised. */
 class AudioControlsTest {
 
+    /** A fresh directory for each test, deleted afterwards. */
     @TempDir
     Path dir;
 
@@ -28,18 +30,21 @@ class AudioControlsTest {
         return new AudioControls(store(), failures::add);
     }
 
+    /** With no settings file the controls start at the defaults, and that is not reported as a failure. */
     @Test
     void theFirstLaunchStartsAtTheDefaults() {
         assertEquals(AudioSettings.DEFAULTS, controls().settings());
         assertTrue(failures.isEmpty(), "no file yet is not a failure");
     }
 
+    /** The controls start at the settings the last launch saved. */
     @Test
     void itStartsWhereTheLastLaunchLeftOff() {
         store().save(new AudioSettings(0, 1, true));
         assertEquals(new AudioSettings(0, 1, true), controls().settings());
     }
 
+    /** A settings file that cannot be read gives the defaults, and the failure is reported once. */
     @Test
     void aSettingsFileThatCannotBeReadMeansTheDefaultsAndIsReported() throws IOException {
         Files.createDirectory(dir.resolve("audio.settings")); // exists, but is no file to read
@@ -48,6 +53,7 @@ class AudioControlsTest {
         assertEquals(1, failures.size());
     }
 
+    /** Cycling the music level saves the change at once. */
     @Test
     void cyclingTheMusicSavesItAtOnce() {
         AudioControls controls = controls();
@@ -59,6 +65,7 @@ class AudioControlsTest {
         assertEquals(changed, store().load());
     }
 
+    /** Cycling the sound level saves the change at once. */
     @Test
     void cyclingTheSoundSavesItAtOnce() {
         AudioControls controls = controls();
@@ -70,6 +77,7 @@ class AudioControlsTest {
         assertEquals(changed, store().load());
     }
 
+    /** Muting is saved at once, and unmuting restores the levels. */
     @Test
     void mutingSavesItAtOnceAndUnmutingBringsTheLevelsBack() {
         AudioControls controls = controls();
@@ -80,6 +88,7 @@ class AudioControlsTest {
         assertEquals(AudioSettings.DEFAULTS, store().load());
     }
 
+    /** Changing a level while muted unmutes. */
     @Test
     void turningALevelWhileMutedUnmutes() {
         AudioControls controls = controls();
@@ -88,6 +97,7 @@ class AudioControlsTest {
         assertEquals(new AudioSettings(3, 3, false), controls.cycleMusic());
     }
 
+    /** The gains it reports are those of the current levels. */
     @Test
     void shownTheGainsAreTheLevels() {
         AudioControls controls = controls();
@@ -112,6 +122,7 @@ class AudioControlsTest {
         assertFalse(Files.exists(dir.resolve("audio.settings")), "a window state is not a setting");
     }
 
+    /** Restoring the window brings the levels' gains back. */
     @Test
     void restoringTheWindowBringsTheLevelsBack() {
         AudioControls controls = controls();
@@ -123,6 +134,7 @@ class AudioControlsTest {
         assertEquals(AudioSettings.DEFAULTS.soundGain(), controls.soundGain());
     }
 
+    /** A muted game stays silent when the window is restored. */
     @Test
     void mutedStaysSilentWhenTheWindowComesBack() {
         AudioControls controls = controls();
@@ -135,6 +147,7 @@ class AudioControlsTest {
         assertEquals(0f, controls.soundGain());
     }
 
+    /** A change whose save fails still holds for this session, and the failure is reported. */
     @Test
     void aSaveThatFailsKeepsTheChangeForThisSessionAndIsReported() throws IOException {
         AudioControls controls = controls();

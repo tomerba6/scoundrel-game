@@ -23,10 +23,10 @@ public final class ModeSelectScreen extends PixelScreen {
 
     private final List<GameMode> modes = GameModes.all();
     /**
-     * Which panel wears the gold frame. It starts on the first — the state the
-     * reference render shows — and thereafter stays wherever the pointer last
-     * put it, so the frame is doing the work a hover glow would do elsewhere.
-     * §11 forbids the glow, not the feedback.
+     * Which panel wears the gold frame. It starts on the first and thereafter
+     * stays wherever the pointer last put it, so the frame is doing the work a
+     * hover glow would do elsewhere: the screens have no glow, but they still
+     * have feedback.
      */
     private int selected;
     /**
@@ -133,8 +133,7 @@ public final class ModeSelectScreen extends PixelScreen {
 
     /**
      * One mode. The <b>only</b> difference between selected and not is the
-     * frame's colour — §11 is explicit that this is the whole treatment: no
-     * glow, no scale, no change of face.
+     * frame's colour: no glow, no scale, no change of face.
      */
     private void drawPanel(GameMode mode, int index) {
         int y = ScreenArt.panelY(index);

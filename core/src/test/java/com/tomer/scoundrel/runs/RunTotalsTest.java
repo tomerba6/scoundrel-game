@@ -8,6 +8,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/** Lifetime totals summed across every run. */
 class RunTotalsTest {
 
     private static RunRecord run(Status outcome, int score, long seconds,
@@ -18,6 +19,7 @@ class RunTotalsTest {
                 monsters, damage, healed, drunk, wasted, equips, avoids);
     }
 
+    /** With no runs every total is zero, and the win rate is 0 rather than a division by zero. */
     @Test
     void noRunsMeansAllZerosAndNoDivisionByZero() {
         RunTotals totals = RunTotals.of(List.of());
@@ -28,6 +30,7 @@ class RunTotalsTest {
         assertEquals(0.0, totals.winRate());
     }
 
+    /** Every counter, plus wins, losses and time played, is summed across runs. */
     @Test
     void sumsEveryCounterAcrossRuns() {
         RunTotals totals = RunTotals.of(List.of(
@@ -46,6 +49,7 @@ class RunTotalsTest {
         assertEquals(420, totals.secondsPlayed());
     }
 
+    /** The win rate is wins over all runs. */
     @Test
     void winRateIsWinsOverAllRuns() {
         RunTotals totals = RunTotals.of(List.of(

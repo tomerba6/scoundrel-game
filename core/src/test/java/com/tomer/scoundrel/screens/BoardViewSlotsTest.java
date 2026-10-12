@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class BoardViewSlotsTest {
 
+    /** A full room sits on the four measured slots. */
     @Test
     void afullRoomLandsOnTheMeasuredFourSlots() {
         for (int i = 0; i < 4; i++) {
@@ -20,6 +21,7 @@ class BoardViewSlotsTest {
         }
     }
 
+    /** A room of one to four cards is centred. */
     @Test
     void aShorterRoomStaysCentred() {
         for (int cards = 1; cards <= 4; cards++) {
@@ -30,6 +32,7 @@ class BoardViewSlotsTest {
         }
     }
 
+    /** The gap between cards is 24px in any room. */
     @Test
     void theGapBetweenCardsNeverChanges() {
         for (int cards = 2; cards <= 4; cards++) {

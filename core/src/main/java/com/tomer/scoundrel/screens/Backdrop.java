@@ -7,9 +7,7 @@ import com.badlogic.gdx.graphics.g2d.Batch;
  * over a darkening vignette, both procedural textures from the {@link Theme}.
  * Purely decorative and never a hit target.
  *
- * <p>It used to be a Scene2D {@code Actor} so a stage could hold it. Nothing in
- * the game has a stage any more, so it is a plain object the screens advance and
- * draw themselves.
+ * <p>It is a plain object the screens advance and draw themselves.
  */
 final class Backdrop {
 

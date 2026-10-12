@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** How rooms are dealt, carried over and avoided. */
 class RoomFlowTest {
 
     private final ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
@@ -26,6 +27,7 @@ class RoomFlowTest {
                 potion(6), potion(7), potion(8), potion(9));
     }
 
+    /** A new game deals the top four cards as the first room, at 20 health. */
     @Test
     void newGameDealsAFullFirstRoom() {
         GameState g = engine.newGame(List.of(
@@ -35,6 +37,7 @@ class RoomFlowTest {
         assertEquals(20, g.health());
     }
 
+    /** After three cards are resolved, the fourth leads the next room, refilled from the dungeon. */
     @Test
     void afterThreeResolutionsTheFourthCarriesIntoTheNextRoom() {
         GameState g = engine.newGame(List.of(
@@ -49,6 +52,7 @@ class RoomFlowTest {
         assertFalse(g.roomResolutionStarted()); // fresh turn
     }
 
+    /** Every card of a fresh room offers at least one move. */
     @Test
     void anyOfTheFourRoomCardsCanBeResolvedFirst() {
         GameState g = engine.newGame(List.of(
@@ -58,6 +62,7 @@ class RoomFlowTest {
         }
     }
 
+    /** Avoiding sends the room to the bottom of the dungeon, deals a fresh one and reports RoomAvoided. */
     @Test
     void avoidingPutsTheRoomAtTheBottomAndDealsAFreshOne() {
         GameState g = engine.newGame(eightPotions());
@@ -69,12 +74,14 @@ class RoomFlowTest {
                 new GameEvent.RoomAvoided(List.of(potion(2), potion(3), potion(4), potion(5)))));
     }
 
+    /** The very first room can be avoided. */
     @Test
     void firstRoomOfAGameCanBeAvoided() {
         GameState g = engine.newGame(eightPotions());
         assertTrue(engine.legalMoves(g).contains(new AvoidRoom()));
     }
 
+    /** A room cannot be avoided once one of its cards has been resolved. */
     @Test
     void avoidingAfterACardWasResolvedIsIllegal() {
         GameState g = engine.newGame(eightPotions());
@@ -84,6 +91,7 @@ class RoomFlowTest {
         assertThrows(IllegalMoveException.class, () -> engine.apply(started, new AvoidRoom()));
     }
 
+    /** The room after an avoided one cannot be avoided. */
     @Test
     void avoidingTwoRoomsInARowIsIllegal() {
         GameState g = engine.apply(engine.newGame(eightPotions()), new AvoidRoom()).state();
@@ -92,6 +100,7 @@ class RoomFlowTest {
         assertThrows(IllegalMoveException.class, () -> engine.apply(avoided, new AvoidRoom()));
     }
 
+    /** Avoiding is allowed again once a room has been played through. */
     @Test
     void avoidingIsLegalAgainAfterResolvingARoom() {
         List<Card> order = List.of(
@@ -108,6 +117,7 @@ class RoomFlowTest {
         engine.apply(g, new AvoidRoom()); // must not throw
     }
 
+    /** The potion and resolution counts reset when the next room is dealt. */
     @Test
     void perRoomFlagsResetWhenANewRoomIsDealt() {
         GameState g = engine.newGame(List.of(

@@ -7,8 +7,8 @@ import java.util.List;
 /**
  * What the run-end panel says, worked out before anything is drawn.
  *
- * <p>One layout covers both outcomes — HANDOFF §11 is explicit that the death
- * variant is the same panel with the gold accents swapped to dried blood — so
+ * <p>One layout covers both outcomes — a death is the same panel with the gold
+ * accents swapped to dried blood — so
  * everything that differs between a win and a death is decided here and the
  * screen draws whichever it is handed.
  *
@@ -42,8 +42,8 @@ record EndSummary(String eyebrow, String headline, int accent, int headlineColou
      * taught instead. Score and health left sit side by side and equal, which
      * <em>is</em> the rule: clear the dungeon and you score the health you kept.
      * This is the one panel that still reports health, and deliberately —
-     * teaching that equality is the point here, where on a real run it was
-     * only the same number twice.
+     * teaching that equality is the point here, where on a real run it would
+     * only be the same number twice.
      *
      * @param score  the tutorial's final score
      * @param health the health it ended on, which equals the score

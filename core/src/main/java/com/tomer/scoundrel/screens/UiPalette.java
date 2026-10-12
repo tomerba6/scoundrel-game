@@ -6,27 +6,23 @@ import java.util.Set;
  * Tier two of the palette: every colour drawn in code that is <b>not</b> one of
  * the eighty ramp entries in {@link Ramps}.
  *
- * <p>{@code HANDOFF.md} §6 says the eighty "are also the only colours the UI
- * should use". That was never true and could not be — §11 of the same document
- * specifies chrome hexes that are on no ramp, and the potion bottle, the cleaved
- * card's cut faces and the HUD tints were sampled straight from the reference
- * render. <b>None of these were invented.</b> Each is either quoted in the brief
- * or taken off the art, which is why the answer is to write them down rather
- * than to repaint them.
+ * <p>The eighty ramp colours are not the only ones the UI draws: the chrome,
+ * the potion bottle, the cleaved card's cut faces and the HUD tints are on no
+ * ramp. <b>None of these were invented.</b> Each was taken off the design, which
+ * is why the answer is to write them down rather than to repaint them.
  *
  * <p>{@code UiPaletteTest} is what keeps this honest: it reads both declaration
  * forms out of the source and fails on any colour in neither tier.
  *
  * <p><b>What this cannot govern: blended output.</b> {@code fill(…, 0x000000,
- * 0.5f)} puts a colour on screen that is on no ramp by construction, and
- * {@code HANDOFF.md} §11's "flat colour, never alpha" quietly loses to those
- * shadow lines. Bringing them onto flat palette steps would change pixels, so it
- * is deliberately out of scope here.
+ * 0.5f)} puts a colour on screen that is on no ramp by construction, so those
+ * shadow lines break the flat-colour, never-alpha rule. Bringing them onto flat
+ * palette steps would change pixels, so it is deliberately out of scope here.
  */
 final class UiPalette {
 
     private static final Set<Integer> COLOURS = Set.of(
-            // --- structure and chrome, HANDOFF §11 --------------------------
+            // --- structure and chrome ---------------------------------------
             0x0f1410,   // FRAME — the 2px recess around every widget
             0x161210,   // FACE_PANEL
             0x141110,   // FACE_TABLE, and the even ledger row
@@ -59,7 +55,7 @@ final class UiPalette {
             0x4e2620,   // a chip's face
             0xa35543,   // a chip's label
 
-            // --- objects drawn in code, sampled from the reference render ----
+            // --- objects drawn in code ---------------------------------------
             0x3a1d18,   // the cleaved card's upper cut face
             0x2c1512,   // and its lower one
             0x5d8a4a,   // the potion bottle's glass

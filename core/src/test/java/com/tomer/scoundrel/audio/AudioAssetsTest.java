@@ -47,10 +47,16 @@ class AudioAssetsTest {
     private static final int ONSET = (int) Math.ceil(32768 * 0.01);
     private static final int LEAD_LIMIT_SAMPLES = Math.round(SAMPLE_RATE * 0.005f);
 
+    /**
+     * Every sound-effect file the contract names, without its extension, one per parameterised run.
+     *
+     * @return the names, from {@link Sound#allFiles()}
+     */
     static Stream<String> files() {
         return Sound.allFiles().stream();
     }
 
+    /** The sound-effect folder holds exactly the contract's files, none missing and none stray. */
     @Test
     void theFolderHoldsExactlyTheContract() throws IOException {
         Set<String> expected = Sound.allFiles().stream()
@@ -69,6 +75,7 @@ class AudioAssetsTest {
                         + "; stray (these would ship): " + stray);
     }
 
+    /** Each sound effect is 16-bit mono PCM at 44.1 kHz, peaks under −1 dBFS and starts within 5 ms. */
     @ParameterizedTest(name = "{0}")
     @MethodSource("files")
     void eachFileIsWhatTheGameExpects(String name) throws IOException, UnsupportedAudioFileException {
@@ -123,6 +130,10 @@ class AudioAssetsTest {
         }
     }
 
+    /**
+     * The audio folder holds only the effect and stream folders, and each stream
+     * folder exactly its streams.
+     */
     @Test
     void theStreamFoldersHoldNothingElseAndTheAudioFolderNothingElseAtAll() throws IOException {
         Set<String> expected = new TreeSet<>();

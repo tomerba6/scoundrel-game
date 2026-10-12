@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The developer switches: which values turn one on, and the names they go by. */
 class LaunchSwitchTest {
 
     /**
@@ -20,6 +21,7 @@ class LaunchSwitchTest {
         assertTrue(LaunchSwitch.on("TRUE", "0"));
     }
 
+    /** Unset, {@code false}, {@code 0} or any other value leaves a switch off. */
     @Test
     void anythingElseLeavesItOff() {
         assertFalse(LaunchSwitch.on(null, null));

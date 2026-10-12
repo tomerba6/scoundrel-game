@@ -21,11 +21,11 @@ final class CardFlight {
      *
      * <p>Named {@code _CX}/{@code _CY} because {@link HudArt#TICKER_Y} is a
      * different number for a different thing — the strip's top edge, not a
-     * flight target. They were both {@code TICKER_Y} until this was renamed.
+     * flight target.
      *
      * <p>The rail's anchor is <b>not</b> declared here. It lives in
      * {@link BoardArt} with the rest of the furniture, and {@link #EQUIP} reads
-     * it from there; a second copy is how it came to be 32px wrong.
+     * it from there; a second copy can drift from the one the rail is drawn at.
      */
     static final int TICKER_CX = 640;
     /** The depth ticker's centre y, in design pixels measured downward. */
@@ -83,23 +83,21 @@ final class CardFlight {
     }
 
     /**
-     * The whole room hops into the ticker together, as release 1's did — one
-     * parallel action per card with no delay between them. Avoiding is a single
-     * decision about four cards, and emptying them left to right made it read
-     * as four; it also cost a frame a card for the privilege.
+     * The whole room hops into the ticker together — one parallel action per
+     * card with no delay between them. Avoiding is a single decision about four
+     * cards, and emptying them left to right would make it read as four, at a
+     * frame a card for the privilege.
      *
-     * <p>The art direction quotes 0.20s a hop, which is 2.4 frames at 12fps —
-     * not on the grid — and at the 2 frames it was rounded to, a room you had
-     * already decided to be rid of took two thirds of a second to leave. Three
-     * hops of one frame: the room is gone in 250ms, release 1's beat.
+     * <p>Three hops of one frame: a room you have already decided to be rid of
+     * is gone in 250ms.
      */
     static final Flight AVOID = new Flight(TICKER_CX, TICKER_CY, FRAME, 0f,
             new int[] {100, 58, 16});
 
     /**
      * Three hops to the rail, shrinking to the icon it becomes. One card, so
-     * nothing to stagger against. The quoted 0.24s a hop put three quarters of
-     * a second between taking a weapon and being able to use it.
+     * nothing to stagger against, and a hop a frame, so a weapon you have just
+     * taken is on the rail in 250ms.
      */
     static final Flight EQUIP = new Flight(
             BoardArt.railIconX() + BoardArt.RAIL_ICON / 2,
@@ -108,9 +106,8 @@ final class CardFlight {
 
     /**
      * A card arriving in the room, growing as it comes, three hops of one
-     * frame. Release 1 dealt on a 0.04s stagger, which at 12fps rounds to
-     * nothing — but dealt with no stagger at all the room lands as one event
-     * rather than as four cards. So it is a whole frame between cards: the
+     * frame. Dealt with no stagger at all the room lands as one event rather
+     * than as four cards, so it is a whole frame between cards: the
      * smallest gap this grid can express, and enough to see each one land.
      *
      * @param toX the slot's x the card lands on, in design pixels
@@ -128,8 +125,8 @@ final class CardFlight {
      *
      * <p>That difference is deliberate. Cards coming up out of the dungeon are
      * four separate events and read better one after another. The survivors
-     * shifting along are one row re-centring itself, and cascading them made a
-     * resolved card look as though it had set off a second deal.
+     * shifting along are one row re-centring itself, and cascading them would make
+     * a resolved card look as though it had set off a second deal.
      *
      * @param toX the new slot's x, in design pixels
      * @param toY the new slot's y, in design pixels

@@ -13,17 +13,20 @@ import static com.tomer.scoundrel.rules.Cards.card;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The standard 44-card deck: what is in it, what is removed, and each card's value. */
 class StandardDeckTest {
 
     private final List<Card> deck = new StandardDeck().cards().stream()
             .map(CardDefinition::card)
             .toList();
 
+    /** The deck holds 44 cards. */
     @Test
     void deckHasExactly44Cards() {
         assertEquals(44, deck.size());
     }
 
+    /** It splits into 26 monsters, 9 weapons and 9 potions. */
     @Test
     void deckHas26Monsters9Weapons9Potions() {
         Map<CardType, Long> counts = deck.stream()
@@ -33,6 +36,7 @@ class StandardDeckTest {
         assertEquals(9, counts.get(CardType.POTION));
     }
 
+    /** The weapons are exactly the diamonds 2 to 10. */
     @Test
     void weaponsAreExactlyDiamonds2Through10() {
         Set<String> weaponIds = deck.stream()
@@ -44,6 +48,7 @@ class StandardDeckTest {
                 .forEach(c -> assertTrue(c.value() >= 2 && c.value() <= 10));
     }
 
+    /** The potions are exactly the hearts 2 to 10. */
     @Test
     void potionsAreExactlyHearts2Through10() {
         Set<String> potionIds = deck.stream()
@@ -55,6 +60,7 @@ class StandardDeckTest {
                 .forEach(c -> assertTrue(c.value() >= 2 && c.value() <= 10));
     }
 
+    /** The monsters are clubs and spades, two of each value from 2 to 14. */
     @Test
     void monstersAreClubsAndSpadesTwoOfEachValue2Through14() {
         List<Card> monsters = deck.stream().filter(c -> c.type() == CardType.MONSTER).toList();
@@ -66,6 +72,7 @@ class StandardDeckTest {
         monsters.forEach(c -> assertTrue(c.id().endsWith("C") || c.id().endsWith("S"), c.id()));
     }
 
+    /** The red face cards, red aces and jokers are gone, and nothing outside the spec is present. */
     @Test
     void removedCardsAreAbsent() {
         Set<String> ids = deck.stream().map(Card::id).collect(Collectors.toSet());
@@ -85,11 +92,13 @@ class StandardDeckTest {
         }
     }
 
+    /** No two cards share an id. */
     @Test
     void allCardIdsAreUnique() {
         assertEquals(44, deck.stream().map(Card::id).distinct().count());
     }
 
+    /** Monster values run 2 to 10, then J 11, Q 12, K 13 and A 14. */
     @Test
     void monsterValuesIncludeFaceCardMapping() {
         assertEquals(2, card("2C").value());
@@ -100,6 +109,7 @@ class StandardDeckTest {
         assertEquals(14, card("AS").value());
     }
 
+    /** A weapon's value is its number. */
     @Test
     void weaponValuesMatchTheirNumber() {
         assertEquals(2, card("2D").value());
@@ -107,6 +117,7 @@ class StandardDeckTest {
         assertEquals(CardType.WEAPON, card("2D").type());
     }
 
+    /** A potion's value is its number. */
     @Test
     void potionValuesMatchTheirNumber() {
         assertEquals(2, card("2H").value());

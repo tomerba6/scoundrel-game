@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * The eight marks that ring the card the tutorial is talking about.
  *
- * <p>HANDOFF §11 asks for eight 24×4 ticks that leave the edges <b>open</b> —
+ * <p>Eight 24×4 ticks that leave the edges <b>open</b> —
  * corners only, never a closed box. That is not decoration: a closed outline
  * reads as a second card border and fights the one already printed on the card,
  * where four corner brackets read as a viewfinder over it.

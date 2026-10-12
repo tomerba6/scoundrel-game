@@ -77,6 +77,7 @@ class CardSpritesTest {
         assertTrue(orphans.isEmpty(), "art with no card to show it: " + orphans);
     }
 
+    /** Region names zero-pad the rank and give face cards their ordered value. */
     @Test
     void ranksAreZeroPaddedAndFacesUseTheirOrderedValue() {
         assertEquals("creature_02_cellar_rat_clubs", CardSprites.regionName(new Card("2C", CardType.MONSTER, 2)));
@@ -87,12 +88,14 @@ class CardSpritesTest {
         assertEquals("creature_14_the_debt_spades", CardSprites.regionName(new Card("AS", CardType.MONSTER, 14)));
     }
 
+    /** A creature's suit comes from its card id. */
     @Test
     void theSuitComesFromTheCardIdNotItsValue() {
         assertEquals("creature_07_ghoul_clubs", CardSprites.regionName(new Card("7C", CardType.MONSTER, 7)));
         assertEquals("creature_07_ghoul_spades", CardSprites.regionName(new Card("7S", CardType.MONSTER, 7)));
     }
 
+    /** Weapon and potion regions carry no suit. */
     @Test
     void weaponsAndPotionsIgnoreSuitEntirely() {
         assertEquals("weapon_05_short_sword", CardSprites.regionName(new Card("5D", CardType.WEAPON, 5)));
@@ -123,6 +126,7 @@ class CardSpritesTest {
         assertEquals("DRAUGHT", CardSprites.displayName(new Card("5H", CardType.POTION, 5)));
     }
 
+    /** Every card has a display name in capitals and spaces. */
     @Test
     void everyCardCanNameItself() {
         for (CardDefinition def : new StandardDeck().cards()) {
@@ -131,6 +135,7 @@ class CardSpritesTest {
         }
     }
 
+    /** Every region name uses only lower-case letters, digits and underscores. */
     @Test
     void everyRegionNameIsLowercaseAlphanumericUnderscore() {
         // The atlas parses a trailing _<digits> as an animation index, so a

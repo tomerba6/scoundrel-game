@@ -34,6 +34,12 @@ class RimMaskTest {
         return Path.of("..", "art-reference", "sprites");
     }
 
+    /**
+     * Whether the reference sprites are present; the tests that compare against
+     * them run only then.
+     *
+     * @return true when {@code art-reference/sprites/anim} exists
+     */
     static boolean hasReferenceArt() {
         return Files.isDirectory(referenceDir().resolve("anim"));
     }
@@ -46,18 +52,21 @@ class RimMaskTest {
 
     // --- the rule, in isolation -------------------------------------------
 
+    /** A lone opaque pixel is all rim. */
     @Test
     void aLoneOpaquePixelIsAllRim() {
         int[] src = {SOLID};
         assertArrayIs(new int[] {RIM}, RimMask.generate(src, 1, 1));
     }
 
+    /** An empty image has no rim. */
     @Test
     void anEmptyImageProducesNothing() {
         int[] src = new int[9];
         assertArrayIs(new int[9], RimMask.generate(src, 3, 3));
     }
 
+    /** In a solid block the centre is not rim and the ring is. */
     @Test
     void anInteriorPixelIsNotRim() {
         // A solid 3x3: only the ring touches transparency, and the centre does
@@ -86,6 +95,7 @@ class RimMaskTest {
         }
     }
 
+    /** Only the four side neighbours count, so a plus-shape's centre is not rim. */
     @Test
     void diagonalNeighboursDoNotCount() {
         // Four-neighbourhood only. The centre of a plus-shape is enclosed on
@@ -95,6 +105,7 @@ class RimMaskTest {
         assertEquals(CLEAR, RimMask.generate(src, 3, 3)[4]);
     }
 
+    /** Every pixel of the rim is opaque cream or clear. */
     @Test
     void theRimIsOpaqueCreamAndNothingElse() {
         int[] src = new int[16];
@@ -104,6 +115,7 @@ class RimMaskTest {
         }
     }
 
+    /** A source pixel with any alpha counts as solid. */
     @Test
     void partiallyTransparentSourcePixelsCountAsSolid() {
         // The delivered art is binary alpha, but treating "any alpha" as solid
@@ -112,6 +124,7 @@ class RimMaskTest {
         assertArrayIs(new int[] {RIM}, RimMask.generate(src, 1, 1));
     }
 
+    /** Generating a rim leaves the source untouched. */
     @Test
     void theSourceIsNotModified() {
         int[] src = {SOLID, 0, SOLID, 0};
@@ -168,6 +181,7 @@ class RimMaskTest {
         assertTrue(failures.isEmpty(), "generated rim differs from the delivered art: " + failures);
     }
 
+    /** A real sprite's rim is neither empty nor the whole sprite. */
     @Test
     @EnabledIf("hasReferenceArt")
     void aGeneratedRimIsNeitherEmptyNorTheWholeSprite() throws IOException {

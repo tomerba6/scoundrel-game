@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Picking the achievements a finished run newly earns. */
 class AchievementServiceTest {
 
     private static Achievement always(String id) {
@@ -30,6 +31,7 @@ class AchievementServiceTest {
         return earned.stream().map(Achievement::id).toList();
     }
 
+    /** Every achievement the run earns is returned, in catalog order, when none is unlocked yet. */
     @Test
     void returnsEveryEarnedAchievementNotYetUnlocked() {
         List<Achievement> catalog = List.of(always("a"), always("b"), never("c"));
@@ -37,6 +39,7 @@ class AchievementServiceTest {
                 ids(AchievementService.newlyEarned(catalog, ANY, Set.of())));
     }
 
+    /** An achievement already unlocked is left out. */
     @Test
     void skipsAchievementsAlreadyUnlocked() {
         List<Achievement> catalog = List.of(always("a"), always("b"));
@@ -44,12 +47,18 @@ class AchievementServiceTest {
                 ids(AchievementService.newlyEarned(catalog, ANY, Set.of("a"))));
     }
 
+    /** Nothing is returned when the run earns nothing. */
     @Test
     void returnsEmptyWhenNothingNewIsEarned() {
         List<Achievement> catalog = List.of(never("a"), never("b"));
         assertTrue(AchievementService.newlyEarned(catalog, ANY, Set.of()).isEmpty());
     }
 
+    /**
+     * A first full-health win under 80 seconds with no bare-handed kill and a
+     * flawless room earns First Blood, Untarnished, Speedrunner, Blademaster and
+     * Flawless Room at once, but not On the Brink or Rock Bottom.
+     */
     @Test
     void theRealCatalogUnlocksSeveralAtOnceFromOneContext() {
         // A first, full-health, sub-80s win with no bare-handed kills and a flawless room.

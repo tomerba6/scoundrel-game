@@ -18,10 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Fighting a monster bare-handed or with the weapon, and equipping a weapon. */
 class CombatTest {
 
     private final ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
 
+    /** A bare-handed fight costs the monster's full value, discards it and starts the room. */
     @Test
     void barehandedFightSubtractsFullMonsterValue() {
         GameState s = state().room(monster(7), weapon(2), weapon(3), weapon(4)).build();
@@ -33,6 +35,7 @@ class CombatTest {
         assertTrue(next.roomResolutionStarted());
     }
 
+    /** Bare hands stay on offer beside a weapon that could take the monster. */
     @Test
     void barehandedIsOfferedEvenWithUsableWeaponEquipped() {
         GameState s = state().room(monster(7), weapon(2), weapon(3), weapon(4))
@@ -42,6 +45,7 @@ class CombatTest {
         assertTrue(moves.contains(new FightWithWeapon(monster(7))));
     }
 
+    /** An armed fight costs the monster's value less the weapon's, and stacks the monster on the weapon. */
     @Test
     void weaponFightTakesExcessDamageAndStacksTheMonster() {
         GameState s = state().room(monster(11), weapon(2), weapon(3), weapon(4))
@@ -51,6 +55,7 @@ class CombatTest {
         assertEquals(List.of(monster(11)), next.weapon().slain());
     }
 
+    /** A weapon stronger than the monster costs no health, and still stacks it. */
     @Test
     void strongEnoughWeaponDealsZeroDamage() {
         GameState s = state().room(monster(3), weapon(2), weapon(4), weapon(6))
@@ -60,6 +65,7 @@ class CombatTest {
         assertEquals(List.of(monster(3)), next.weapon().slain());
     }
 
+    /** A weapon equal to the monster costs no health either. */
     @Test
     void equalValuesAlsoDealZeroDamage() {
         GameState s = state().room(monster(5), weapon(2), weapon(3), weapon(4))
@@ -68,6 +74,7 @@ class CombatTest {
         assertEquals(20, next.health());
     }
 
+    /** With no weapon equipped, an armed fight is neither offered nor accepted. */
     @Test
     void fightingWithNoWeaponEquippedIsIllegal() {
         GameState s = state().room(monster(7), weapon(2), weapon(3), weapon(4)).build();
@@ -76,6 +83,7 @@ class CombatTest {
                 () -> engine.apply(s, new FightWithWeapon(monster(7))));
     }
 
+    /** Taking a weapon replaces the equipped one, along with the monsters stacked on it. */
     @Test
     void equippingANewWeaponDiscardsTheOldOneAndItsStack() {
         GameState s = state().room(weapon(7), weapon(2), weapon(3), weapon(4))
@@ -85,6 +93,7 @@ class CombatTest {
         assertEquals(List.of(), next.weapon().slain());
     }
 
+    /** A weapon card offers exactly one move: equipping it. */
     @Test
     void equippingIsBindingTheOnlyMoveForAWeaponCard() {
         GameState s = state().room(weapon(7), monster(2), monster(3), monster(4)).build();

@@ -4,11 +4,9 @@ package com.tomer.scoundrel.screens;
  * The menu screens' kit: the five parts every screen outside the board is
  * assembled from, and where each screen puts them.
  *
- * <p>HANDOFF §11 is unusually generous — it states that the six screens are
- * built from a frame, a face, a bevel, a label and a rule, and nothing else.
- * That is what this holds. Learn these and each screen is assembly work rather
- * than design; the per-screen numbers below were measured off the reference
- * renders the same way {@link BoardArt} was, not taken from the prose.
+ * <p>The six screens are built from a frame, a face, a bevel, a label and a
+ * rule, and nothing else. That is what this holds. Learn these and each screen
+ * is assembly work rather than design.
  *
  * <p>Coordinates are 1280×720 with y measured downward, as the art is
  * specified; {@link CardArt#toWorldY} converts when drawing.
@@ -79,9 +77,9 @@ final class ScreenArt {
     // --- buttons -----------------------------------------------------------
 
     /**
-     * Measured off the title render: 268 wide over a `frame 2 · bevel 2 · plate
-     * · bevel 2 · frame 2` structure, on a 56 pitch. The board's Avoid button is
-     * the same shape at its own size — see {@link Chrome#plate}.
+     * 268 wide over a `frame 2 · bevel 2 · plate · bevel 2 · frame 2`
+     * structure, on a 56 pitch. The board's Avoid button is the same shape at
+     * its own size — see {@link Chrome#plate}.
      */
     static final int BUTTON_W = 268;
     /** A menu button's height, frame included. */
@@ -92,8 +90,8 @@ final class ScreenArt {
     /**
      * How far a pressed plate's label travels, down and to the right — the
      * bevel's own thickness, so the label lands exactly where the recess puts
-     * it. The mock has no pressed state; see {@link Chrome#plate} for why one
-     * exists anyway and why it is not the hover glow §11 forbids.
+     * it. {@link Chrome#plate} says why a pressed state exists and why it is not
+     * a hover glow.
      */
     static final int SINK = THICK;
 
@@ -137,10 +135,9 @@ final class ScreenArt {
     /** The credit's alpha: present, and no more. */
     static final float CREDIT_ALPHA = 0.22f;
 
-    // The MUSIC and SOUND plates. The mock has none, so these are not measured off
-    // it: they are the menu column's own measures, reused. One row under the fourth
-    // button, the column's gap above and between, together exactly its width; the
-    // back plate's height, because they are settings, not places to go.
+    // The MUSIC and SOUND plates: the menu column's own measures, reused. One row
+    // under the fourth button, the column's gap above and between, together exactly
+    // its width; the back plate's height, because they are settings, not places to go.
     private static final int AUDIO_GAP = BUTTON_PITCH - BUTTON_H;
     /** The audio plates' top: one row under the four menu buttons. */
     static final int AUDIO_Y = BUTTONS_Y + 4 * BUTTON_PITCH;
@@ -168,7 +165,7 @@ final class ScreenArt {
 
     // --- the header band, on every screen except the title -----------------
 
-    /** 88px of band with the rule at its foot, measured to 89 on the render. */
+    /** The header band's height; its rule is drawn from here down, {@link #THICK} thick. */
     static final int HEADER_H = 89;
     /** The screen name's left edge. */
     static final int HEADER_X = 40;
@@ -208,7 +205,7 @@ final class ScreenArt {
     static final int PANEL_H = 89;
     /** The first mode panel's top. */
     static final int PANEL_Y = 115;
-    /** 89 of panel and 14 of gap, as §11 says. */
+    /** 89 of panel and 14 of gap. */
     static final int PANEL_PITCH = 103;
 
     /** The numbered well, from the panel's corner. */
@@ -264,7 +261,7 @@ final class ScreenArt {
     static final int ROW_H = 36;
 
     /**
-     * Striping is by <b>flat colour, never alpha</b> — §11 is explicit. A
+     * Striping is by <b>flat colour, never alpha</b>. A
      * translucent stripe over the torchlit backdrop would shift down the table
      * as the gradient does, so the rows would not read as one surface.
      */
@@ -272,7 +269,7 @@ final class ScreenArt {
     /** The stripe for the second, fourth, ... row. */
     static final int ROW_EVEN = 0x141110;
 
-    /** Column edges, measured off the render. Two of the seven are right-aligned. */
+    /** Column edges. Two of the seven are right-aligned. */
     static final int COL_RUN = 57;
     /** The score column's right edge. */
     static final int COL_SCORE_RIGHT = 166;
@@ -322,8 +319,7 @@ final class ScreenArt {
 
     /**
      * The quiet erase control, under the totals panel and sharing its right
-     * edge. Not in the mock — the render has no destructive control at all —
-     * so it sits in the empty half of the screen where nothing else goes.
+     * edge, in the empty half of the screen where nothing else goes.
      */
     static final int ERASE_W = 232;
     /** The erase plate's height. */
@@ -336,11 +332,10 @@ final class ScreenArt {
     /**
      * Ten entries, five to a column, filled down then across.
      *
-     * <p>Rows are taller than the render's 55 and sit on an 82 pitch rather than
-     * 69. The render's copy is placeholder — its longest description is 26
-     * characters against the real catalog's 85 — so at a size that survives a
-     * ×1.5 viewport the real descriptions need two lines, and the row has to
-     * have somewhere to put the second. There is empty screen below either way.
+     * <p>Rows are 68 tall on an 82 pitch because the longest description in the
+     * catalog runs to 85 characters, so at a size that survives a ×1.5 viewport
+     * the descriptions need two lines, and the row has to have somewhere to put
+     * the second. There is empty screen below either way.
      */
     static final int TROPHY_X = 37;
     /** The first trophy row's top. */
@@ -379,7 +374,7 @@ final class ScreenArt {
     static final int ROW_EARNED = 0x191513;
     /** A locked trophy's row. */
     static final int ROW_LOCKED = 0x131110;
-    /** The empty well <em>is</em> the locked state — §11 rules out a padlock glyph. */
+    /** An earned trophy's seal, filled gold. The empty well <em>is</em> the locked state; there is no padlock glyph. */
     static final int SEAL_EARNED = 0xd9a441;
     /** A locked trophy's seal: an empty well. */
     static final int SEAL_LOCKED = 0x1e1a17;
@@ -399,11 +394,10 @@ final class ScreenArt {
     /** A separator's width. */
     static final int PROGRESS_GAP = 2;
     /**
-     * "Exactly like the HP bar" turns out to be literal in the render: the empty
-     * track is the health bar's own {@link HudArt#BAR_EMPTY}, a dark green under
-     * a gold fill. It looks like an oversight and is not — sampled off the
-     * reference at 1e2a1c. The separators are the frame colour laid over the
-     * track at the same alpha the board uses.
+     * The empty track is the health bar's own {@link HudArt#BAR_EMPTY}, a dark
+     * green under a gold fill — the progress bar is drawn exactly like the HP
+     * bar. It looks like an oversight and is not. The separators are the frame
+     * colour laid over the track at {@link #PROGRESS_SEGMENT_ALPHA}.
      */
     static final int PROGRESS_EMPTY = HudArt.BAR_EMPTY;
     /** The separators' alpha. */
@@ -417,8 +411,8 @@ final class ScreenArt {
 
     /**
      * The one-time welcome, over the title. Its own geometry rather than the
-     * menu column's: reusing {@link #buttonY} put the first plate at 326, which
-     * is where the prompt's second line of copy sits, and the two overlapped.
+     * menu column's: {@link #buttonY} would put the first plate at 326, where
+     * the prompt's second line of copy sits.
      */
     static final int PROMPT_W = 600;
     /** The prompt's height. */
@@ -439,8 +433,8 @@ final class ScreenArt {
     /**
      * A question that must be answered before anything behind it: the ledger's
      * erase and the board's abandon-run. Two lines of copy over two plates side
-     * by side, the safe one first. Not in the mock, which has no dialog — it is
-     * the five parts at the ledger's measurements, which were set first.
+     * by side, the safe one first, built from the five parts at the ledger's
+     * measurements.
      */
     static final int DIALOG_W = 640;
     /** The dialog's height. */
@@ -463,15 +457,16 @@ final class ScreenArt {
     // --- run end -----------------------------------------------------------
 
     /**
-     * One panel over the dither, covering both outcomes. Measured off the render
-     * and held as offsets from the panel's own top, because the panel is not
-     * always the same height: a run that unlocked nothing has no rule and no
-     * trophy band, and a fixed height left a hole where they would have been.
+     * One panel over the dither, covering both outcomes. Held as offsets from
+     * the panel's own top, because the panel is not always the same height: a
+     * run that unlocked nothing has no rule and no trophy band, and the panel
+     * shrinks by {@link #END_TROPHY_BAND} rather than leaving a hole where they
+     * would be.
      */
     static final int END_X = 338;
     /** The run-end panel's width. */
     static final int END_W = 600;
-    /** With the trophy band; the render's own 444. */
+    /** The panel's height with the trophy band. */
     static final int END_H = 444;
     /**
      * The rule, the heading and two trophy rows — dropped when nothing unlocked.
@@ -532,8 +527,8 @@ final class ScreenArt {
     static final int END_TROPHIES_SHOWN = 2;
     /**
      * Where an unlocked trophy's description must stop: the rule's right end, the
-     * panel's own margin. Drawn as one unbounded line, Rock Bottom's ran about 65 px
-     * off the panel; now a description wraps within it.
+     * panel's own margin. A description wraps within it rather than running off
+     * the panel.
      */
     static final int END_TEXT_RIGHT = END_RULE_X + END_RULE_W;
     /** A long description takes a second line beside the name, sharing the seal's height. */
@@ -551,10 +546,8 @@ final class ScreenArt {
     // --- the tutorial overlay ----------------------------------------------
 
     /**
-     * Wider than the render's 422, because the narration is set at 14 rather
-     * than 12 and the longest beat runs to about 250 characters. At 422 that
-     * wrapped to seven lines, and seven do not fit in the 219px of clear screen
-     * under the room — so the panel got wider rather than the words smaller.
+     * The callout's width. The narration is set at 14 and its longest beat runs
+     * to 296 characters, so the panel is made wide rather than the words small.
      */
     static final int CALLOUT_W = 600;
     /** Padding either side of the callout's text. */
@@ -566,10 +559,10 @@ final class ScreenArt {
     /** From one narration line to the next. */
     static final int CALLOUT_LINE_H = 24;
     /**
-     * The render's callout holds three lines, because the copy it was drawn with
-     * is short. The real narration runs to about 180 characters, so the panel
-     * grows to fit rather than the words being cut — the tutorial's whole job is
-     * saying things.
+     * The most lines a callout holds; anything past the last line joins it
+     * rather than being cut (see {@link TextWrap}). The panel grows to fit — the
+     * tutorial's whole job is saying things, and its longest beat runs to 296
+     * characters.
      */
     static final int CALLOUT_MAX_LINES = 6;
     /** Between the callout and the card it points at. */
@@ -594,9 +587,7 @@ final class ScreenArt {
     static final int SKIP_H = 36;
     /**
      * Bottom right, but lifted clear of the potion marker, which occupies the
-     * bottom strip from {@link BoardArt#MARKER_Y}. The render puts Skip straight
-     * over it — its board has no marker showing — and the Scene2D version this
-     * replaced had the same lift for the same reason.
+     * bottom strip from {@link BoardArt#MARKER_Y}.
      */
     static final int SKIP_Y = BoardArt.MARKER_Y - SKIP_H - 20;
     /** The Skip plate, in from the stage's right edge. */

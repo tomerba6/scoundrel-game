@@ -10,11 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The sound log: silent when off, and when on, each line stamped with the seconds since the log started. */
 class AudioLogTest {
 
     private final AtomicLong nanos = new AtomicLong(5_000_000_000L);
     private final List<String> lines = new ArrayList<>();
 
+    /** Switched off, it writes nothing. */
     @Test
     void offItWritesNothing() {
         AudioLog log = new AudioLog(false, nanos::get, lines::add);
@@ -23,6 +25,7 @@ class AudioLogTest {
         assertFalse(log.enabled());
     }
 
+    /** Switched on, each line carries the seconds since the log started, to the millisecond. */
     @Test
     void onEachLineCarriesTheSecondsSinceItStarted() {
         AudioLog log = new AudioLog(true, nanos::get, lines::add);

@@ -6,9 +6,9 @@ package com.tomer.scoundrel.screens;
  * <p>Resolving a card sets three things going, and they are not one thing:
  * what happens to the card that left, the survivors re-centring around the gap
  * it made, and whatever the dungeon sends up to replace it. Running all three
- * in sequence made a single resolve take the best part of a second and read as
- * three separate events; running all three at once flies a fresh card over the
- * top of the one being killed.
+ * in sequence would make a single resolve take the best part of a second and
+ * read as three separate events; running all three at once flies a fresh card
+ * over the top of the one being killed.
  *
  * <p>So the room <b>closes</b> alongside the effect and the <b>deal</b> waits
  * for it. The gap shuts as the monster dies, which is one event, and only then

@@ -20,6 +20,7 @@ class ChooserArtTest {
         assertEquals(HudArt.AVOID_H, ChooserArt.PLATE_H);
     }
 
+    /** A stack of two or three plates is centred on the card's middle, to within a pixel. */
     @Test
     void theStackIsCentredOnTheCardThatOpenedIt() {
         for (int count = 2; count <= 3; count++) {
@@ -30,6 +31,7 @@ class ChooserArtTest {
         }
     }
 
+    /** Plates stack one gap apart, without overlapping. */
     @Test
     void thePlatesStackWithoutOverlapping() {
         int first = ChooserArt.plateY(0, 2);
@@ -67,6 +69,7 @@ class ChooserArtTest {
         }
     }
 
+    /** A press in the gap between plates hits nothing. */
     @Test
     void theGapBetweenPlatesHitsNothing() {
         int slot = CardArt.slotX(0);
@@ -78,6 +81,7 @@ class ChooserArtTest {
         assertEquals(-1, ChooserArt.indexAt(slot, width, 2, x, y));
     }
 
+    /** A press just left or right of the stack hits nothing. */
     @Test
     void aPressBesideTheStackHitsNothing() {
         int slot = CardArt.slotX(0);

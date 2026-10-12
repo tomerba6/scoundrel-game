@@ -30,13 +30,12 @@ final class PotionDrink {
      */
     static final int TIP_STEPS = 1;
     private static final int TIP_FRAMES = TIP_STEPS;
-    /** How far the bottle ends up turned, matching the reference. */
+    /** How far the bottle ends up turned, in degrees. */
     private static final float POURED_DEGREES = -62f;
     /**
-     * And pouring. The quoted 1600ms drink spent ten frames here, most of them
-     * over a bar that had already finished filling — the bottle sat tipped with
-     * nothing left to do. Three is enough to read as a pour; the bar's own fill
-     * runs on its own clock and finishes in its own time either way.
+     * And pouring. Three frames is enough to read as a pour; any longer and the
+     * bottle sits tipped with nothing left to do. The bar's own fill runs on its
+     * own clock and finishes in its own time either way.
      */
     private static final int POUR_FRAMES = 3;
 

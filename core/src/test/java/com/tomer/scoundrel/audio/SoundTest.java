@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The sound effects' file contract, their weights, and how many voices each may play at once. */
 class SoundTest {
 
     /**
@@ -31,6 +32,7 @@ class SoundTest {
             "spill_1",
             "chime_1");
 
+    /** The sound effects name exactly the 29 contract files. */
     @Test
     void theFilesAreExactlyTheContract() {
         List<String> files = Sound.allFiles();
@@ -38,6 +40,7 @@ class SoundTest {
         assertEquals(CONTRACT, Set.copyOf(files));
     }
 
+    /** The thud has light and heavy files only, the blade all three weights, and the click none. */
     @Test
     void thudHasNoMediumBecauseDamageHasNoMediumBand() {
         assertEquals(List.of(Weight.LIGHT, Weight.HEAVY), Sound.THUD.weights());
@@ -45,6 +48,7 @@ class SoundTest {
         assertEquals(List.of(), Sound.CLICK.weights());
     }
 
+    /** A file's stem is the sound's name, then its weight if it has one. */
     @Test
     void stemsAreTheSoundThenItsWeight() {
         assertEquals("click", Sound.CLICK.stem());
@@ -52,6 +56,11 @@ class SoundTest {
         assertEquals("fist_heavy", Sound.FIST.stem(Weight.HEAVY));
     }
 
+    /**
+     * Asking for a stem without the weight a weighted sound needs, with one an
+     * unweighted sound lacks, or with a weight it has no files for throws
+     * IllegalArgumentException.
+     */
     @Test
     void aStemMustMatchWhetherTheSoundIsWeighted() {
         assertThrows(IllegalArgumentException.class, () -> Sound.BLADE.stem());
@@ -59,6 +68,7 @@ class SoundTest {
         assertThrows(IllegalArgumentException.class, () -> Sound.THUD.stem(Weight.MEDIUM));
     }
 
+    /** Only a sound with more than one version varies. */
     @Test
     void onlySoundsWithSeveralVersionsVary() {
         for (Sound sound : Sound.values()) {
@@ -68,6 +78,7 @@ class SoundTest {
         assertFalse(Sound.CHIME.varies());
     }
 
+    /** Only the flip collapses to one when an animation is skipped. */
     @Test
     void onlyTheFlipCollapsesOnASkip() {
         for (Sound sound : Sound.values()) {
@@ -75,12 +86,14 @@ class SoundTest {
         }
     }
 
+    /** The flip can play four voices at once, one per card of a deal. */
     @Test
     void theFlipCanSoundOnceForEveryCardOfADeal() {
         // A deal's flips overlap by design (the riffle): four cards, four voices.
         assertEquals(4, Sound.FLIP.voices());
     }
 
+    /** Every other sound can overlap itself once, and the chime never. */
     @Test
     void aSoundHeardOftenCanOverlapItselfOnceAndTheChimeNever() {
         // Fast play lands a second kill while the first still rings; cutting it off
@@ -93,6 +106,7 @@ class SoundTest {
         assertEquals(1, Sound.CHIME.voices());
     }
 
+    /** A sound effect's path is its file under {@code audio/sfx/}, with the {@code .wav} extension. */
     @Test
     void aSfxKnowsWhereItsFileShips() {
         Sfx sfx = new Sfx(Sound.BLADE, "blade_light_2", 1f, 1f);

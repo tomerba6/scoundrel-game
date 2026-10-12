@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The eight ticks that ring the card the tutorial is talking about.
  *
- * <p>HANDOFF §11 asks for eight 24×4 ticks that leave the edges <em>open</em> —
+ * <p>The ticks are eight 24×4 marks that leave the edges <em>open</em> —
  * corners only, never a closed box. That last part is the whole reason it is
  * ticks and not a frame: a closed outline reads as a second card border and
  * fights the one already printed on the card.
@@ -27,11 +27,13 @@ class CornerTicksTest {
         return CornerTicks.around(X, Y, W, H);
     }
 
+    /** There are eight ticks. */
     @Test
     void thereAreEightOfThemTwoPerCorner() {
         assertEquals(8, ticks().size());
     }
 
+    /** Every tick is 24×4, lying either way. */
     @Test
     void everyTickIsTwentyFourByFour() {
         for (CornerTicks.Tick tick : ticks()) {

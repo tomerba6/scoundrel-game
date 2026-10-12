@@ -13,11 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The eight lifetime figures beside the table.
  *
- * <p>The reference render's own list is not reproduced verbatim: it asks for
- * WEAPONS BROKEN, and weapons never break in Scoundrel — they degrade and stay
- * equipped. That row was drawn from placeholder data by someone not holding the
- * rules, so the panel keeps the render's shape and eight-row rhythm and is
- * filled with figures the game actually keeps.
+ * <p>The panel keeps eight rows, each a figure the game actually keeps; there is
+ * no WEAPONS BROKEN, since weapons never break in Scoundrel — they degrade and
+ * stay equipped.
  */
 class LedgerTotalsTest {
 
@@ -31,6 +29,7 @@ class LedgerTotalsTest {
                 .orElseThrow(() -> new AssertionError("no row labelled " + label)).value();
     }
 
+    /** The panel has exactly its eight rows, each labelled in capitals. */
     @Test
     void thePanelIsExactlyTheEightRowsTheRenderHasRoomFor() {
         List<LedgerTotals.Stat> stats = LedgerTotals.of(List.of(run(Status.WON, 17, 252, 12, 3)));
@@ -41,6 +40,7 @@ class LedgerTotalsTest {
         }
     }
 
+    /** BEST SCORE and WORST are the highest and lowest scores. */
     @Test
     void theBestAndWorstAreTheEndsOfTheScoreRange() {
         List<LedgerTotals.Stat> stats = LedgerTotals.of(List.of(
@@ -61,6 +61,7 @@ class LedgerTotalsTest {
         assertEquals("1 OF 3", value(stats, "CLEARED"));
     }
 
+    /** Monsters slain, potions drunk and total time are summed across every run. */
     @Test
     void theLifetimeCountsAreSummedAcrossEveryRun() {
         List<LedgerTotals.Stat> stats = LedgerTotals.of(List.of(
@@ -81,6 +82,7 @@ class LedgerTotalsTest {
         assertEquals("3:48", value(stats, "FASTEST CLEAR"));
     }
 
+    /** With no clears, FASTEST CLEAR reads "—" and CLEARED "0 OF 1". */
     @Test
     void withNoClearsTheFastestClearIsBlankRatherThanZero() {
         List<LedgerTotals.Stat> stats = LedgerTotals.of(List.of(run(Status.LOST, -12, 199, 9, 1)));

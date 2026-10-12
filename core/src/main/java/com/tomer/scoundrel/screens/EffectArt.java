@@ -19,7 +19,7 @@ import com.badlogic.gdx.utils.Disposable;
  */
 final class EffectArt implements Disposable {
 
-    /** The cleaved card's cut faces, from the reference mock. */
+    /** The cleaved card's cut faces. */
     private static final int UPPER_FILL = 0x3a1d18;
     private static final int LOWER_FILL = 0x2c1512;
     private static final int EDGE = 0x0a0806;
@@ -28,7 +28,7 @@ final class EffectArt implements Disposable {
     /** The bar is drawn long enough to cross the card corner to corner. */
     private static final int BAR_THICKNESS = 8;
 
-    /** The bottle, from the reference render. */
+    /** The bottle. */
     private static final int GLASS = 0x5d8a4a;
     private static final int GLASS_SHADE = 0x507641;
     private static final int BOTTLE_EDGE = 0x35291f;

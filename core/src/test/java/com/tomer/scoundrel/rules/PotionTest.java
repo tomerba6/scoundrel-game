@@ -15,10 +15,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Drinking potions: the heal, the cap and the one-per-turn allowance. */
 class PotionTest {
 
     private final ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
 
+    /** The turn's first potion heals its full value and is discarded. */
     @Test
     void firstPotionHealsItsValue() {
         GameState s = state().health(10).room(potion(7), weapon(2), weapon(3), weapon(4)).build();
@@ -28,18 +30,21 @@ class PotionTest {
         assertEquals(1, next.potionsUsedThisRoom());
     }
 
+    /** Healing stops at the cap of 20. */
     @Test
     void healingIsCappedAt20() {
         GameState s = state().health(18).room(potion(7), weapon(2), weapon(3), weapon(4)).build();
         assertEquals(20, engine.apply(s, new TakePotion(potion(7))).state().health());
     }
 
+    /** A heal that lands exactly on 20 is not cut short. */
     @Test
     void healingToExactly20IsFine() {
         GameState s = state().health(18).room(potion(2), weapon(3), weapon(4), weapon(5)).build();
         assertEquals(20, engine.apply(s, new TakePotion(potion(2))).state().health());
     }
 
+    /** A second potion in the same turn heals nothing, and is discarded anyway. */
     @Test
     void secondPotionInTheSameRoomHealsNothing() {
         GameState s = state().health(10).room(potion(7), potion(3), weapon(2), weapon(4)).build();
@@ -50,6 +55,7 @@ class PotionTest {
         assertFalse(afterSecond.room().contains(potion(3))); // discarded anyway
     }
 
+    /** A wasted potion still uses up one of the turn's three resolutions. */
     @Test
     void wastedPotionsStillCountAsResolvedCards() {
         // Room: three potions + a weapon; wasted second/third potions must consume
@@ -64,6 +70,7 @@ class PotionTest {
         assertTrue(g.dungeon().isEmpty());
     }
 
+    /** The potion allowance resets when the next room is dealt. */
     @Test
     void potionAllowanceResetsEachRoom() {
         GameState s = state().health(5)
@@ -79,6 +86,7 @@ class PotionTest {
         assertEquals(12, g.health()); // heals again in the new room
     }
 
+    /** A potion drunk at full health heals nothing but still uses the turn's allowance. */
     @Test
     void potionAtFullHealthHealsZeroButConsumesTheAllowance() {
         GameState s = state().room(potion(7), potion(3), weapon(2), weapon(4)).build(); // health 20

@@ -15,14 +15,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * tips over and spills where the card was.
  *
  * <p>The whole point is that it <b>goes nowhere</b>. A wasted potion that flew
- * to the health bar and tipped over it with nothing to pour read as the heal
- * being broken; spilling it on the table says the potion was wasted, which is
+ * to the health bar and tipped over it with nothing to pour would read as the
+ * heal being broken; spilling it on the table says the potion was wasted, which is
  * what actually happened.
  */
 class PotionSpillTest {
 
     private static final float FRAME = 1f / 12f;
 
+    /** A spill starts with the same collapse as a drink. */
     @Test
     void itStartsExactlyAsADrinkDoes() {
         // Same collapse, so you cannot tell the two apart until the bottle
@@ -33,6 +34,7 @@ class PotionSpillTest {
         assertEquals(0, PotionSpill.cardScale(PotionSpill.COLLAPSE_FRAMES * FRAME));
     }
 
+    /** The bottle stays upright and dry until the card has gone. */
     @Test
     void theBottleIsUprightUntilTheCardHasGone() {
         for (float t = 0f; t < PotionSpill.COLLAPSE_FRAMES * FRAME; t += 0.004f) {
@@ -41,6 +43,7 @@ class PotionSpillTest {
         }
     }
 
+    /** The bottle tips in held steps, never between them, and ends well over. */
     @Test
     void itTipsThroughHeldStagesAndNeverSweeps() {
         Set<Float> angles = new LinkedHashSet<>();
@@ -53,6 +56,7 @@ class PotionSpillTest {
                 "it should end well over");
     }
 
+    /** The drops fall one at a time, from the moment the bottle has tipped. */
     @Test
     void theDropsFallOnceItHasTipped() {
         assertEquals(0, PotionSpill.dropsFallen(PotionSpill.SPILL_START - FRAME));
@@ -79,6 +83,7 @@ class PotionSpillTest {
         assertTrue(moved, "the bottle never settled");
     }
 
+    /** Every value holds for a whole frame. */
     @Test
     void everyValueHoldsForAWholeFrame() {
         for (int frame = 0; frame < 6; frame++) {

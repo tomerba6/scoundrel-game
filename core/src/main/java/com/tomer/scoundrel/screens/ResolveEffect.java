@@ -7,7 +7,7 @@ import java.util.List;
 
 /**
  * The cosmetic effect a resolved move drives — the pure decision behind
- * GameScreen's animation routing, lifted out so it is unit tested. The effect is
+ * GameScreen's animation routing, kept here so it is unit tested. The effect is
  * fully determined by the move type (avoiding sweeps, a bare-handed fight
  * strikes, a weapon equips, a potion pours, a weapon kill slices); the resolve's
  * events only carry the amounts, exposed here for the HP feedback.

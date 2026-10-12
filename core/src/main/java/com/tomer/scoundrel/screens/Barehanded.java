@@ -16,11 +16,11 @@ final class Barehanded {
     static final float FRAME = 1f / Frames.EFFECT_FPS;
 
     /**
-     * ~333ms. The art direction quoted 900, and at that length the exchange
-     * read as a pause rather than a blow — the outcome is already decided, so
-     * every frame after it registers is a frame spent waiting. Four frames is
-     * the floor: two blows a frame apart, each star growing through its three
-     * held sizes, and the last one gone exactly as the effect ends.
+     * ~333ms. Any longer reads as a pause rather than a blow — the outcome is
+     * already decided, so every frame after it registers is a frame spent
+     * waiting. Four frames is the floor: two blows a frame apart, each star
+     * growing through its three held sizes, and the last one gone exactly as the
+     * effect ends.
      */
     static final float TOTAL = 4 * FRAME;
 
@@ -173,8 +173,8 @@ final class Barehanded {
 
     /**
      * Which of the three growth steps a star is on, or -1 when it is not up.
-     * One step per frame: the spec's "three steps over two frames" would change
-     * a value mid-frame, and nothing here is allowed to slide.
+     * One step per frame: three steps over two frames would change a value
+     * mid-frame, and nothing here is allowed to slide.
      */
     private static int starStep(int hit, float elapsed) {
         int frame = frameOf(elapsed);

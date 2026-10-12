@@ -32,9 +32,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class AchievementFlowTest {
 
+    /** A fresh directory for each test, deleted afterwards. */
     @TempDir
     Path dir;
 
+    /**
+     * Killing a King bare-handed to clear a one-card dungeon, through the real
+     * engine and finish flow, unlocks exactly First Blood and Giant Slayer.
+     */
     @Test
     void aBareHandedKingWinUnlocksFirstBloodAndGiantSlayer() {
         Ruleset rules = Rulesets.standard();
@@ -69,6 +74,7 @@ class AchievementFlowTest {
         assertEquals(Set.of("first_blood", "giant_slayer"), store.unlockedIds());
     }
 
+    /** An achievement already in the store is not earned again; only the new First Blood is. */
     @Test
     void alreadyUnlockedAchievementsAreNotEarnedAgain() {
         Ruleset rules = Rulesets.standard();

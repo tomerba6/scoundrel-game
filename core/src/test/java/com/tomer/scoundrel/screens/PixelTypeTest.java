@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class PixelTypeTest {
 
+    /** Every size is even. */
     @Test
     void everySizeIsEven() {
         for (int size : PixelType.SIZES) {
@@ -23,6 +24,7 @@ class PixelTypeTest {
         }
     }
 
+    /** Every size lands on a whole pixel at ×1, ×1.5, ×2 and ×3. */
     @Test
     void everySizeSurvivesTheViewportScales() {
         // 1.0, 1.5, 2.0 and 3.0 are the scales PixelScale can produce on common
@@ -36,6 +38,10 @@ class PixelTypeTest {
         }
     }
 
+    /**
+     * There are at least five sizes, ascending, with the smallest caption at 8
+     * and the display size at 38.
+     */
     @Test
     void theSizesCoverWhatTheScreensAskFor() {
         // Smallest caption through to the card value, with nothing in between
@@ -48,10 +54,7 @@ class PixelTypeTest {
         }
     }
 
-    /**
-     * The art direction quotes 11 and 13, which are odd. They are deliberately
-     * not here — 12 and 14 replace them.
-     */
+    /** 11 and 13 are odd, so neither is a size; text that would be set at one is set at 12 or 14. */
     @Test
     void theOddSizesFromTheSpecAreNotUsed() {
         for (int size : PixelType.SIZES) {

@@ -21,12 +21,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ConfigurationTest {
 
+    /** The same seed deals the same game. */
     @Test
     void sameSeedProducesIdenticalGames() {
         ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
         assertEquals(engine.newGame(42L), engine.newGame(42L));
     }
 
+    /** A seeded deal holds exactly the standard deck's 44 cards, each once. */
     @Test
     void seededShuffleIsAPermutationOfTheStandard44() {
         ScoundrelEngine engine = new ScoundrelEngine(Rulesets.standard());
@@ -39,6 +41,7 @@ class ConfigurationTest {
         assertEquals(expected.stream().sorted().toList(), inPlay.stream().sorted().toList());
     }
 
+    /** Starting health comes from the ruleset the engine is given. */
     @Test
     void constantsComeFromTheRulesetNotTheEngine() {
         Ruleset standard = Rulesets.standard();
@@ -49,6 +52,10 @@ class ConfigurationTest {
         assertEquals(15, g.health());
     }
 
+    /**
+     * A ruleset with a lower start and a lower cap plays through the same engine,
+     * healing clipped to its cap.
+     */
     @Test
     void aHarderRulesetPlaysThroughTheUnmodifiedEngine() {
         // Lower start AND a lower cap: healing must clip to the ruleset's cap.
@@ -63,6 +70,7 @@ class ConfigurationTest {
         assertEquals(15, next.health()); // 12 + 9 clipped to cap 15
     }
 
+    /** A ruleset allowing two potions a turn heals with both, and wastes the third. */
     @Test
     void potionsPerTurnAboveOneIsHonored() {
         Ruleset standard = Rulesets.standard();
@@ -80,6 +88,10 @@ class ConfigurationTest {
         assertTrue(third.events().contains(new GameEvent.PotionWasted(potion(5))));
     }
 
+    /**
+     * A new card with its own effect, an elixir that ignores the potion
+     * allowance, plays through the unchanged engine.
+     */
     @Test
     void aNewCardDefinitionAndEffectPlugInWithoutEngineChanges() {
         // An "elixir": heals ignoring the per-turn potion allowance.

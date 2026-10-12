@@ -23,11 +23,11 @@ final class HpPulse {
 
     /**
      * How much the fill moves in a frame, filling and draining. A heal climbs
-     * three times as fast as a hit drains: the two used to share one rate, and
-     * a large drink then took the best part of a second to register — long
-     * after the bottle had finished pouring, so the cause and the effect came
-     * apart. The drain keeps the slower rate because it is the beat the whole
-     * hit is built around; the bar shakes for exactly as long as it lasts.
+     * three times as fast as a hit drains: at the drain's rate a large drink
+     * would take the best part of a second to register, long after the bottle
+     * has finished pouring, and the cause and the effect would come apart. The
+     * drain keeps the slower rate because it is the beat the whole hit is built
+     * around; the bar shakes for exactly as long as it lasts.
      */
     private static final int HEAL_STEP = 3 * HudArt.SEGMENT_PITCH;
     private static final int DRAIN_STEP = HudArt.SEGMENT_PITCH;

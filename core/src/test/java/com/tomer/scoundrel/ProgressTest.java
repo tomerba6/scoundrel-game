@@ -20,8 +20,10 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+/** Erasing all progress: every store cleared together and recoverable, and the audio settings left alone. */
 class ProgressTest {
 
+    /** A fresh directory for each test, deleted afterwards. */
     @TempDir
     Path dir;
 
@@ -37,6 +39,10 @@ class ProgressTest {
         return new TutorialFlag(dir.resolve("tutorial.seen"));
     }
 
+    /**
+     * Erasing empties the runs, the achievements and the tutorial flag, and the
+     * runs and achievements read back from their {@code .bak} files.
+     */
     @Test
     void eraseAllWipesEveryStoreAndLeavesEachRecoverable() {
         RunLog runLog = runLog();
@@ -62,6 +68,7 @@ class ProgressTest {
                 new AchievementStore(dir.resolve("achievements.log.bak")).readAll());
     }
 
+    /** Erasing when nothing has been saved leaves every store empty and throws nothing. */
     @Test
     void eraseAllOnEmptyStoresIsANoOp() {
         RunLog runLog = runLog();
@@ -73,6 +80,7 @@ class ProgressTest {
         assertFalse(tutorial.isSeen());
     }
 
+    /** Erasing progress leaves the audio settings as they were, with no backup made of them. */
     @Test
     void eraseAllLeavesTheAudioSettingsAlone() {
         // Volume is a setting, not progress: a player who resets their record

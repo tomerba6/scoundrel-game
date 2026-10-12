@@ -18,6 +18,7 @@ class IdleCycleTest {
 
     private static final int FRAMES = 5;
 
+    /** The idle runs at 6 fps, so a frame holds 1/6s and the five-frame cycle 5/6s. */
     @Test
     void aCycleIsFiveFramesAtSixFps() {
         assertEquals(6, IdleCycle.FPS);
@@ -26,6 +27,7 @@ class IdleCycleTest {
         assertEquals(5f / 6f, IdleCycle.CYCLE_TIME, 1e-6f);
     }
 
+    /** Every moment inside a frame shows that frame. */
     @Test
     void timeHoldsOnAFrameRatherThanSlidingBetweenThem() {
         // Every instant inside a frame's 167ms returns that same frame; the
@@ -38,6 +40,7 @@ class IdleCycleTest {
         assertEquals(4, IdleCycle.frameIndex(0.834f - 0.002f, 0f, FRAMES));
     }
 
+    /** The cycle loops back to its first frame. */
     @Test
     void theCycleLoops() {
         assertEquals(0, IdleCycle.frameIndex(IdleCycle.CYCLE_TIME, 0f, FRAMES));
@@ -45,6 +48,7 @@ class IdleCycleTest {
         assertEquals(0, IdleCycle.frameIndex(IdleCycle.CYCLE_TIME * 100, 0f, FRAMES));
     }
 
+    /** A card's offset shifts which frame it shows. */
     @Test
     void anOffsetShiftsThePhase() {
         // Two cards a frame apart show different frames at the same instant --
@@ -54,6 +58,7 @@ class IdleCycleTest {
         assertEquals(3, IdleCycle.frameIndex(0f, 3 * IdleCycle.FRAME_TIME, FRAMES));
     }
 
+    /** The frame index is always in range, whatever the time and offset. */
     @Test
     void theIndexIsAlwaysInRange() {
         Random random = new Random(20260805L);
@@ -75,6 +80,7 @@ class IdleCycleTest {
         }
     }
 
+    /** Random offsets fall within one cycle and reach into its last frame. */
     @Test
     void offsetsSpanExactlyOneCycleAndNoMore() {
         Random random = new Random(7L);
@@ -103,6 +109,7 @@ class IdleCycleTest {
         }
     }
 
+    /** The focused card passes through every frame. */
     @Test
     void theFocusedCardStillRunsItsCycle() {
         Set<Integer> seen = new HashSet<>();

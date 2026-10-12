@@ -13,12 +13,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Picking which version of a sound plays next. */
 class VariantPickerTest {
 
     private static VariantPicker picker(long seed) {
         return new VariantPicker(new Random(seed));
     }
 
+    /** A sound with one version always gets version 1. */
     @Test
     void aSoundWithOneVersionAlwaysGetsIt() {
         VariantPicker picker = picker(1);
@@ -27,6 +29,7 @@ class VariantPickerTest {
         }
     }
 
+    /** With two or three versions, the same version never plays twice in a row. */
     @Test
     void neverTheSameVersionTwiceInARow() {
         for (int versions = 2; versions <= 3; versions++) {
@@ -40,6 +43,7 @@ class VariantPickerTest {
         }
     }
 
+    /** Versions are numbered from 1, and every one comes up. */
     @Test
     void everyVersionComesUpAndIsCountedFromOne() {
         VariantPicker picker = picker(7);
@@ -52,6 +56,7 @@ class VariantPickerTest {
         assertEquals(Set.of(1, 2, 3), seen);
     }
 
+    /** The no-repeat rule is kept per sound, even with two sounds interleaved. */
     @Test
     void eachSoundRemembersItsOwnLastVersion() {
         // Two sounds interleaved: the no-repeat rule is per sound, so with two
@@ -67,6 +72,7 @@ class VariantPickerTest {
         }
     }
 
+    /** The same seed gives the same sequence. */
     @Test
     void theSameSeedGivesTheSameSequence() {
         VariantPicker a = picker(42);
@@ -76,6 +82,7 @@ class VariantPickerTest {
         }
     }
 
+    /** Asking with no versions throws IllegalArgumentException. */
     @Test
     void aSoundNeedsAtLeastOneVersion() {
         assertThrows(IllegalArgumentException.class, () -> picker(1).pick("nothing", 0));

@@ -6,9 +6,8 @@ package com.tomer.scoundrel.screens;
  * potion marker opposite it, and the event feed down the right.
  *
  * <p>Coordinates are 1280×720 with y measured downward, as the art is
- * specified; {@link CardArt#toWorldY} converts when drawing. Every number was
- * measured off the reference render rather than guessed, and this is the one
- * place they live.
+ * specified; {@link CardArt#toWorldY} converts when drawing. This is the one
+ * place these numbers live.
  */
 final class BoardArt {
 
@@ -17,15 +16,15 @@ final class BoardArt {
 
     // --- the card's header and value --------------------------------------
 
-    /** The mock's 6px padding inside the plate, which is itself inset by the frame. */
+    /** The 6px padding inside the plate, which is itself inset by the frame. */
     private static final int HEADER_PAD = 6;
-    /** The suit pip beside the rank — 12px, the size the mock draws it. */
+    /** The suit pip beside the rank, 12px square. */
     static final int PIP = 12;
     /** Between the rank and its pip. */
     static final int PIP_GAP = 4;
     /**
-     * The numeral's baseline, measured down from the top of the card. The
-     * reference puts the glyph's foot at y=432 with the row at 214.
+     * The numeral's baseline, measured down from the top of the card: with the
+     * row at 214, the glyph's foot sits at y=432.
      */
     static final int VALUE_BOTTOM = 218;
     /** A hard offset, not a blur: the shadow is the glyph moved down four. */
@@ -46,12 +45,13 @@ final class BoardArt {
     /** The rail well's size, square, frame included, in design pixels. */
     static final int RAIL_BOX = 80;
     /**
-     * The card sprite at ×1. The reference draws it at 72, which is ×1.125 —
-     * uneven, so some source pixels would take two screen pixels and their
-     * neighbours one. The well keeps the render's size; only the icon shrinks.
+     * The card sprite at ×1, centred in the {@link #RAIL_BOX} well. Anything
+     * between ×1 and ×2 is an uneven scale — at 72px, ×1.125, some source pixels
+     * would take two screen pixels and their neighbours one — so the well keeps
+     * its size and only the icon shrinks.
      */
     static final int RAIL_ICON = Sprites.SIZE;
-    /** The recess the icon sits in, the same iron the mock uses. */
+    /** The recess the icon sits in. */
     static final int RAIL_WELL = 0x12161a;
 
     /** The label, chips and plate stack up in a column to the right of the well. */
@@ -96,7 +96,7 @@ final class BoardArt {
     static final int MARKER_BOX = 36;
     /**
      * The sprite halved — every 2×2 source block becomes one pixel, which is
-     * the only shrink that keeps the grid even. The reference's 26px does not.
+     * the gentlest shrink that keeps the grid even.
      */
     static final int MARKER_ICON = Sprites.SIZE / 2;
     /** The marker label's left edge, in design pixels. */
@@ -133,8 +133,8 @@ final class BoardArt {
     /**
      * The line YOU DIED grows outward from, above the middle of the screen.
      * Drawing it by the top of its line instead — which is what a Batch draw
-     * takes — made it grow downward, so it read as being pushed rather than as
-     * arriving.
+     * takes — would make it grow downward, so it would read as being pushed
+     * rather than as arriving.
      */
     static final int DEATH_TITLE_CENTRE_Y = 300;
 

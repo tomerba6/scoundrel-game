@@ -31,15 +31,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless smoke test of everything the app does over a full game *except*
+ * Headless smoke test of everything the app does over a full game <em>except</em>
  * rendering: every random-but-legal game across every mode is driven through
  * the real observer + persistence + achievement pipeline exactly as
  * {@code GameScreen.applyMove}/{@code finishRun} wire it — the {@link RunRecorder}
  * and {@link AchievementTracker} watch each {@link MoveResult}, then at game end
  * the record is built, high-scored, persisted through the tolerant {@link RunLog},
- * and achievements are evaluated. It asserts the whole chain never throws and
- * stays self-consistent, so an integration regression between the engine and its
- * observers surfaces here rather than only in a hand-run of the game.
+ * and, in Standard (the one mode that counts them), achievements are evaluated.
+ * It asserts the whole chain never throws and stays self-consistent, so an
+ * integration regression between the engine and its observers surfaces here
+ * rather than only in a hand-run of the game.
  *
  * <p>The drawing layer above this (the actual rendering, animations, and input
  * routing in {@code GameScreen}) is GL-bound and is verified by screenshot
@@ -49,9 +50,14 @@ class GamePipelineSmokeTest {
 
     private static final int GAMES_PER_MODE = 60;
 
+    /** A fresh directory for each test, deleted afterwards. */
     @TempDir
     Path dir;
 
+    /**
+     * Sixty random legal games in each mode run through the whole non-visual
+     * pipeline, and each record matches its game and reads back from the log.
+     */
     @Test
     void everyModePlaysFullGamesThroughTheObserverAndPersistencePipeline() {
         RunLog runLog = new RunLog(dir.resolve("runs.log"));

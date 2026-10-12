@@ -19,9 +19,9 @@ final class CalloutPlacement {
     static final int NOTCH_H = 14;
 
     /**
-     * The NEXT button's rectangle inside a callout. A record rather than the
-     * {@code int[4]} it used to be — four numbers in an array is four chances to
-     * read w where y was meant.
+     * The NEXT button's rectangle inside a callout. A record rather than an
+     * {@code int[4]}: four numbers in an array is four chances to read w where
+     * y was meant.
      *
      * @param x the plate's left edge, in design pixels
      * @param y the plate's top edge, in design pixels measured downward

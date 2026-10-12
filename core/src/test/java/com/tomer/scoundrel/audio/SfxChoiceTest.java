@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Which sound each move makes, and the pitch, volume and version it plays at. */
 class SfxChoiceTest {
 
     private static final float EPSILON = 1e-6f;
@@ -45,11 +46,13 @@ class SfxChoiceTest {
 
     // --- the mapping, one event type at a time ------------------------------
 
+    /** Avoiding a room sounds a sweep. */
     @Test
     void avoidingSweeps() {
         assertEquals(List.of("sweep"), stems(sounds(new GameEvent.RoomAvoided(List.of()))));
     }
 
+    /** Equipping sounds light, medium or heavy by the weapon's value. */
     @Test
     void equippingIsWeightedByTheWeapon() {
         assertEquals(List.of("equip_light"), stems(sounds(new GameEvent.WeaponEquipped(weapon(2)))));
@@ -57,6 +60,7 @@ class SfxChoiceTest {
         assertEquals(List.of("equip_heavy"), stems(sounds(new GameEvent.WeaponEquipped(weapon(10)))));
     }
 
+    /** A weapon kill that costs no health is the blade alone, weighted by the weapon. */
     @Test
     void aCleanWeaponKillIsTheBladeAlone() {
         SfxChoice choice = new SfxChoice(1);
@@ -65,6 +69,7 @@ class SfxChoiceTest {
         assertEquals(List.of("blade_heavy"), stems(sfx));
     }
 
+    /** A weapon kill that lets damage through adds a thud after the blade, weighted by the damage. */
     @Test
     void damageThroughAWeaponAddsAThudWeightedByTheDamage() {
         SfxChoice choice = new SfxChoice(1);
@@ -74,6 +79,7 @@ class SfxChoiceTest {
                 List.of(new GameEvent.MonsterDefeated(monster(14), true, 12)), 2)));
     }
 
+    /** The blade is weighted by the weapon, not by the monster. */
     @Test
     void theBladeIsWeightedByTheWeaponNotTheMonster() {
         SfxChoice choice = new SfxChoice(1);
@@ -84,6 +90,7 @@ class SfxChoiceTest {
                 List.of(new GameEvent.MonsterDefeated(monster(14), true, 4)), 10)).get(0));
     }
 
+    /** A bare-handed kill sounds a fist, weighted by the monster. */
     @Test
     void aBareHandedFightIsWeightedByTheMonster() {
         assertEquals(List.of("fist_light"), stems(sounds(new GameEvent.MonsterDefeated(monster(3), false, 3))));
@@ -91,6 +98,7 @@ class SfxChoiceTest {
         assertEquals(List.of("fist_heavy"), stems(sounds(new GameEvent.MonsterDefeated(monster(11), false, 11))));
     }
 
+    /** A potion that heals nothing still sounds a drink, weighted by the potion. */
     @Test
     void aPotionThatHealsNothingIsStillADrink() {
         // Drunk at full health: it counts as the room's potion, it just heals 0.
@@ -98,11 +106,13 @@ class SfxChoiceTest {
         assertEquals(List.of("drink_light"), stems(sounds(new GameEvent.PotionUsed(potion(2), 2))));
     }
 
+    /** A wasted potion sounds a spill. */
     @Test
     void aWastedPotionSpills() {
         assertEquals(List.of("spill"), stems(sounds(new GameEvent.PotionWasted(potion(5)))));
     }
 
+    /** A dealt room, a degraded weapon, a win and a loss make no sound effect. */
     @Test
     void theEventsThatMakeNoSound() {
         // RoomDealt: the flips follow the cards landing, not the event.
@@ -119,11 +129,13 @@ class SfxChoiceTest {
     private record SomeFutureEvent() implements GameEvent {
     }
 
+    /** An event type it does not know is silent rather than an error. */
     @Test
     void anEventTypeItDoesNotKnowIsSilentRatherThanAnError() {
         assertEquals(List.of(), sounds(new SomeFutureEvent()));
     }
 
+    /** A whole costly weapon-kill move, refill included, sounds only the blade and the thud. */
     @Test
     void aWholeWeaponKillMoveSoundsOnlyTheKill() {
         // What the engine actually reports for a costly kill that refills the room.
@@ -136,6 +148,7 @@ class SfxChoiceTest {
 
     // --- pitch, volume and versions -----------------------------------------
 
+    /** A single-version, unweighted sound plays at exactly its own pitch and volume every time. */
     @Test
     void singleVersionSoundsAreExactlyTheSameEveryTime() {
         SfxChoice choice = new SfxChoice(3);
@@ -150,6 +163,7 @@ class SfxChoiceTest {
         }
     }
 
+    /** A weighted single-version sound carries its value's pitch nudge and nothing else. */
     @Test
     void aWeightedSingleVersionSoundCarriesOnlyItsValueNudge() {
         Sfx equip = sounds(new GameEvent.WeaponEquipped(weapon(2))).get(0);
@@ -159,6 +173,10 @@ class SfxChoiceTest {
         assertEquals(Scale.POTION.pitchOf(10), drink.pitch(), EPSILON);
     }
 
+    /**
+     * A frequent sound varies in pitch and volume within the jitter, is never
+     * louder, and never repeats its version.
+     */
     @Test
     void frequentSoundsVarySlightlyButNeverLouder() {
         SfxChoice choice = new SfxChoice(11);
@@ -177,6 +195,7 @@ class SfxChoiceTest {
         assertTrue(pitches.size() > 1, "the jitter should actually move the pitch");
     }
 
+    /** The jitter is applied on top of the value's pitch nudge. */
     @Test
     void theJitterRidesOnTopOfTheValueNudge() {
         SfxChoice choice = new SfxChoice(5);
@@ -190,6 +209,7 @@ class SfxChoiceTest {
         }
     }
 
+    /** The same seed makes the same choices. */
     @Test
     void theSameSeedMakesTheSameChoices() {
         SfxChoice a = new SfxChoice(99);
@@ -199,8 +219,9 @@ class SfxChoiceTest {
         }
     }
 
-    // --- the deal's riffle (round 1: four even flips a frame apart read as a machine gun) ---
+    // --- the deal's riffle (four even flips a frame apart would read as a machine gun) ---
 
+    /** Each later card of a deal plays quieter than the previous card at its quietest. */
     @Test
     void eachLaterCardOfADealIsQuieterThanTheOneBefore() {
         // With the variation on top, the fade must still order them: a card's loudest
@@ -214,6 +235,7 @@ class SfxChoiceTest {
         }
     }
 
+    /** Each card of a deal plays within its own riffle step's level and pitch. */
     @Test
     void eachCardPlaysWithinItsStepOfTheRiffle() {
         SfxChoice choice = new SfxChoice(8);
@@ -232,6 +254,7 @@ class SfxChoiceTest {
         }
     }
 
+    /** The riffle's first step is at full level and pitch, and each later step is lower in both. */
     @Test
     void theRiffleStartsFullAndFallsInLevelAndPitch() {
         assertEquals(1f, SfxChoice.RIFFLE_GAIN[0], 0f);
@@ -242,6 +265,7 @@ class SfxChoiceTest {
         }
     }
 
+    /** Cards past the fourth keep the riffle's last step. */
     @Test
     void cardsPastTheFourthKeepTheLastStep() {
         // A ruleset with a bigger room deals more; the riffle holds its last step.
@@ -255,11 +279,13 @@ class SfxChoiceTest {
         }
     }
 
+    /** A negative place in the deal is refused with IllegalArgumentException. */
     @Test
     void aCardHasAPlaceInTheDeal() {
         assertThrows(IllegalArgumentException.class, () -> new SfxChoice(1).flip(-1));
     }
 
+    /** The menu click and the trophy chime are their own single files, at plain pitch and volume. */
     @Test
     void theMenuAndTrophySoundsAreTheirOwnFiles() {
         SfxChoice choice = new SfxChoice(1);

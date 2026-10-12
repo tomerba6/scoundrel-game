@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A row of buttons whose widths come from their labels, laid out centred with a
- * fixed gap — the run-end panel's four, which the render shows at 112/119/106/122
- * rather than at one shared width.
+ * fixed gap — the run-end panel's four, measured at 112, 119, 106 and 122 wide
+ * rather than one shared width.
  *
  * <p>The measuring needs a font, so it is passed in and the placing is
  * arithmetic. Same seam as {@link TextWrap}.
@@ -21,6 +21,7 @@ class ButtonRowTest {
     /** A fake face: ten pixels a character plus fixed padding either side. */
     private static final ToIntFunction<String> TEN = s -> s.length() * 10 + 20;
 
+    /** A single button takes its label's width and is centred in the region. */
     @Test
     void oneButtonIsCentredOnTheRow() {
         List<ButtonRow.Slot> slots = ButtonRow.lay(List.of("AB"), 0, 1000, 10, TEN);
@@ -29,6 +30,7 @@ class ButtonRowTest {
         assertEquals(480, slots.get(0).x(), "centred on 1000");
     }
 
+    /** Each button takes its own label's width. */
     @Test
     void widthsFollowTheLabelsRatherThanBeingShared() {
         List<ButtonRow.Slot> slots = ButtonRow.lay(List.of("A", "BBBB"), 0, 1000, 10, TEN);
@@ -36,6 +38,7 @@ class ButtonRowTest {
         assertEquals(60, slots.get(1).width());
     }
 
+    /** Neighbouring buttons are exactly the gap apart. */
     @Test
     void theGapBetweenNeighboursIsExact() {
         List<ButtonRow.Slot> slots = ButtonRow.lay(List.of("AA", "BB", "CC"), 0, 1000, 10, TEN);
@@ -66,16 +69,17 @@ class ButtonRowTest {
         }
     }
 
+    /** No labels lay out as no slots. */
     @Test
     void anEmptyRowLaysNothingRatherThanThrowing() {
         assertEquals(List.of(), ButtonRow.lay(List.of(), 0, 1000, 10, TEN));
     }
 
     /**
-     * The real row: four labels at the render's own widths must land on the
-     * render's own x positions. Note it is centred on the <b>panel</b>, whose
-     * centre is 638 — centring on the stage's 640 puts every button two pixels
-     * right of where the reference has it.
+     * The real row: the four labels at their measured widths land on their
+     * measured x positions. Note it is centred on the <b>panel</b>, whose centre
+     * is 638 — centring on the stage's 640 would put every button two pixels
+     * right.
      */
     @Test
     void theRunEndRowMatchesTheReferenceRender() {
@@ -96,14 +100,15 @@ class ButtonRowTest {
     }
 
     // --- hit testing -------------------------------------------------------
-    // Characterized before this moved off GameScreen, where a miswired call
-    // site would have left every test green and the buttons dead.
+    // GameScreen hit-tests the run-end buttons through indexAt, so a wrong
+    // answer here leaves them dead.
 
     /** Three 100-wide buttons at x = 0, 110, 220, sitting on world-y 400..440. */
     private static List<ButtonRow.Slot> row() {
         return ButtonRow.lay(List.of("A", "B", "C"), 0, 330, 10, s -> 100);
     }
 
+    /** A point on a button hits that button's index. */
     @Test
     void aPointInsideAButtonReturnsItsIndex() {
         assertEquals(0, ButtonRow.indexAt(row(), 400f, 40, 50f, 420f));
@@ -111,12 +116,14 @@ class ButtonRowTest {
         assertEquals(2, ButtonRow.indexAt(row(), 400f, 40, 270f, 420f));
     }
 
+    /** A point in the gap between buttons hits nothing. */
     @Test
     void aPointInTheGapBetweenButtonsHitsNothing() {
         assertEquals(PressGesture.NONE, ButtonRow.indexAt(row(), 400f, 40, 105f, 420f),
                 "the 10px gap is not a target");
     }
 
+    /** A point below the row, or on or above its top edge, hits nothing. */
     @Test
     void aPointAboveOrBelowTheRowHitsNothing() {
         assertEquals(PressGesture.NONE, ButtonRow.indexAt(row(), 400f, 40, 50f, 399f));
@@ -124,11 +131,13 @@ class ButtonRowTest {
                 "the top edge is exclusive, as the original was");
     }
 
+    /** A point on the row's bottom edge hits. */
     @Test
     void theBandIsInclusiveAtItsBottomEdge() {
         assertEquals(0, ButtonRow.indexAt(row(), 400f, 40, 50f, 400f));
     }
 
+    /** An empty row hits nothing. */
     @Test
     void anEmptyRowHitsNothing() {
         assertEquals(PressGesture.NONE, ButtonRow.indexAt(List.of(), 400f, 40, 50f, 420f));

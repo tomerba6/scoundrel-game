@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class BarehandedTest {
 
+    /** The creature shows its struck frame for the whole exchange and not after. */
     @Test
     void theCreatureHoldsItsStruckFrameForTheWholeExchange() {
         // Not just during the hits -- it stays lit until the exchange ends, so
@@ -25,6 +26,7 @@ class BarehandedTest {
         assertFalse(Barehanded.hurtShowing(Barehanded.TOTAL));
     }
 
+    /** Exactly two blows land, on frames 0 and 1. */
     @Test
     void thereAreExactlyTwoHitsAndTheSecondFollowsTheFirst() {
         Set<Integer> hitFrames = new LinkedHashSet<>();
@@ -37,6 +39,7 @@ class BarehandedTest {
         assertEquals(Set.of(0, 1), hitFrames, "blows land on frames 0 and 1");
     }
 
+    /** The second blow lands the frame after the first, and there is no third. */
     @Test
     void theSecondBlowLandsTheFrameAfterTheFirst() {
         assertTrue(Barehanded.hitLanding(0f));
@@ -44,6 +47,7 @@ class BarehandedTest {
         assertFalse(Barehanded.hitLanding(2 * Barehanded.FRAME), "and there is no third");
     }
 
+    /** A star steps through 40, 96 and 152px, never between them. */
     @Test
     void eachStarSteppsThroughThreeDiscreteSizes() {
         Set<Integer> sizes = new LinkedHashSet<>();
@@ -57,6 +61,7 @@ class BarehandedTest {
         assertEquals(Set.of(40, 96, 152), sizes, "expected three discrete sizes, got " + sizes);
     }
 
+    /** Both stars appear, the second after the first. */
     @Test
     void bothStarsFireAndTheSecondFollowsTheFirst() {
         assertTrue(Barehanded.starSize(0, 0f) > 0, "first star should be up at t=0");
@@ -64,6 +69,7 @@ class BarehandedTest {
         assertTrue(Barehanded.starSize(1, 3 * Barehanded.FRAME) > 0, "second star should fire");
     }
 
+    /** A star fades as it grows, and is gone when the exchange ends. */
     @Test
     void aStarFadesAsItGrows() {
         float first = Barehanded.starAlpha(0, 0f);
@@ -73,9 +79,9 @@ class BarehandedTest {
     }
 
     /**
-     * One flash for the exchange, not one per blow. The blows are now a single
-     * frame apart, so the one wash covers both — which is what it was always
-     * for: the exchange is one event, however many times the fist lands.
+     * One flash for the exchange, not one per blow. The blows are a single
+     * frame apart, so the one wash covers both: the exchange is one event,
+     * however many times the fist lands.
      */
     @Test
     void theScreenFlashesOnceAndTheWashCoversBothBlows() {
@@ -87,6 +93,7 @@ class BarehandedTest {
         assertFalse(Barehanded.flashShowing(Barehanded.TOTAL - Barehanded.FRAME));
     }
 
+    /** The card shakes in multiples of 4px, and does move. */
     @Test
     void theCardShakesOnAFourPixelGrid() {
         Set<Integer> xs = new LinkedHashSet<>();
@@ -100,12 +107,14 @@ class BarehandedTest {
         assertTrue(xs.size() > 1, "the card never actually moved");
     }
 
+    /** The shake ends at rest. */
     @Test
     void theShakeSettlesBackToRest() {
         assertEquals(0, Barehanded.shakeX(Barehanded.TOTAL));
         assertEquals(0, Barehanded.shakeY(Barehanded.TOTAL));
     }
 
+    /** Every value holds for a whole frame. */
     @Test
     void everyValueHoldsForAWholeFrame() {
         for (int frame = 0; frame < 4; frame++) {
@@ -122,10 +131,9 @@ class BarehandedTest {
     }
 
     /**
-     * The art direction quoted ~900ms. In the hand it read as a pause rather
-     * than a blow — you are told what happened long after you know — so the
-     * exchange is cut to four frames, the shortest that still fits two blows
-     * and their stars. The choreography is unchanged; every beat holds for less.
+     * The exchange is four frames, the shortest that still fits two blows and
+     * their stars. Any longer reads as a pause rather than a blow — you are told
+     * what happened long after you know.
      */
     @Test
     void theExchangeIsOverInAThirdOfASecond() {

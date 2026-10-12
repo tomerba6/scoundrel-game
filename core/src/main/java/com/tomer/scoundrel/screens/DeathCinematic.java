@@ -12,11 +12,11 @@ package com.tomer.scoundrel.screens;
  * game being obscured and the game failing.
  *
  * <p>The pacing is the point, and this is deliberately the slowest thing in the
- * game. An earlier version wiped the board in half a second and had the title up
- * before the loss had registered, which made a death read as a page turn. Now
- * the board is held dead and lit for the best part of a second — long enough to
- * read the empty bar and the number under zero — and the light is taken away
- * before the board is. The whole thing can be clicked through at any point.
+ * game. Wiping the board in half a second, with the title up before the loss has
+ * registered, reads as a page turn; so the board is held dead and lit for the
+ * best part of a second — long enough to read the empty bar and the number under
+ * zero — and the light is taken away before the board is. The whole thing can be
+ * clicked through at any point.
  */
 final class DeathCinematic {
 
@@ -46,17 +46,16 @@ final class DeathCinematic {
      * the more of them fit inside the same final size.
      *
      * <p>That granularity is the whole point. Drawn from a large face the first
-     * jump was 3× to 4× — a third larger in one go — and the run only had four
-     * sizes in it. Here the first jump is a fifth and the last a twentieth.
+     * jump would be 3× to 4× — a third larger in one go — with only four sizes in
+     * the run. Here the first jump is a fifth and the last an eighteenth.
      */
     private static final int[] TITLE_ZOOM = {
         5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     };
     /**
      * One frame each. At 12fps a step every frame is as smooth as anything in
-     * this game can be, and any hold longer than that is a visible stutter — the
-     * previous version held its first steps four frames apiece while they were
-     * also the largest jumps in the run, which is what made the start lurch.
+     * this game can be, and any hold longer than that is a visible stutter,
+     * worst on the first steps, where the jumps are largest.
      * The death is slow because its lead-in is long, not because the title
      * pauses on the way in.
      */

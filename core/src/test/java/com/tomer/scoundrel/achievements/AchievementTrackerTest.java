@@ -16,8 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** Gathering the facts the achievement rules need from a run's events. */
 class AchievementTrackerTest {
 
+    /** A finished run's summary carries its outcome, score, final health and the seconds given. */
     @Test
     void capturesOutcomeScoreHealthAndSeconds() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -31,6 +33,7 @@ class AchievementTrackerTest {
         assertEquals(87, summary.seconds());
     }
 
+    /** Final health is the health after the last move observed. */
     @Test
     void finalHealthIsTheLastObservedState() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -41,6 +44,7 @@ class AchievementTrackerTest {
         assertEquals(1, tracker.toSummary(30).finalHealth());
     }
 
+    /** The strongest bare-handed kill and the number of them are tracked, with weapon kills left out. */
     @Test
     void tracksHighestAndCountOfBareHandedKillsOnly() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -58,6 +62,7 @@ class AchievementTrackerTest {
         assertEquals(2, summary.barehandedKillCount());
     }
 
+    /** A full turn of three resolutions that kills a monster and takes no damage is flawless. */
     @Test
     void aFullRoomResolvedWithoutDamageIsFlawless() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -73,6 +78,7 @@ class AchievementTrackerTest {
         assertTrue(tracker.toSummary(40).flawlessRoom());
     }
 
+    /** A full turn in which any damage was taken is not flawless. */
     @Test
     void aRoomInWhichAnyDamageWasTakenIsNotFlawless() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -86,6 +92,7 @@ class AchievementTrackerTest {
         assertFalse(tracker.toSummary(40).flawlessRoom());
     }
 
+    /** An avoided room is not flawless, though it cost no damage. */
     @Test
     void anAvoidedRoomIsNotFlawlessDespiteTakingNoDamage() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -97,6 +104,7 @@ class AchievementTrackerTest {
         assertFalse(tracker.toSummary(40).flawlessRoom());
     }
 
+    /** A scratchless final room of fewer than three resolutions does not count. */
     @Test
     void aScratchlessFinalPartialRoomDoesNotCount() {
         // The standard game ends in a 2-card room; clearing it without a scratch
@@ -110,6 +118,7 @@ class AchievementTrackerTest {
         assertFalse(tracker.toSummary(50).flawlessRoom());
     }
 
+    /** A flawless room is found after an earlier room that took damage. */
     @Test
     void aFlawlessRoomAfterADamagedOneIsStillDetected() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -129,6 +138,7 @@ class AchievementTrackerTest {
         assertTrue(tracker.toSummary(80).flawlessRoom());
     }
 
+    /** A flawless room still counts when the run later ends in a loss. */
     @Test
     void aFlawlessRoomEarnedBeforeDyingStillCounts() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -148,6 +158,7 @@ class AchievementTrackerTest {
         assertEquals(Status.LOST, summary.outcome());
     }
 
+    /** A damageless turn in which no monster was killed does not count. */
     @Test
     void aDamagelessRoomWithNoMonsterDoesNotCount() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);
@@ -161,6 +172,7 @@ class AchievementTrackerTest {
         assertFalse(tracker.toSummary(40).flawlessRoom());
     }
 
+    /** Asking for the summary before the run has ended throws IllegalStateException. */
     @Test
     void toSummaryBeforeTheGameEndsThrows() {
         AchievementTracker tracker = new AchievementTracker(FULL_ROOM);

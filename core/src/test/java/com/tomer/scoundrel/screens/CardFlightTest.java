@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class CardFlightTest {
 
+    /** A sweep takes one position per hop, with nothing in between. */
     @Test
     void aFlightHopsRatherThanSliding() {
         // Each hop holds for its whole duration; there is no position between
@@ -29,6 +30,7 @@ class CardFlightTest {
                 "expected one position per hop, got " + xs);
     }
 
+    /** A sweep ends on the depth ticker's centre. */
     @Test
     void aFlightEndsOnItsAnchor() {
         float last = CardFlight.AVOID.total() - 0.001f;
@@ -36,12 +38,14 @@ class CardFlightTest {
         assertEquals(CardFlight.TICKER_CY, CardFlight.y(CardFlight.AVOID, 220, last));
     }
 
+    /** A flight starts where the card was. */
     @Test
     void aFlightStartsWhereTheCardWas() {
         assertEquals(252, CardFlight.x(CardFlight.AVOID, 252, 0f));
         assertEquals(220, CardFlight.y(CardFlight.AVOID, 220, 0f));
     }
 
+    /** Every position of the carry is a whole pixel, and none goes negative. */
     @Test
     void everyPositionIsAWholePixel() {
         // Ints throughout: there is no way to express a half-pixel here, which
@@ -53,6 +57,7 @@ class CardFlightTest {
         }
     }
 
+    /** The carry to the rail shrinks the card to 100%, 55% and 18% across its hops. */
     @Test
     void theEquipFlightShrinksThroughTheSpecifiedScales() {
         assertEquals(100, CardFlight.scale(CardFlight.EQUIP, 0f));
@@ -60,6 +65,7 @@ class CardFlightTest {
         assertEquals(18, CardFlight.scale(CardFlight.EQUIP, 2 * CardFlight.EQUIP.hopTime()));
     }
 
+    /** The sweep shrinks the card at every hop. */
     @Test
     void theAvoidSweepShrinksMonotonically() {
         int previous = 101;
@@ -71,13 +77,9 @@ class CardFlightTest {
     }
 
     /**
-     * The quoted hops — 0.20s and 0.24s — are 2.4 and 2.88 frames at 12fps, so
-     * neither landed on the grid to begin with. Rounded up they made a sweep
-     * take two thirds of a second and a carry three quarters, which is a long
-     * time to watch a card you have finished with. Both are cut; what is
-     * asserted here is the constraint that actually matters, that a hop is a
-     * whole number of frames. A hop ending mid-frame would slide instead of
-     * stepping.
+     * A hop is a whole number of frames — one each, so a sweep and a carry each
+     * take a quarter second; any longer is a long time to watch a card you have
+     * finished with. A hop ending mid-frame would slide instead of stepping.
      *
      * <p>Asserted as "a whole number of frames" rather than with a modulo:
      * float remainder returns the divisor rather than zero when the division
@@ -102,11 +104,10 @@ class CardFlightTest {
     }
 
     /**
-     * The whole room leaves together, as release 1's did — one parallel action
-     * per card, no delay between them. You scooped four cards; four cards go.
-     * Emptying them left to right made the avoid read as four separate
-     * decisions rather than the one you actually took, and cost a frame a card
-     * for the privilege.
+     * The whole room leaves together — one parallel action per card, no delay
+     * between them. You scooped four cards; four cards go. Emptying them left to
+     * right would read as four separate decisions rather than the one you
+     * actually took, and cost a frame a card.
      */
     @Test
     void theWholeAvoidedRoomLeavesAtOnce() {
@@ -119,6 +120,7 @@ class CardFlightTest {
         }
     }
 
+    /** A full room's sweep takes a quarter second, as long as one card's. */
     @Test
     void aSweepTakesNoLongerForAFullRoomThanForOneCard() {
         assertEquals(CardFlight.AVOID.total(), CardFlight.AVOID.totalFor(4), 1e-5f);
@@ -127,6 +129,7 @@ class CardFlightTest {
         assertEquals(0.25f, CardFlight.AVOID.totalFor(4), 1e-5f);
     }
 
+    /** A flight is finished at its total time and not before. */
     @Test
     void aFlightFinishes() {
         assertFalse(CardFlight.AVOID.finished(CardFlight.AVOID.total() - 0.01f));
@@ -152,6 +155,7 @@ class CardFlightTest {
         assertEquals(100, CardFlight.scale(deal, end), "a dealt card ends full size");
     }
 
+    /** A dealt card starts at the depth ticker, smaller than full size. */
     @Test
     void aDealStartsSmallAtTheDungeon() {
         CardFlight.Flight deal = CardFlight.dealTo(452, CardArt.SLOT_Y);
@@ -184,6 +188,7 @@ class CardFlightTest {
                 CardFlight.slideTo(0, 0).hopTime(), 1e-5f);
     }
 
+    /** Every hop of a deal is a whole number of frames. */
     @Test
     void everyDealHopIsAWholeFrame() {
         float frames = CardFlight.dealTo(0, 0).hopTime() / (1f / 12f);
@@ -207,6 +212,10 @@ class CardFlightTest {
         assertTrue(CardFlight.landed(deal, 2, deal.total() + 2 * deal.staggerTime()));
     }
 
+    /**
+     * Every card of a four-card deal has landed exactly when the deal ends, and
+     * the last not a moment before.
+     */
     @Test
     void theWholeRoomIsDownExactlyWhenTheDealIsOver() {
         CardFlight.Flight deal = CardFlight.dealTo(452, CardArt.SLOT_Y);
@@ -219,11 +228,10 @@ class CardFlightTest {
     }
 
     /**
-     * The room lands one card at a time. Release 1 dealt on a 0.04s stagger,
-     * which at 12fps rounds to nothing — but a room that arrives all at once
-     * reads as a single event rather than as four cards being dealt, so the
-     * stagger is a whole frame: the smallest gap this grid can express, and
-     * enough to see each card land.
+     * The room lands one card at a time. A room that arrives all at once reads
+     * as a single event rather than as four cards being dealt, so the stagger is
+     * a whole frame: the smallest gap this grid can express, and enough to see
+     * each card land.
      */
     @Test
     void aDealStaggersSoTheCardsLandOneAfterAnother() {
@@ -244,8 +252,8 @@ class CardFlightTest {
      * A slide does <b>not</b> stagger, and that is the difference between the
      * two. Cards arriving out of the dungeon are four separate events and read
      * better one after another; cards already on the table shifting up as the
-     * room closes are one row adjusting, and staggering them made a resolved
-     * card look like it had triggered a second deal.
+     * room closes are one row adjusting, and staggering them would make a
+     * resolved card look like it had triggered a second deal.
      */
     @Test
     void aSlideMovesTheWholeRowAtOnceUnlikeADeal() {

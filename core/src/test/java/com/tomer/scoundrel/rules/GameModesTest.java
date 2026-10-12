@@ -12,8 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/** The catalog of game modes the menu offers. */
 class GameModesTest {
 
+    /** The three modes each have a unique id, a title, a description and a ruleset, with Standard first. */
     @Test
     void catalogHasUniqueIdsAndCopyWithStandardFirst() {
         List<GameMode> all = GameModes.all();
@@ -28,6 +30,7 @@ class GameModesTest {
         }
     }
 
+    /** Only Standard counts towards achievements. */
     @Test
     void onlyStandardTracksAchievements() {
         for (GameMode m : GameModes.all()) {
@@ -35,6 +38,7 @@ class GameModesTest {
         }
     }
 
+    /** Relentless never allows avoiding, Frail starts at 14 and Standard at 20. */
     @Test
     void eachModeCarriesItsMatchingRuleset() {
         assertTrue(GameModes.byId("relentless").orElseThrow().ruleset().avoidRule()
@@ -43,6 +47,7 @@ class GameModesTest {
         assertEquals(20, GameModes.STANDARD.ruleset().startingHealth());
     }
 
+    /** Looking up a known id finds its mode; an unknown or empty id finds nothing. */
     @Test
     void byIdFindsAKnownModeAndIsEmptyForAnUnknownOne() {
         assertEquals("Relentless", GameModes.byId("relentless").orElseThrow().title());
