@@ -20,6 +20,16 @@ documentation added and one unused constant removed. Everything below is for dev
   run `lwjgl3:check` alongside `core:check`.
 - **`ScoundrelGame` carries `@author` and `@version`,** and `VersionTagTest` fails the build if
   `@version` and `projectVersion` disagree, so a release now bumps both.
+- **Every test says what it checks.** Each test has a one-line doc comment giving the behaviour it
+  checks and the outcome it expects, and each test class a class doc. `TestDocGateTest` fails the
+  build on a test without one: doclint cannot gate the tests, because it reports every test
+  class's default constructor under the same check as a missing comment.
+
+### Changed
+- **Comments describe the code, not its history.** Citations of the handoff, the mock and the
+  reference render, and passages on what an earlier version did, are rewritten as the
+  present-tense reasons they gave — in doc comments, method bodies and assertion messages alike.
+  `screens/package-info.java` says once where the layout numbers and colours come from.
 
 ### Fixed
 - **The README's coverage badge measured five of the six gated packages.** `audio` never reached
@@ -27,6 +37,11 @@ documentation added and one unused constant removed. Everything below is for dev
 - **Three stale doc comments.** `TorchFlicker` linked to a class that no longer exists, `Embers`
   named a Scene2D method it no longer has, and `CalloutPlacement` had a block of `@param` tags
   documenting nothing.
+- **Comments that contradicted the code.** Among them: `BoardEscape` described Android's Back
+  button, though the game has no Android module; `GamePipelineSmokeTest` said every mode evaluates
+  achievements, where only Standard does; `WeaponKillTest` said the kill flash holds two frames,
+  where it holds one; and `HudArtTest` put the Avoid button's bevel outside its plate, where it
+  sits inside.
 
 ### Removed
 - `ScreenArt.FACE_WELL`, a colour constant no screen drew from. The colour itself is still in use.
