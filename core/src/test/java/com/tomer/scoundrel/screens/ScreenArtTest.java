@@ -232,7 +232,7 @@ class ScreenArtTest {
         assertEquals(41, ScreenArt.TABLE_X);
         assertEquals(111, ScreenArt.TABLE_Y);
         assertEquals(868, ScreenArt.TABLE_W);
-        assertEquals(140, ScreenArt.ledgerRowY(0), "measured off the render");
+        assertEquals(140, ScreenArt.ledgerRowY(0), "the first row starts below the header");
         assertEquals(176, ScreenArt.ledgerRowY(1));
         assertEquals(464, ScreenArt.ledgerRowY(9));
         assertEquals(391, ScreenArt.tableH(ScreenArt.LEDGER_ROWS));
@@ -267,7 +267,7 @@ class ScreenArtTest {
         assertEquals(296, ScreenArt.TOTALS_W);
         assertEquals(152, ScreenArt.totalsRowY(0));
         assertEquals(182, ScreenArt.totalsRowY(0) + ScreenArt.TOTALS_ROW_H - ScreenArt.THICK,
-                "the first rule is at 182 on the render");
+                "the first rule is at 182");
         assertEquals(374, ScreenArt.totalsRowY(6) + ScreenArt.TOTALS_ROW_H - ScreenArt.THICK,
                 "and the last one at 374");
         int bottom = ScreenArt.totalsRowY(ScreenArt.TOTALS_ROWS - 1) + ScreenArt.TOTALS_ROW_H;
@@ -328,7 +328,7 @@ class ScreenArtTest {
         int interior = ScreenArt.PROGRESS_W - 2 * ScreenArt.THICK;
         assertEquals(0, ScreenArt.progressFillWidth(0, 10));
         assertEquals(interior, ScreenArt.progressFillWidth(10, 10));
-        assertEquals(62, ScreenArt.progressFillWidth(4, 10), "the render shows 4 of 10 as 62px");
+        assertEquals(62, ScreenArt.progressFillWidth(4, 10), "4 of 10 fills 62px");
         assertEquals(interior, ScreenArt.progressFillWidth(99, 10), "more earned than exist");
         assertEquals(0, ScreenArt.progressFillWidth(1, 0), "no catalog, no division");
     }
@@ -427,7 +427,7 @@ class ScreenArtTest {
      */
     @Test
     void theRunEndPanelShrinksWhenNothingWasUnlocked() {
-        assertEquals(444, ScreenArt.endH(true), "the render's own height");
+        assertEquals(444, ScreenArt.endH(true), "the panel with its trophy band");
         assertTrue(ScreenArt.endH(false) < ScreenArt.endH(true));
         for (boolean trophies : new boolean[] {true, false}) {
             int top = ScreenArt.endY(trophies);

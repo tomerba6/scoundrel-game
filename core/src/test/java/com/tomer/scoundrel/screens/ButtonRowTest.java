@@ -128,7 +128,7 @@ class ButtonRowTest {
     void aPointAboveOrBelowTheRowHitsNothing() {
         assertEquals(PressGesture.NONE, ButtonRow.indexAt(row(), 400f, 40, 50f, 399f));
         assertEquals(PressGesture.NONE, ButtonRow.indexAt(row(), 400f, 40, 50f, 440f),
-                "the top edge is exclusive, as the original was");
+                "the top edge is exclusive");
     }
 
     /** A point on the row's bottom edge hits. */

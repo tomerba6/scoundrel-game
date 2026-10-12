@@ -204,9 +204,8 @@ class PressGestureTest {
     /** A held button, and only that one, is already down until it is released. */
     @Test
     void aHeldTargetIsAlreadyDownUntilItComesUp() {
-        // Seen once, on the session's first click after leaving fullscreen: one
-        // press delivered twice, which played the menu click twice. A button that
-        // is already down cannot go down again.
+        // One press delivered twice would play the menu click twice. A button
+        // that is already down cannot go down again.
         PressGesture press = new PressGesture();
         assertFalse(press.alreadyDown(2), "nothing is down yet");
         press.press(2);

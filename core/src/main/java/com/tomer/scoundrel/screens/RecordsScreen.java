@@ -209,8 +209,8 @@ public final class RecordsScreen extends PixelScreen {
         chrome.face(batch, ScreenArt.TABLE_X + inset, y, ScreenArt.TABLE_W - 2 * inset,
                 ScreenArt.ROW_H, row.stripe());
         int h = ScreenArt.ROW_H;
-        // The numeral is a place in the list, not a reading — the render keeps
-        // it as quiet as the mode and the date, so the eye lands on the score.
+        // The numeral is a place in the list, not a reading, so it is set as
+        // quiet as the mode and the date and the eye lands on the score.
         chrome.textInRow(batch, theme.pixelLabel, row.numeral(), ScreenArt.COL_RUN, y, h,
                 ScreenArt.CELL_QUIET, 1f);
         chrome.textRightInRow(batch, theme.pixelBody, row.score(), ScreenArt.COL_SCORE_RIGHT,
